@@ -1,24 +1,14 @@
-resource "stackguardian_role" "ONBOARDING-Project01-Developer" {
+resource "stackguardian_role" "example-role" {
   data = jsonencode({
-    "ResourceName" : "ONBOARDING-Project01-Developer",
-    //"Description" : "Onboarding example of terraform-provider-stackguardian for Role Developer",
+    "ResourceName" : var.roleName,
+    "Description" : "Example of terraform-provider-stackguardian for Role",
     "Tags" : ["tf-provider-example", "onboarding"],
     "Actions" : [
       "wicked-hop",
     ],
     "AllowedPermissions" : {
-
-      // WF-GROUP
-      "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/" : {
-        "name" : "GetWorkflowGroup",
-        "paths" : {
-          "<wfGrp>" : [
-            "ONBOARDING-Project01-Frontend",
-            "ONBOARDING-Project01-Backend",
-            "ONBOARDING-Project01-DevOps"
-          ]
-        }
-      }
+      "Permission-key-1" : "Permission-val-1",
+      "Permission-key-2" : "Permission-val-2"
     }
   })
 }
