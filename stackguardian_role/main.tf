@@ -1,6 +1,3 @@
-
-
-
 resource "stackguardian_role" "ONBOARDING-Project01-Developer" {
   data = jsonencode({
     "ResourceName" : "ONBOARDING-Project01-Developer",

@@ -4,9 +4,9 @@ variable "roleName" {
 }
 variable "api_key" {
   type = string
-  default = "value"
+  default = "sgu_6366Rj2tDHhoAf6M5zYA9"
 }
 variable "org_name" {
   type = string
-  default = "StackGuardian"
+  default = "wicked-hop"
 }
