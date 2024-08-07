@@ -1,4 +1,4 @@
-resource "stackguardian_role" "TPS-Example-Role" {
+resource "stackguardian_role" "Example-Role" {
   data = jsonencode({
     "ResourceName" : var.roleName,
     "Description" : "Example of terraform-provider-stackguardian for Role",
