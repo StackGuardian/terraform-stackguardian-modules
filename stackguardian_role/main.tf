@@ -1,6 +1,4 @@
-
-
-resource "stackguardian_role" "example-role" {
+resource "stackguardian_role" "role" {
   data = jsonencode({
     "ResourceName" : var.role_name,
     "Description" : "Role in Stackguardian",

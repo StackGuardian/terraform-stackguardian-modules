@@ -1,7 +1,5 @@
 locals {
     allowed_permissions = {
-        data = jsonencode({
-        "AllowedPermissions": {
             "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/": {
                 "name": "GetWorkflowRunFact",
                 "paths": {
@@ -299,11 +297,8 @@ locals {
                     ]
                 }
             }
+         }
         
     }
-        
-        }
-        )
-}
-}
+
 
