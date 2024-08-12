@@ -1,14 +1,14 @@
+
+
 resource "stackguardian_role" "example-role" {
   data = jsonencode({
-    "ResourceName" : var.roleName,
-    "Description" : "Example of terraform-provider-stackguardian for Role",
+    "ResourceName" : var.role_name,
+    "Description" : "Role in Stackguardian",
     "Tags" : ["tf-provider-example", "onboarding"],
     "Actions" : [
-      "wicked-hop",
+      var.org_name,
     ],
-    "AllowedPermissions" : {
-      "Permission-key-1" : "Permission-val-1",
-      "Permission-key-2" : "Permission-val-2"
-    }
+    "AllowedPermissions" : var.allowed_permissions
   })
 }
+
