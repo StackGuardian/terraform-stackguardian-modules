@@ -1,0 +1,5 @@
+api_key = "sgu_6366Rj2tDHhoAf6M5zYA9"
+org_name = "wicked-hop"
+awsaccesskey = "value"
+awssecretaccesskey = "value"
+connector = "sg-cloud-connector"
