@@ -6,7 +6,7 @@ variable "org_name" {
   type = string
   description = "Organisation name in StackGuardian platform"
 }
-variable "ResourceName" {
+variable "workflow_group_name" {
   type = string
   description = "name of the workflow group"
 }
