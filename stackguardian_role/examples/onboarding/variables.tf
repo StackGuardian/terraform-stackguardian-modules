@@ -1,14 +1,14 @@
 variable "role_name" {
   type = string
-  default = "StackGuardian-role-example"
+  default = "stackGuardian-Role"
 }
-#variable "api_key" {
-  #type = string
-  #default = "value"
-#}
+variable "api_key" {
+  type = string
+  default = ""
+}
 variable "org_name" {
   type = string
-  default = "value"
+  default = ""
 }
 variable "allowed_permissions" {
   type = any
@@ -17,7 +17,7 @@ variable "allowed_permissions" {
       "Permission-key-2" : "Permission-val-2"
     }
 }
-variable "wfGrp" {
+variable "workflow_groups" {
   type = list
-  default = ["StackGuardian-workflow-group-example"]
+  default = ["group-dev", "group-prod"]
 }
