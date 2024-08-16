@@ -1,7 +1,7 @@
 variable "connector" {
   type = string
 }
-variable "awsaccesskey" {
+variable "awsaccesskeyid" {
   type = string
 }
 variable "awssecretaccesskey" {
