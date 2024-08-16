@@ -1,14 +1,19 @@
 variable "connector" {
   type = string
+  default = "aws-connector"
+  description = "Name for this AWS Connector in the StackGuardian platform"
 }
-variable "awsaccesskey" {
+variable "awsaccesskeyid" {
   type = string
+  default = ""
 }
 variable "awssecretaccesskey" {
   type = string
+  default = ""
 }
 variable "region" {
   type = string
+  default = "eu-central-1"
 }
 variable "api_key" {
   type = string
