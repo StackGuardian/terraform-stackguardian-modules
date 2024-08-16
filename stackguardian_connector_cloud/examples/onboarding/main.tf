@@ -1,4 +1,4 @@
-module "stackguardian_workflow_group" {
+module "stackguardian_connector_cloud" {
     source = "../.."
     api_key = var.api_key
     connector = var.connector
