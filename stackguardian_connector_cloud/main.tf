@@ -7,7 +7,7 @@ resource "stackguardian_connector_cloud" "sg-aws-static-connector" {
       "kind" : "AWS_STATIC",
       "config" : [
         {
-          "awsAccessKeyId" : var.awsaccesskey
+          "awsAccessKeyId" : var.awsaccesskeyid
           "awsSecretAccessKey" : var.awssecretaccesskey
           "awsDefaultRegion" : var.region
         }
