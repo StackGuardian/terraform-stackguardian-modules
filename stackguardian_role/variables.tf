@@ -1,9 +1,6 @@
 variable "role_name" {
   type = string
 }
-variable "api_key" {
-  type = string
-}
 variable "org_name" {
   type = string
 
