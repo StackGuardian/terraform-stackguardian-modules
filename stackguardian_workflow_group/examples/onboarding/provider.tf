@@ -7,6 +7,7 @@ terraform {
   }
 }
 
+
 provider "stackguardian" {
   api_key = var.api_key
   org_name = var.org_name

@@ -6,7 +6,7 @@ variable "api_key" {
   type = string
   description = "API key to authenticate to StackGuardian"
 }
-variable "workflow_group_name" {
-  type = string
-  description = "name of the workflow group"
+variable "workflow_groups" {
+  type = list
+  default = ["group-dev", "group-prod"]
 }
