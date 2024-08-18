@@ -1,9 +1,0 @@
-stackguardian_workflow_group/examples/onboarding/.terraform/providers/registry.terraform.io/stackguardian/stackguardian/0.2.0-beta2/darwin_arm64/README.md
-stackguardian_workflow_group/examples/onboarding/.terraform/providers/registry.terraform.io/stackguardian/stackguardian/0.2.0-beta2/darwin_arm64/LICENSE
-stackguardian_workflow_group/examples/onboarding/terraform.tfstate
-stackguardian_workflow_group/examples/onboarding/terraform.tfstate.backup
-stackguardian_workflow_group/examples/onboarding/.terraform/modules/modules.json
-stackguardian_workflow_group/examples/onboarding/.terraform/providers/registry.terraform.io/stackguardian/stackguardian/0.2.0-beta2/darwin_arm64/CHANGELOG.md
-stackguardian_workflow_group/examples/onboarding/.terraform/providers/registry.terraform.io/stackguardian/stackguardian/0.2.0-beta2/darwin_arm64/terraform-provider-stackguardian_v0.2.0-beta2
-stackguardian_workflow_group/examples/onboarding/.terraform.lock.hcl
-stackguardian_workflow_group/examples/onboarding/terraform.tfvars
