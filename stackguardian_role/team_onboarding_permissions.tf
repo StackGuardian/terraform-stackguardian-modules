@@ -296,9 +296,25 @@ locals {
                         ".*"
                     ]
                 }
+            },
+             "GET/api/v1/orgs/wicked-hop/integrations/<integration>/": {
+                "name": "GetIntegration",
+                "paths": {
+                    "<integration>": concat(var.connectors_cloud,var.connectors_vcs)
+                }
+            },
+            "GET/api/v1/templatetypes/<templateType>/<org>/<template>/": {
+                "name": "GetTemplate",
+                "paths": {
+                    "<templateType>": [
+                    ".*"
+                    ],
+                    "<template>": var.template_list,
+                    "<org>": [
+                    ".*"
+                    ]
+                }
             }
-         }
-        
     }
-
-
+        
+}

@@ -11,6 +11,18 @@ variable "workflow_groups" {
   type = list
   default = ["group-dev", "group-prod"]
 }
+variable "connectors_cloud" {
+  type = list
+  default = ["aws-demo"] 
+}
+variable "connectors_vcs" {
+  type = list
+  default = ["github"]
+}
+variable "template_list" {
+  type = list
+  default = ["terraform-aws-vpc-stripped"]
+}
 variable "allowed_permissions" {
   type = any
   default = {
