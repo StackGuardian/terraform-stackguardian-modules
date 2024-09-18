@@ -6,3 +6,10 @@ terraform {
     }
   }
 }
+
+
+provider "stackguardian" {
+  api_key = var.api_key
+  org_name = var.org_name
+  api_uri = "https://api.app.stackguardian.io/api/v1/"
+}
