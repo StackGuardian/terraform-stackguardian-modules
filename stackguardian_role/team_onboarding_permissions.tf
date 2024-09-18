@@ -1,5 +1,5 @@
 locals {
-    allowed_permissions = {
+    team_onboarding_permissions = {
             "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/": {
                 "name": "GetWorkflowRunFact",
                 "paths": {
