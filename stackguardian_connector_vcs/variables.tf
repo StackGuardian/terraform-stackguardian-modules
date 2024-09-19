@@ -21,11 +21,11 @@ variable "vcs_kind" {
 
 variable "gitlab_credentials" {
   type = any
-  default = {
+  default = [{
     
             "gitlabCreds": "gitlabuser:gitlab_pat",
             "gitlabHttpUrl": "https://gitlab.com",
             "gitlabApiUrl": "https://gitlab.com/api/v4"
         
-  }
+  }]
 }

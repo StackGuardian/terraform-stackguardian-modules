@@ -5,7 +5,7 @@ resource "stackguardian_connector_vcs" "sg_vcs_connector" {
     "Description" : "Onboarding of VCS Connector",
     "Settings" : {
       "kind" : var.vcs_kind
-      "config" : [ var.gitlab_credentials]
+      "config" : var.gitlab_credentials
     },
   })
 }
