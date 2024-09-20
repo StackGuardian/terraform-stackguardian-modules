@@ -8,7 +8,9 @@ variable "api_key" {
 }
 variable "group_or_user" {
   type = string
-  description = "Group or User that should be onboarded"
+  description = "Group or User that should be onboarded" 
+  #Format: sso-auth/email (email in SSO), sso-auth/group-id (Group in SSO), email (Email via local login)
+  #Example: "stackguardian-1/user@sg.com" or "stackguardian-1/9djhd38cniwje9jde" or "user@org.com"
 }
 variable "role_name" {
   type = string
