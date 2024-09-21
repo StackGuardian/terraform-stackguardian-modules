@@ -8,7 +8,7 @@ data "http" "invite_user" {
   }
 
   request_body = jsonencode({
-    userId        = var.group_or_user
+    userId        = var.user_or_group
     role          = var.role_name
   })
 }
