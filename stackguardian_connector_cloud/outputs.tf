@@ -1,6 +1,6 @@
-output "connector_name" {
+output "resource_name" {
   description = "Cloud Connector Name created"
-  value       = var.connector_name
+  value       = var.resource_name
 }
 output "connector_type" {
   description = "Cloud Connector Type created"

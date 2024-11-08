@@ -3,8 +3,8 @@ variable "connector_type" {
   # AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_STATIC
 }
 
-variable "connector_name" {
-  type = string
+variable "resource_name" {
+ type = string
   description = "Name of the Cloud connector"
 }
 variable "api_key" {
