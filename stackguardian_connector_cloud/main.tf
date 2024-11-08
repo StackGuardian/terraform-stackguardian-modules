@@ -1,38 +1,30 @@
-resource "stackguardian_connector_cloud" "sg_aws_static_connector" {
+resource "stackguardian_connector" "sg_aws_static_connector" {
   count = (var.connector_type == "AWS_STATIC") ? 1 : 0
-  data = jsonencode({
-    "ResourceName" : var.connector_name,
-    "Tags" : ["tf-provider-example", "onboarding"]
-    "Description" : "AWS Cloud Connector",
-    "Settings" : {
-      "kind" : var.connector_type,
-      "config" : [
-        {
-          "awsAccessKeyId" : var.aws_access_key_id
-          "awsSecretAccessKey" : var.aws_secret_access_key
-          "awsDefaultRegion" : var.aws_default_region
-        }
-      ]
-    }
-  })
+  resource_name = var.resource_name
+  description = "Onboarding example of terraform-provider-stackguardian for AWSConnectorCloud"
+  settings = {
+    kind = var.connector_type,
+    config = [{
+        aws_access_key_id = var.aws_access_key_id,
+        aws_secret_access_key = var.aws_secret_access_key,
+        aws_default_region = var.aws_default_region
+      }]
+  }
+  scope = ["*"]
 }
 
-resource "stackguardian_connector_cloud" "sg_azure_static_connector" {
+resource "stackguardian_connector" "sg_azure_static_connector" {
   count = (var.connector_type == "AZURE_STATIC") ? 1 : 0
-  data = jsonencode({
-    "ResourceName" : var.connector_name,
-    "Tags" : ["sg-azure-cloud-connector"]
-    "Description" : "Azure Cloud Connector",
-    "Settings" : {
-     "kind": var.connector_type,
-    "config": [
-      {
-        "armTenantId": var.armTenantId,
-        "armSubscriptionId": var.armSubscriptionId,
-        "armClientId": var.armClientId,
-        "armClientSecret": var.armClientSecret
-      }
-    ]
-    }
-  })
+  resource_name = var.resource_name
+  description = "Onboarding example of terraform-provider-stackguardian for AzureConnectorCloud"
+  settings = {
+    kind = var.connector_type,
+    config = [{
+        armTenantId = var.armTenantId,
+        armSubscriptionId = var.armSubscriptionId,
+        armClientId = var.armClientId,
+        armClientSecret = var.armClientSecret
+    }]
+  }
+  scope = ["*"]
 }
