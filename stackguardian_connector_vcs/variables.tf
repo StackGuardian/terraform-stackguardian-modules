@@ -1,5 +1,6 @@
-variable "vcs_connector_name" {
+variable "resource_name" {
   type = string
+  description = "name of the connector"
 }
 variable "api_key" {
   type = string
@@ -11,7 +12,12 @@ variable "org_name" {
 }
 variable "vcs_kind" {
   type = string
+  description = "the type of vcs"
   default = "GITLAB_COM" # GITHUB_COM, GITHUB_APP_CUSTOM, BITBUCKET_ORG, AZURE_DEVOPS
+}
+
+variable "vcs_connector_name" {
+  type = string
 }
 
 

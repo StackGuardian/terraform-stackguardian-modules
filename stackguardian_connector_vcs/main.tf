@@ -1,11 +1,10 @@
-resource "stackguardian_connector_vcs" "sg_vcs_connector" {
-  data = jsonencode({
-    "ResourceName" : var.vcs_connector_name
-    "Tags" : ["tf-provider-example", "onboarding"]
-    "Description" : "Onboarding of VCS Connector",
-    "Settings" : {
-      "kind" : var.vcs_kind
-      "config" : var.gitlab_credentials
-    },
-  })
+resource "stackguardian_connector" "sg_vcs_connector" {
+  resource_name = var.resource_name
+  description   = "Onboarding example of terraform-provider-stackguardian for ConnectorVcs"
+ settings = {
+    kind = var.vcs_kind
+    config = [{
+      gitlab_creds = var.gitlab_credentials
+    }]
+  }
 }
