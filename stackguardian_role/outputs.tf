@@ -1,4 +1,4 @@
 output "role" {
   description = "Created Role"
-  value       = var.role_name
+  value       = var.resource_name
 }
