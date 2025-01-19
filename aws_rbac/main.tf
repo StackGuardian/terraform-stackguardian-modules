@@ -1,6 +1,3 @@
-locals {
-  orgname = "var.orgname"
-}
 resource "aws_iam_role" "sg-test-role" {
   name               = var.name
   description = "StackGuardianIntegrationRole"
@@ -17,7 +14,7 @@ resource "aws_iam_role" "sg-test-role" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = "var.orgname:abc12345"  # Replace with your external ID
+            "sts:ExternalId" = "${var.orgname}:abc12345"  # Replace with your external ID
           }
         }
       }
@@ -28,5 +25,5 @@ resource "aws_iam_role" "sg-test-role" {
 resource "aws_iam_policy_attachment" "readonly_access" {
   name       = var.policy_name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
-  roles      = [aws_iam_role.sg-test-role-clara-001.name]
+  roles      = [aws_iam_role.sg-test-role.name]
 }
