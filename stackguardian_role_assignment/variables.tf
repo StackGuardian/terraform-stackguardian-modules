@@ -20,7 +20,7 @@ variable "entity_type" {
 
 variable "role_name" {
   type = string
-  description = "Role that should be assigned to the User or group"
+  description = "Role that will be assigned to the User or group"
 }
 
 
