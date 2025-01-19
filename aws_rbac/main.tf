@@ -1,5 +1,5 @@
 resource "aws_iam_role" "sg-test-role" {
-  name               = var.name
+  name               = var.role_name
   description = "StackGuardianIntegrationRole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -14,7 +14,7 @@ resource "aws_iam_role" "sg-test-role" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = "${var.orgname}:abc12345"  # Replace with your external ID
+            "sts:ExternalId" = var.role_external_id  # Replace with your external ID
           }
         }
       }
@@ -22,8 +22,8 @@ resource "aws_iam_role" "sg-test-role" {
   })
 }
 
-resource "aws_iam_policy_attachment" "readonly_access" {
-  name       = var.policy_name
-  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+resource "aws_iam_policy_attachment" "sg_role_policy" {
+  name       = "${var.role_name}-policy"
+  policy_arn = var.aws_policy
   roles      = [aws_iam_role.sg-test-role.name]
 }
