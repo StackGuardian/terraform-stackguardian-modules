@@ -1,6 +1,6 @@
-output "user_or_group" {
+output "user" {
   description = "User/Group created"
-  value       = var.user_or_group
+  value       = var.user_id
 }
 output "role" {
   description = "Role assigned to User/Group"

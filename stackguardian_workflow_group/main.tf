@@ -1,9 +1,5 @@
-resource "stackguardian_workflow_group" "Example-WorkflowGroup" {
-  for_each = toset(var.workflow_groups)
-  data = jsonencode({
-    "ResourceName" : each.key,
-    "Description" : "WorkflowGroup for Environment X",
-    "Tags" : ["tf-provider-example"],
-    "IsActive" : 1,
-  })
+resource "stackguardian_workflow_group" "workflow-group" {
+  resource_name = var.resource_name
+  description   = "Onboarding example  of terraform-provider-stackguardian for WorkflowGroup"
+  tags          = ["tf-provider-example", "onboarding"]
 }
