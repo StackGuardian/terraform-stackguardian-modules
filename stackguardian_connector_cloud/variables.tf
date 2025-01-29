@@ -1,19 +1,21 @@
-variable "connector_type" {
-  type = string
-  # AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_STATIC
-}
-
-variable "resource_name" {
- type = string
-  description = "Name of the Cloud connector"
-}
 variable "api_key" {
   type = string
-  description = "API key to authenticate to StackGuardian"
+  description = "Your organization's API key on the StackGuardian Platform"
 }
+
 variable "org_name" {
   type = string
-  description = "Organisation name in StackGuardian platform"
+  description = "Your organization name on StackGuardian Platform"
+}
+
+variable "connector_type" {
+  type = string
+  description = "type of connector. You can select anyone of the following AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_STATIC"
+}
+
+variable "cloud_connector_name" {
+ type = string
+  description = "Name of the Cloud connector"
 }
 
 
@@ -23,42 +25,47 @@ variable "org_name" {
 
 variable "aws_access_key_id" {
   type = string
-  description = "AWS ACCESS Key ID"
-  default = ""
+  description = "your AWS acoount access key"
 }
+
 variable "aws_secret_access_key" {
   type = string
-  description = "AWS ACCESS Key Secret"
-  default = ""
+  description = "your AWS account secret access key"
 }
+
 variable "aws_default_region" {
   type = string
-  description = "AWS Default Region for Connector"
-  default = ""
+  description = "any default region you want to set, for all your deployments"
 }
 
 ################
 # AZURE_STATIC Credentials
 ################
 
-
 variable "armTenantId" {
   type = string
-  description = "Azure Tenant ID"
-  default = ""
+  description = "your azure account tenant id"
 }
+
 variable "armSubscriptionId" {
   type = string
-  description = "Subscription ID"
-  default = ""
+  description = "your azure subscription id"
 }
+
 variable "armClientId" {
   type = string
-  description = "Client ID for Enterprise App"
-  default = ""
+  description = "your azure client id"
 }
+
 variable "armClientSecret" {
   type = string
-  description = "Client Secret for Enterprise App"
-  default = ""
+  description = "your azure client secret"
+}
+
+################
+# aws_oidc 
+################
+variable "role_arn" {
+  type = string
+  description = "arn of the aws oidc role"
 }

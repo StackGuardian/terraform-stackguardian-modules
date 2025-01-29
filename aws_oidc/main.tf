@@ -33,13 +33,5 @@ resource "aws_iam_role" "oidc_role" {
 resource "aws_iam_policy_attachment" "sg_role_policy" {
   name       = "${var.role_name}-policy"
   policy_arn = var.aws_policy
-  roles      = [aws_iam_role.sg-test-role.name]
-}
-
-output "oidc_provider_arn" {
-  value = aws_iam_openid_connect_provider.oidc_provider.arn
-}
-
-output "oidc_role_arn" {
-  value = aws_iam_role.oidc_role.arn
+  roles      = [aws_iam_role.oidc_role.name]
 }

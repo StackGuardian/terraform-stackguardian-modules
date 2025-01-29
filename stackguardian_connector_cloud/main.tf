@@ -1,6 +1,6 @@
 resource "stackguardian_connector" "sg_aws_static_connector" {
   count = (var.connector_type == "AWS_STATIC") ? 1 : 0
-  resource_name = var.resource_name
+  resource_name = var.cloud_connector_name
   description = "Onboarding example of terraform-provider-stackguardian for AWSConnectorCloud"
   settings = {
     kind = var.connector_type,
@@ -10,12 +10,24 @@ resource "stackguardian_connector" "sg_aws_static_connector" {
         aws_default_region = var.aws_default_region
       }]
   }
-  scope = ["*"]
+}
+
+
+resource "stackguardian_connector" "sg_aws_oidc_connector" {
+  count = (var.connector_type == "AWS_OIDC") ? 1 : 0
+  resource_name = var.cloud_connector_name
+  description = "Onboarding example of terraform-provider-stackguardian for AWSConnectorCloud"
+  settings = {
+    kind = var.connector_type,
+    config = [{
+        role_arn = var.role_arn
+      }]
+  }
 }
 
 resource "stackguardian_connector" "sg_azure_static_connector" {
   count = (var.connector_type == "AZURE_STATIC") ? 1 : 0
-  resource_name = var.resource_name
+  resource_name = var.cloud_connector_name
   description = "Onboarding example of terraform-provider-stackguardian for AzureConnectorCloud"
   settings = {
     kind = var.connector_type,
@@ -26,5 +38,4 @@ resource "stackguardian_connector" "sg_azure_static_connector" {
         armClientSecret = var.armClientSecret
     }]
   }
-  scope = ["*"]
 }
