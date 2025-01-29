@@ -30,5 +30,5 @@ variable "account_number" {
 
 variable "aws_policy" {
   type = string
-  description = "arn od aws policy"
+  description = "arn of aws policy"
 }
