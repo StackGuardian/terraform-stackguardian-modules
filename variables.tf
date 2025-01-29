@@ -103,7 +103,7 @@ variable "armClientId" {
 
 variable "armClientSecret" {
   type = string
-  description = "your azure client secret id"
+  description = "your azure client secret"
 }
 
 variable "stackguardian_connector_vcs_name" {
