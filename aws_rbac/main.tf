@@ -1,5 +1,5 @@
 resource "aws_iam_role" "sg-test-role" {
-  name               = var.role_name
+  name               = var.aws_role_name
   description = "StackGuardianIntegrationRole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -23,7 +23,7 @@ resource "aws_iam_role" "sg-test-role" {
 }
 
 resource "aws_iam_policy_attachment" "sg_role_policy" {
-  name       = "${var.role_name}-policy"
+  name       = "${var.aws_role_name}-policy"
   policy_arn = var.aws_policy
   roles      = [aws_iam_role.sg-test-role.name]
 }

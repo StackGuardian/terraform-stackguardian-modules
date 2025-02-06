@@ -6,15 +6,15 @@ variable "org_name" {
   type = string
   description = "name of the organization on StackGuardian that you want to work with"
 }
-variable "workflow_group" {
+variable "workflow_groups" {
   type = list
   description = "the list of workflow groups"
 }
-variable "cloud_connector" {
+variable "cloud_connectors" {
   type = list
   description = "list of cloud connectors you want to work with"
 }
-variable "stackguardian_connector_vcs" {
+variable "vcs_connectors" {
   type = list
   description = "list of version control systems"
 }

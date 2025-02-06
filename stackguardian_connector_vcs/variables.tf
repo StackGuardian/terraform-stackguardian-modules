@@ -1,7 +1,3 @@
-variable "stackguardian_connector_vcs_name" {
-  type = string
-  description = "name of the connector"
-}
 variable "api_key" {
   type = string
   description = "API key to authenticate to StackGuardian"
@@ -11,12 +7,13 @@ variable "org_name" {
   description = "Organisation name in StackGuardian platform"
 }
 
-variable "stackguardian_connector_kinds" {
-  description = "A map of connector kinds and their respective configurations"
+variable "vcs_connectors" {
+  description = "A map of connectors and their respective configurations"
   type = map(any)
   default = {
     vcs_gitlab = {
       kind   = "GITLAB_COM"
+      name   = "gitlab-connector"
       config = [{
         gitlab_creds = {
             gitlabCreds =  "gitlabuser:gitlab_pat",
@@ -26,6 +23,7 @@ variable "stackguardian_connector_kinds" {
       }]
     },
     vcs_github = {
+      name   = "github-connector"
       kind   = "GITHUB_COM"
       config = [{
         github_creds = {
@@ -35,6 +33,7 @@ variable "stackguardian_connector_kinds" {
       }]
     },
     vcs_bitbucket = {
+      name   = "bitbucket-connector"
       kind   = "BITBUCKET_ORG"
       config = [{
         bitbucket_creds = {

@@ -26,16 +26,19 @@ variable "cloud_connector_name" {
 variable "aws_access_key_id" {
   type = string
   description = "your AWS acoount access key"
+   default = null
 }
 
 variable "aws_secret_access_key" {
   type = string
   description = "your AWS account secret access key"
+   default = null
 }
 
 variable "aws_default_region" {
   type = string
   description = "any default region you want to set, for all your deployments"
+   default = null
 }
 
 ################
@@ -45,27 +48,41 @@ variable "aws_default_region" {
 variable "armTenantId" {
   type = string
   description = "your azure account tenant id"
+   default = null
+
 }
 
 variable "armSubscriptionId" {
   type = string
   description = "your azure subscription id"
+  default = null
+  
 }
 
 variable "armClientId" {
   type = string
   description = "your azure client id"
+   default = null
+
 }
 
 variable "armClientSecret" {
   type = string
   description = "your azure client secret"
+ default = null
 }
 
 ################
-# aws_oidc 
+# AWS_OIDC Credentials + AWS_RBAC Credentials
 ################
 variable "role_arn" {
   type = string
   description = "arn of the aws oidc role"
+}
+
+###### for AWS_RBAC the externalID is also needed
+variable "role_external_id" {
+  type = string
+  description = "external id of the aws rbac role"
+  #default = "<org_name>:<random_string>"
 }

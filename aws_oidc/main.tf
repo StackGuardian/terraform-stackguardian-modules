@@ -1,7 +1,7 @@
 # Step 1: Create an OpenID Connect provider in AWS IAM
 resource "aws_iam_openid_connect_provider" "oidc_provider" {
-  url                     = var.url  # OIDC provider URL
-  client_id_list          = [ var.client_id ]            # OIDC client ID or the Audience id
+  url                     = "https://api.app.stackguardian.io"  # OIDC provider URL
+  client_id_list          = [ "https://api.app.stackguardian.io" ]            # OIDC client ID or the Audience id
   thumbprint_list         = []
 }
 
@@ -19,7 +19,7 @@ resource "aws_iam_role" "oidc_role" {
 			"Action": "sts:AssumeRoleWithWebIdentity",
 			"Condition": {
 				"StringEquals": {
-					"api.app.stackguardian.io:aud" = var.url
+					"api.app.stackguardian.io:aud" = "https://api.app.stackguardian.io"
 				},
 				"StringLike": {
             "api.app.stackguardian.io:sub" = "/orgs/${var.org_name}"

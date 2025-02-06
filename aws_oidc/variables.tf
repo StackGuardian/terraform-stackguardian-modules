@@ -3,16 +3,6 @@ variable "region" {
   description = "the region for deploying the resources"
 }
 
-variable "url" {
-  type = string
-  description = "URL of the identity provider"
-}
-
-variable "client_id" {
-  type = string
-  description = "List of client IDs (audiences) that identify the application registered with the OpenID Connect provider" 
-}
-
 variable "role_name" {
   type = string
   description = "name of the aws role thats getting created"

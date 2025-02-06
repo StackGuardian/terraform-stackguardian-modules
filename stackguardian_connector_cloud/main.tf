@@ -16,11 +16,25 @@ resource "stackguardian_connector" "sg_aws_static_connector" {
 resource "stackguardian_connector" "sg_aws_oidc_connector" {
   count = (var.connector_type == "AWS_OIDC") ? 1 : 0
   resource_name = var.cloud_connector_name
-  description = "Onboarding example of terraform-provider-stackguardian for AWSConnectorCloud"
+  description = "Onboarding an AWS Role with OIDC"
   settings = {
     kind = var.connector_type,
     config = [{
         role_arn = var.role_arn
+      }]
+  }
+}
+
+resource "stackguardian_connector" "sg_aws_rbac_connector" {
+  count = (var.connector_type == "AWS_RBAC") ? 1 : 0
+  resource_name = var.cloud_connector_name
+  description = "Onboarding an AWS Role with RBAC"
+  settings = {
+    kind = var.connector_type,
+    config = [{
+        role_arn = var.role_arn
+        external_id = var.role_external_id
+        duration_seconds = 3600
       }]
   }
 }

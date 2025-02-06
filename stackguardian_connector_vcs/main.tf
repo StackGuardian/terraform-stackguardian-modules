@@ -11,7 +11,7 @@
 
 resource "stackguardian_connector" "sg_vcs_connector" {
     for_each = {
-    for key, value in var.stackguardian_connector_kinds : 
+    for key, value in var.vcs_connectors : 
     key => value if (
       # Check if any credentials are provided for gitlab, github or bitbucket
       (
@@ -22,8 +22,8 @@ resource "stackguardian_connector" "sg_vcs_connector" {
     )
   }
 
-  resource_name = var.stackguardian_connector_vcs_name
-  description   = "Onboarding example of terraform-provider-stackguardian for ConnectorVcs"
+  resource_name = each.value.name
+  description   = "Onboarding VCS connector"
 
   settings = {
     kind   = each.value.kind

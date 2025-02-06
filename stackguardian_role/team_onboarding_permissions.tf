@@ -1,9 +1,9 @@
 locals {
     team_onboarding_permissions = {
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/": {
                 "name": "GetWorkflowRunFact",
                 "paths": {
-                    "<wfGrp>": var.workflow_group
+                    "<wfGrp>": var.workflow_groups
                     "<wfRun>": [
                         ".*"
                     ],
@@ -15,10 +15,10 @@ locals {
                     ]
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/resume/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/resume/": {
                 "name": "ResumeStackWorkflowRun",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -30,16 +30,16 @@ locals {
                     ]
                 }
             },
-            "PATCH/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/": {
+            "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/": {
                 "name": "UpdateWorkflowGroup",
                 "paths": {
-                    "<wfGrp>": var.workflow_group
+                    "<wfGrp>": var.workflow_groups
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/listall_artifacts/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/listall_artifacts/": {
                 "name": "ListStackWorkflowArtifacts",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -48,34 +48,34 @@ locals {
                     ]
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfgrps/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfgrps/": {
                 "name": "CreateNestedWorkflowGroup",
                 "paths": {
-                    "<wfGrp>": var.workflow_group
+                    "<wfGrp>": var.workflow_groups
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/": {
                 "name": "CreateWorkflow",
                 "paths": {
-                    "<wfGrp>":  var.workflow_group
+                    "<wfGrp>":  var.workflow_groups
                 }
             },
-            "DELETE/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/": {
+            "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/": {
                 "name": "UpdateWorkflowRun",
                 "paths": {
                     "<wfRun>": [
                         ".*"
                     ],
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/": {
                 "name": "GetStackWorkflowRun",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -87,46 +87,46 @@ locals {
                     ]
                 }
             },
-            "DELETE/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/": {
+            "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/": {
                 "name": "DeleteStack",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ]
                 }
             },
-            "PATCH/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/": {
+            "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/": {
                 "name": "UpdateWorkflow",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/stackruns/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/stackruns/": {
                 "name": "CreateStackRun",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/listall_artifacts/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/listall_artifacts/": {
                 "name": "ListWorkflowArtifacts",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "PATCH/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/": {
+            "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/": {
                 "name": "UpdateStackWorkflow",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -135,10 +135,10 @@ locals {
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/": {
                 "name": "GetStackWorkflowRunFact",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -153,10 +153,10 @@ locals {
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/outputs/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/outputs/": {
                 "name": "GetStackWorkflowOutputs",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -165,10 +165,10 @@ locals {
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/logs/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/logs/": {
                 "name": "GetStackWorkflowRunLogs",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -180,31 +180,31 @@ locals {
                     ]
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/resume/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/resume/": {
                 "name": "ResumeWorkflowRun",
                 "paths": {
                     "<wfRun>": [
                         ".*"
                     ],
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/": {
                 "name": "CreateWorkflowRun",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "DELETE/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/": {
+            "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/": {
                 "name": "DeleteStackWorkflow",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -213,10 +213,10 @@ locals {
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/": {
                 "name": "GetStackWorkflow",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ],
@@ -225,82 +225,82 @@ locals {
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/<stack>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/": {
                 "name": "GetStack",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<stack>": [
                         ".*"
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/": {
                 "name": "GetWorkflow",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/": {
                 "name": "GetWorkflowGroup",
                 "paths": {
-                    "<wfGrp>": var.workflow_group
+                    "<wfGrp>": var.workflow_groups
                 }
             },
-            "POST/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/stacks/": {
+            "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/": {
                 "name": "CreateStack",
                 "paths": {
-                    "<wfGrp>": var.workflow_group
+                    "<wfGrp>": var.workflow_groups
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/outputs/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/outputs/": {
                 "name": "GetWorkflowOutputs",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "DELETE/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/": {
+            "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/": {
                 "name": "DeleteWorkflow",
                 "paths": {
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/": {
                 "name": "GetWorkflowRun",
                 "paths": {
                     "<wfRun>": [
                         ".*"
                     ],
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-            "GET/api/v1/orgs/wicked-hop/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/logs/": {
+            "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/logs/": {
                 "name": "GetWorkflowRunLogs",
                 "paths": {
                     "<wfRun>": [
                         ".*"
                     ],
-                    "<wfGrp>":var.workflow_group
+                    "<wfGrp>":var.workflow_groups
                     "<wf>": [
                         ".*"
                     ]
                 }
             },
-             "GET/api/v1/orgs/wicked-hop/integrations/<integration>/": {
+             "GET/api/v1/orgs/${var.org_name}/integrations/<integration>/": {
                 "name": "GetIntegration",
                 "paths": {
-                    "<integration>": concat(var.cloud_connector,var.stackguardian_connector_vcs)
+                    "<integration>": concat(var.cloud_connectors,var.vcs_connectors)
                 }
             },
             "GET/api/v1/templatetypes/<templateType>/<org>/<template>/": {

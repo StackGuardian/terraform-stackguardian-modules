@@ -1,52 +1,36 @@
+locals {
+  cloud_connectors_list = [for con in var.cloud_connectors : con.name]
+}
+
 # ################################
 #  # Stackguardian Workflow Group
 # ################################
 module "stackguardian_workflow_group" {
-  source = "../terraform-stackguardian-modules/stackguardian_workflow_group"
+  for_each = toset(var.workflow_groups)
+  source = "./stackguardian_workflow_group"
   api_key = var.api_key
   org_name = var.org_name
-  workflow_group_name = var.workflow_group_name
-}
-
-# ################################
-#  # Stackguardian aws oidc
-# ################################
-module "aws_oidc" {
-  source = "../terraform-stackguardian-modules/aws_oidc"
-  account_number = var.account_number
-  client_id = var.client_id
-  region = var.region
-  aws_policy = var.aws_policy
-  role_name = var.role_name
-  url = var.url
-  org_name = var.org_name
+  workflow_group_name = each.key
 }
 
 # ################################
 #  # Stackguardian cloud connector
 # ################################
 module "stackguardian_connector_cloud" {
-  source = "../terraform-stackguardian-modules/stackguardian_connector_cloud"
-  cloud_connector_name = var.cloud_connector_name
-  connector_type = var.connector_type
+  for_each = { for c in var.cloud_connectors : c.name => c }
+  source = "./stackguardian_connector_cloud"
+  cloud_connector_name = each.key
+  connector_type = each.value.connector_type
+  role_arn = each.value.role_arn
+  role_external_id = each.value.aws_role_external_id
   api_key = var.api_key
   org_name = var.org_name
-
-  role_arn = module.aws_oidc.oidc_role_arn
-
-  aws_access_key_id = var.aws_access_key_id
-  aws_secret_access_key = var.aws_secret_access_key
-  aws_default_region = var.aws_default_region
-
-  armTenantId = var.armTenantId
-  armSubscriptionId = var.armSubscriptionId
-  armClientId = var.client_id
-  armClientSecret = var.armClientSecret
 }
 
 ################################
  # Stackguardian vcs
 ################################
+/*
 locals {
   # Determine which VCS connector to create based on non-empty credentials
   selected_connector = merge(
@@ -81,26 +65,28 @@ locals {
     } : {}
   )
 }
+*/
 
-module "stackguardian_connector_vcs" {
-  source = "../terraform-stackguardian-modules/stackguardian_connector_vcs"
-  stackguardian_connector_vcs_name = var.stackguardian_connector_vcs_name
+
+module "vcs_connector" {
+  source = "./stackguardian_connector_vcs"
+  vcs_connectors = var.vcs_connectors
   api_key = var.api_key
   org_name = var.org_name
-  stackguardian_connector_kinds      = local.selected_connector
 }
+
 
 ################################
  # Stackguardian role
 ################################
 module "stackguardian_role" {
-  source = "../terraform-stackguardian-modules/stackguardian_role"
+  source = "./stackguardian_role"
   api_key = var.api_key
   org_name = var.org_name
   role_name = var.role_name
-  cloud_connector = var.cloud_connector
-  stackguardian_connector_vcs = var.stackguardian_connector_vcs
-  workflow_group = var.workflow_group
+  cloud_connectors = [for con in var.cloud_connectors : con.name]
+  vcs_connectors = [for vcs in var.vcs_connectors : vcs.name]
+  workflow_groups = var.workflow_groups
   template_list = var.template_list
   #depends_on = [ module.stackguardian_workflow_group, module.stackguardian_connector_cloud, module.stackguardian_connector_vcs ]
 }
@@ -109,10 +95,26 @@ module "stackguardian_role" {
 #  # Stackguardian role assignment
 # ################################
 module "stackguardian_role_assignment" {
-  source = "../terraform-stackguardian-modules/stackguardian_role_assignment"
+  source = "./stackguardian_role_assignment"
   api_key = var.api_key
   org_name = var.org_name
   role_name = var.role_name
   user_or_group = var.user_or_group
   entity_type = var.entity_type
+  depends_on = [ module.stackguardian_role ]
 }
+
+/*
+# ################################
+#  # Create OIDC provider and StackGuardian Role in AWS
+# ################################
+module "aws_oidc" {
+  count = var.account_number != null ? 1 : 0
+  source = "./aws_oidc"
+  account_number = var.account_number
+  region = var.region
+  aws_policy = var.aws_policy
+  role_name = var.role_name
+  org_name = var.org_name
+}
+*/
