@@ -1,4 +1,4 @@
-api_key = "sgu-1234567890abcdef"
+
 org_name = "test-org"
 
 workflow_groups = ["TeamX-Dev","TeamX-Test", "TeamX-Staging","TeamX-Prod"]
