@@ -3,7 +3,7 @@ locals {
 }
 
 # ################################
-#  # Stackguardian Workflow Group
+#  # Create Stackguardian Workflow Group
 # ################################
 module "stackguardian_workflow_group" {
   for_each = toset(var.workflow_groups)
@@ -14,7 +14,7 @@ module "stackguardian_workflow_group" {
 }
 
 # ################################
-#  # Stackguardian cloud connector
+#  # Create Stackguardian cloud connector
 # ################################
 module "stackguardian_connector_cloud" {
   for_each = { for c in var.cloud_connectors : c.name => c }
@@ -28,44 +28,8 @@ module "stackguardian_connector_cloud" {
 }
 
 ################################
- # Stackguardian vcs
+ # Create Stackguardian VCS Connector
 ################################
-/*
-locals {
-  # Determine which VCS connector to create based on non-empty credentials
-  selected_connector = merge(
-    # If GitLab creds are provided, use GitLab connector
-    length(var.gitlab_creds) > 0 ? {
-      vcs_gitlab = {
-        kind   = "GITLAB_COM"
-        config = [{
-          gitlab_creds = var.gitlab_creds
-        }]
-      }
-    } : {},
-
-    # If GitHub creds are provided, use GitHub connector
-    length(var.github_creds) > 0 ? {
-      vcs_github = {
-        kind   = "GITHUB_COM"
-        config = [{
-          github_creds = var.github_creds
-        }]
-      }
-    } : {},
-
-    # If Bitbucket creds are provided, use Bitbucket connector
-    length(var.bitbucket_creds) > 0 ? {
-      vcs_bitbucket = {
-        kind   = "BITBUCKET_COM"
-        config = [{
-          bitbucket_creds = var.bitbucket_creds
-        }]
-      }
-    } : {}
-  )
-}
-*/
 
 
 module "vcs_connector" {
@@ -77,7 +41,7 @@ module "vcs_connector" {
 
 
 ################################
- # Stackguardian role
+ # Create Stackguardian Role
 ################################
 module "stackguardian_role" {
   source = "./stackguardian_role"
@@ -92,7 +56,7 @@ module "stackguardian_role" {
 }
 
 # ################################
-#  # Stackguardian role assignment
+#  # Create Stackguardian role assignment
 # ################################
 module "stackguardian_role_assignment" {
   source = "./stackguardian_role_assignment"
@@ -103,18 +67,3 @@ module "stackguardian_role_assignment" {
   entity_type = var.entity_type
   depends_on = [ module.stackguardian_role ]
 }
-
-/*
-# ################################
-#  # Create OIDC provider and StackGuardian Role in AWS
-# ################################
-module "aws_oidc" {
-  count = var.account_number != null ? 1 : 0
-  source = "./aws_oidc"
-  account_number = var.account_number
-  region = var.region
-  aws_policy = var.aws_policy
-  role_name = var.role_name
-  org_name = var.org_name
-}
-*/
