@@ -53,3 +53,29 @@ resource "stackguardian_connector" "sg_azure_static_connector" {
     }]
   }
 }
+
+resource "stackguardian_connector" "sg_azure_oidc_connector" {
+  count = (var.connector_type == "AZURE_OIDC") ? 1 : 0
+  resource_name = var.cloud_connector_name
+  description = "Onboarding example of terraform-provider-stackguardian for AzureConnectorCloud"
+  settings = {
+    kind = var.connector_type,
+    config = [{
+        armTenantId = var.armTenantId,
+        armSubscriptionId = var.armSubscriptionId,
+        armClientId = var.armClientId,
+    }]
+  }
+}
+
+resource "stackguardian_connector" "sg_gcp_oidc_connector" {
+  count = (var.connector_type == "GCP_OIDC") ? 1 : 0
+  resource_name = var.cloud_connector_name
+  description = "Onboarding example of terraform-provider-stackguardian for AzureConnectorCloud"
+  settings = {
+    kind = var.connector_type,
+    config = [{
+        gcp_config_file_content = var.gcp_config_file_content
+    }]
+  }
+}
