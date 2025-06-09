@@ -1,13 +1,24 @@
 ############ StackGuardian credentials ############ 
 
 variable "api_key" {
-  type = string
+  type        = string
   description = "Your organization's API key on the StackGuardian Platform"
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^sgu_[a-zA-Z0-9]+$", var.api_key))
+    error_message = "API key must start with 'sgu_' followed by alphanumeric characters."
+  }
 }
 
 variable "org_name" {
-  type = string
+  type        = string
   description = "Your organization name on StackGuardian Platform"
+
+  validation {
+    condition     = length(var.org_name) > 0 && length(var.org_name) <= 50
+    error_message = "Organization name must be between 1 and 50 characters."
+  }
 }
 
 ########## StackGuardian Workflow Groups ##########
@@ -45,8 +56,13 @@ variable "role_name" {
 }
 
 variable "template_list" {
-  type = list
-  description = "the list of templates on StackGuardian platform that you want to work with"
+  type        = list(string)
+  description = "The list of templates on StackGuardian platform that you want to work with"
+
+  validation {
+    condition     = length(var.template_list) > 0
+    error_message = "At least one template must be specified."
+  }
 }
 
 variable "user_or_group" {

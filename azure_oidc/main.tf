@@ -27,5 +27,5 @@ resource "azuread_application_federated_identity_credential" "sg_fed_id_creds" {
   display_name                = "sg-federated-identity"
   audiences                   = ["https://api.app.stackguardian.io"]
   issuer                      = "https://api.app.stackguardian.io"
-  subject                     = "/orgs/wicked-hop"
+  subject                     = "/orgs/${var.sg_org_name}"
 }
