@@ -25,7 +25,7 @@ cloud_connectors = [{
 # Configure connections to your version control systems
 vcs_connectors = {
 
-  #GitLab Example (uncomment to use)
+  # GitLab Example (uncomment to use)
   # To get GitLab credentials:
   # 1. Go to GitLab Settings > Access Tokens
   # 2. Create a personal access token with 'api' scope
