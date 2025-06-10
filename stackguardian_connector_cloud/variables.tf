@@ -86,3 +86,11 @@ variable "role_external_id" {
   description = "external id of the aws rbac role"
   #default = "<org_name>:<random_string>"
 }
+
+################
+# GCP_OIDC Credentials + GCP_STATIC Credentials
+################
+variable "gcp_config_file_content" {
+  type = string
+  description = "the gco config content gor the connector"
+}
