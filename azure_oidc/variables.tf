@@ -15,5 +15,11 @@ variable "tenant_id" {
 }
 
 variable "display_name" {
-  type = string
+  type        = string
+  description = "Display name for the Azure AD application"
+}
+
+variable "sg_org_name" {
+  type        = string
+  description = "StackGuardian organization name"
 }

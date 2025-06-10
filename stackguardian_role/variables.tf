@@ -1,3 +1,4 @@
+
 variable "api_key" {
   type = string
   description = "value of the api key for the StackGuardian platform"
@@ -7,8 +8,8 @@ variable "org_name" {
   description = "name of the organization on StackGuardian that you want to work with"
 }
 variable "workflow_groups" {
-  type = list
-  description = "the list of workflow groups"
+  type        = list(string)
+  description = "The list of workflow groups"
 }
 variable "cloud_connectors" {
   type = list

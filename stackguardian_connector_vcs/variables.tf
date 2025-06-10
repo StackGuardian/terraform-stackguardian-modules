@@ -27,8 +27,9 @@ variable "vcs_connectors" {
       kind   = "GITHUB_COM"
       config = [{
         github_creds = {
-          github_com_url = ""
-          github_http_url = ""
+          githubCreds     = "username:personal_access_token"
+          github_com_url  = "https://api.github.com"
+          github_http_url = "https://github.com"
         }
       }]
     },

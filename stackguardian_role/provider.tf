@@ -2,7 +2,7 @@ terraform {
   required_providers {
     stackguardian = {
       source = "StackGuardian/stackguardian"
-      version = "1.1.0-rc5"
+      version = "1.3.1"
     }
   }
 }
