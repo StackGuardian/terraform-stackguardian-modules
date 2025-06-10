@@ -28,7 +28,7 @@ module "stackguardian_connector_cloud" {
 }
 
 ################################
- # Stackguardian VCS connector
+ # Stackguardian vcs
 ################################
 /*
 locals {
