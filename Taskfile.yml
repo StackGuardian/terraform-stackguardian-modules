@@ -14,3 +14,8 @@ tasks:
           echo -e "\nFormatting directory: $dir"
           (cd "$dir" && terraform fmt)
         done
+  init:
+    desc: Initialize this stack for local testing
+    cmds:
+      - terraform init --upgrade
+      - cp terraform.tfvars.example terraform.auto.tfvars && terraform validate
