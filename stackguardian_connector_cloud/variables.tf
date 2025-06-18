@@ -93,4 +93,5 @@ variable "role_external_id" {
 variable "gcp_config_file_content" {
   type        = string
   description = "the gco config content gor the connector"
+  default     = null # optional
 }
