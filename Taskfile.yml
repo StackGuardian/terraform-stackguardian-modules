@@ -1,0 +1,16 @@
+version: '3'
+
+tasks:
+  fmt:
+    desc: Runs terraform fmt in all subdirectories
+    cmds:
+      - |
+        #!/bin/bash
+        # Run in the current directory first
+        terraform fmt
+        # Find all subdirectories and run terraform fmt in each
+        for dir in $(ls -d */);
+        do
+          echo -e "\nFormatting directory: $dir"
+          (cd "$dir" && terraform fmt)
+        done
