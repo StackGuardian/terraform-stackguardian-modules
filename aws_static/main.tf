@@ -1,5 +1,5 @@
 resource "aws_iam_user" "new-user" {
-  name = var.iam_user  # Change the user name as needed
+  name = var.iam_user # Change the user name as needed
 }
 
 resource "aws_iam_access_key" "my_access_key" {
@@ -12,5 +12,5 @@ output "access_key_id" {
 
 output "secret_access_key" {
   value     = aws_iam_access_key.my_access_key.secret
-  sensitive = true  # This will hide the secret in Terraform outputs
+  sensitive = true # This will hide the secret in Terraform outputs
 }

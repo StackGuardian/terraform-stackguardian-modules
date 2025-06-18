@@ -15,6 +15,6 @@ variable "tenant_id" {
 }
 
 variable "AD_name" {
-  type = string
+  type        = string
   description = "name of the azure active directory"
 }
