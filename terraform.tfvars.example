@@ -16,7 +16,7 @@ workflow_groups = [
 # Configure connections to your cloud providers
 cloud_connectors = [{
   name                 = "aws-connector-1"
-  connector_type       = "AWS_RBAC" # Options: AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_STATIC
+  connector_type       = "AWS_RBAC" # Options: AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC
   role_arn             = "arn:aws:iam::123456789012:role/StackGuardianRole"
   aws_role_external_id = "your-org-name:random-string-12345"
 }]
