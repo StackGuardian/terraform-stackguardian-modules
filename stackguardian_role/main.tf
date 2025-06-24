@@ -5,6 +5,6 @@ resource "stackguardian_role" "role" {
   tags = [
     var.org_name
   ]
-    allowed_permissions = local.team_onboarding_permissions
+  allowed_permissions = local.team_onboarding_permissions
 
 }

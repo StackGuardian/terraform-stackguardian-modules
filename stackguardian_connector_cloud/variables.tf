@@ -1,20 +1,32 @@
 variable "api_key" {
-  type = string
+  type        = string
   description = "Your organization's API key on the StackGuardian Platform"
+  sensitive   = true
 }
 
 variable "org_name" {
-  type = string
+  type        = string
   description = "Your organization name on StackGuardian Platform"
 }
 
 variable "connector_type" {
-  type = string
-  description = "type of connector. You can select anyone of the following AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_STATIC"
+  type        = string
+  description = "type of connector. You can select anyone of the following AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC"
+  validation {
+    condition = contains([
+      "AWS_STATIC",
+      "AWS_OIDC",
+      "AWS_RBAC",
+      "AZURE_STATIC",
+      "AZURE_OIDC",
+      "GCP_OIDC",
+    ], var.connector_type)
+    error_message = "Variable connector_type must be one of AWS_STATIC, AWS_OIDC, AWS_RBAC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC."
+  }
 }
 
 variable "cloud_connector_name" {
- type = string
+  type        = string
   description = "Name of the Cloud connector"
 }
 
@@ -24,21 +36,22 @@ variable "cloud_connector_name" {
 ################
 
 variable "aws_access_key_id" {
-  type = string
+  type        = string
   description = "your AWS acoount access key"
-   default = null
+  default     = null # optional
 }
 
 variable "aws_secret_access_key" {
-  type = string
+  type        = string
   description = "your AWS account secret access key"
-   default = null
+  default     = null # optional
+  sensitive   = true
 }
 
 variable "aws_default_region" {
-  type = string
+  type        = string
   description = "any default region you want to set, for all your deployments"
-   default = null
+  default     = null # optional
 }
 
 ################
@@ -46,51 +59,51 @@ variable "aws_default_region" {
 ################
 
 variable "armTenantId" {
-  type = string
+  type        = string
   description = "your azure account tenant id"
-   default = null
-
+  default     = null # optional
 }
 
 variable "armSubscriptionId" {
-  type = string
+  type        = string
   description = "your azure subscription id"
-  default = null
-  
+  default     = null # optional
 }
 
 variable "armClientId" {
-  type = string
+  type        = string
   description = "your azure client id"
-   default = null
-
+  default     = null # optional
 }
 
 variable "armClientSecret" {
-  type = string
+  type        = string
   description = "your azure client secret"
- default = null
+  default     = null # optional
+  sensitive   = true
 }
 
 ################
 # AWS_OIDC Credentials + AWS_RBAC Credentials
 ################
 variable "role_arn" {
-  type = string
+  type        = string
   description = "arn of the aws oidc role"
+  default     = null # optional
 }
 
 ###### for AWS_RBAC the externalID is also needed
 variable "role_external_id" {
-  type = string
+  type        = string
   description = "external id of the aws rbac role"
-  #default = "<org_name>:<random_string>"
+  default     = null # optional; "<org_name>:<random_string>" is recommended
 }
 
 ################
 # GCP_OIDC Credentials + GCP_STATIC Credentials
 ################
 variable "gcp_config_file_content" {
-  type = string
+  type        = string
   description = "the gco config content gor the connector"
+  default     = null # optional
 }

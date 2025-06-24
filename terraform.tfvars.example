@@ -7,7 +7,7 @@ org_name = "your-org-name"
 # These represent different deployment environments
 workflow_groups = [
   "team-dev",
-  "team-test", 
+  "team-test",
   "team-staging",
   "team-prod"
 ]
@@ -16,8 +16,8 @@ workflow_groups = [
 # Configure connections to your cloud providers
 cloud_connectors = [{
   name                 = "aws-connector-1"
-  connector_type       = "AWS_RBAC"  # Options: AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_STATIC
-  role_arn            = "arn:aws:iam::123456789012:role/StackGuardianRole"
+  connector_type       = "AWS_RBAC" # Options: AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC
+  role_arn             = "arn:aws:iam::123456789012:role/StackGuardianRole"
   aws_role_external_id = "your-org-name:random-string-12345"
 }]
 
@@ -36,11 +36,11 @@ vcs_connectors = {
     config = [{
       gitlab_creds = {
         gitlabCreds   = "your-username:glpat-your_personal_access_token"
-       gitlabHttpUrl = "https://gitlab.com"
-       gitlabApiUrl  = "https://gitlab.com/api/v4"
-     }
-   }]
- }
+        gitlabHttpUrl = "https://gitlab.com"
+        gitlabApiUrl  = "https://gitlab.com/api/v4"
+      }
+    }]
+  }
 
   # Bitbucket Example (uncomment to use)
   # To get Bitbucket credentials:
@@ -75,7 +75,7 @@ template_list = [
 # - SSO Email: "sso-provider/user@example.com" 
 # - SSO Group: "sso-provider/group-id"
 user_or_group = "user@example.com"
-entity_type   = "EMAIL"  # Valid values: "EMAIL" or "GROUP"
+entity_type   = "EMAIL" # Valid values: "EMAIL" or "GROUP"
 
 # Optional: AWS Static Credentials (not recommended for production)
 # aws_access_key_id     = "AKIA..."

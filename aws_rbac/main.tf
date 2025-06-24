@@ -1,5 +1,5 @@
 resource "aws_iam_role" "sg-test-role" {
-  name               = var.aws_role_name
+  name        = var.aws_role_name
   description = "StackGuardianIntegrationRole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -8,13 +8,13 @@ resource "aws_iam_role" "sg-test-role" {
         Effect = "Allow"
         Principal = {
           AWS = ["arn:aws:iam::476299211833:root",
-          "arn:aws:iam::163602625436:root"
+            "arn:aws:iam::163602625436:root"
           ]
         }
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = var.role_external_id  # Replace with your external ID
+            "sts:ExternalId" = var.role_external_id # Replace with your external ID
           }
         }
       }

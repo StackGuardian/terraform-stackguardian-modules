@@ -24,25 +24,25 @@ variable "org_name" {
 ########## StackGuardian Workflow Groups ##########
 
 variable "workflow_groups" {
-  type = list(string)
+  type        = list(string)
   description = "List of StackGuardian workflow groups"
 }
 ########## StackGuardian AWS Cloud Connector (here with RBAC) ##########
 
 variable "cloud_connectors" {
   type = list(object({
-    name = string
-    connector_type = string
-    role_arn = string
+    name                 = string
+    connector_type       = string
+    role_arn             = string
     aws_role_external_id = string
   }))
   description = "List of cloud connectors to be created"
- 
+
   default = [
     {
-      name = "aws-connector-1"
-      connector_type = "AWS_RBAC"
-      role_arn = "arn:aws:iam::123456789012:role/StackGuardianRole"
+      name                 = "aws-connector-1"
+      connector_type       = "AWS_RBAC"
+      role_arn             = "arn:aws:iam::123456789012:role/StackGuardianRole"
       aws_role_external_id = "test-org:1234567"
     }
   ]
@@ -51,7 +51,7 @@ variable "cloud_connectors" {
 ########## StackGuardian Role ##########
 
 variable "role_name" {
-  type = string
+  type        = string
   description = "name of the aws role thats getting created"
 }
 
@@ -66,14 +66,14 @@ variable "template_list" {
 }
 
 variable "user_or_group" {
-  type = string
-  description = "Group or User that should be onboarded" 
+  type        = string
+  description = "Group or User that should be onboarded"
   #Format: sso-auth/email (email in SSO), sso-auth/group-id (Group in SSO), email (Email via local login)
   #Example: "test-org-1/user@stackguardian.com" or "test-org-1/9djhd38cniwje9jde" or "user@stackguardian.com"
 }
 
 variable "entity_type" {
-  type = string
+  type        = string
   description = "Type of entity that should be onboarded. Valid values: EMAIL or GROUP"
 }
 
@@ -82,21 +82,21 @@ variable "entity_type" {
 ###########################################
 
 variable "aws_access_key_id" {
-  type = string
+  type        = string
   description = "your AWS acoount access key"
-  default = null
+  default     = null
 }
 
 variable "aws_secret_access_key" {
-  type = string
+  type        = string
   description = "your AWS account secret access key"
-  default = null
+  default     = null
 }
 
 variable "aws_default_region" {
-  type = string
+  type        = string
   description = "any default region you want to set, for all your deployments"
-  default = null
+  default     = null
 }
 
 ###########################################
@@ -104,27 +104,27 @@ variable "aws_default_region" {
 ###########################################
 
 variable "armTenantId" {
-  type = string
+  type        = string
   description = "your azure account tenant id"
-  default = null
+  default     = null
 }
 
 variable "armSubscriptionId" {
-  type = string
+  type        = string
   description = "your azure subscription id"
-  default = null
+  default     = null
 }
 
 variable "armClientId" {
-  type = string
+  type        = string
   description = "your azure client id"
-  default = null
+  default     = null
 }
 
 variable "armClientSecret" {
-  type = string
+  type        = string
   description = "your azure client secret"
-  default = null
+  default     = null
 }
 
 ###########################################
@@ -132,12 +132,12 @@ variable "armClientSecret" {
 ###########################################
 
 variable "vcs_connectors" {
-  type = map(any)
+  type        = map(any)
   description = "List of version control systems"
   default = {
     vcs_bitbucket = {
-      kind   = "BITBUCKET_ORG"
-      name   = "bitbucket-connector"
+      kind = "BITBUCKET_ORG"
+      name = "bitbucket-connector"
       config = [{
         bitbucket_creds = {
           bitbucket_creds = ""
