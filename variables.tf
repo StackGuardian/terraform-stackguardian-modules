@@ -26,6 +26,7 @@ variable "org_name" {
 variable "workflow_groups" {
   type        = list(string)
   description = "List of StackGuardian workflow groups"
+  default = null
 }
 ########## StackGuardian AWS Cloud Connector (here with RBAC) ##########
 
@@ -38,7 +39,9 @@ variable "cloud_connectors" {
   }))
   description = "List of cloud connectors to be created"
 
-  default = [
+  default = null
+  /*
+  [
     {
       name                 = "aws-connector-1"
       connector_type       = "AWS_RBAC"
@@ -46,6 +49,7 @@ variable "cloud_connectors" {
       aws_role_external_id = "test-org:1234567"
     }
   ]
+  */
 }
 
 ########## StackGuardian Role ##########
@@ -53,21 +57,19 @@ variable "cloud_connectors" {
 variable "role_name" {
   type        = string
   description = "name of the aws role thats getting created"
+  default = null
 }
 
 variable "template_list" {
   type        = list(string)
   description = "The list of templates on StackGuardian platform that you want to work with"
-
-  validation {
-    condition     = length(var.template_list) > 0
-    error_message = "At least one template must be specified."
-  }
+  default = []
 }
 
 variable "user_or_group" {
   type        = string
   description = "Group or User that should be onboarded"
+  default = null
   #Format: sso-auth/email (email in SSO), sso-auth/group-id (Group in SSO), email (Email via local login)
   #Example: "test-org-1/user@stackguardian.com" or "test-org-1/9djhd38cniwje9jde" or "user@stackguardian.com"
 }
@@ -75,6 +77,7 @@ variable "user_or_group" {
 variable "entity_type" {
   type        = string
   description = "Type of entity that should be onboarded. Valid values: EMAIL or GROUP"
+  default = null
 }
 
 ###########################################
@@ -134,7 +137,8 @@ variable "armClientSecret" {
 variable "vcs_connectors" {
   type        = map(any)
   description = "List of version control systems"
-  default = {
+  default = null
+  /*{
     vcs_bitbucket = {
       kind = "BITBUCKET_ORG"
       name = "bitbucket-connector"
@@ -144,7 +148,8 @@ variable "vcs_connectors" {
         }
       }]
     }
-  }
+  } 
+  */
 }
 
 /*

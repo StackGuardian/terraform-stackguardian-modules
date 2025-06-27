@@ -6,7 +6,7 @@ locals {
 #  # Create Stackguardian Workflow Group
 # ################################
 module "stackguardian_workflow_group" {
-  for_each            = toset(var.workflow_groups)
+  for_each             = var.workflow_groups != null ? toset(var.workflow_groups) : []
   source              = "./stackguardian_workflow_group"
   api_key             = var.api_key
   org_name            = var.org_name
@@ -17,7 +17,7 @@ module "stackguardian_workflow_group" {
 #  # Create Stackguardian cloud connector
 # ################################
 module "stackguardian_connector_cloud" {
-  for_each             = { for c in var.cloud_connectors : c.name => c }
+  for_each             = var.cloud_connectors != null ? { for c in var.cloud_connectors : c.name => c } : {}
   source               = "./stackguardian_connector_cloud"
   cloud_connector_name = each.key
   connector_type       = each.value.connector_type
@@ -33,6 +33,7 @@ module "stackguardian_connector_cloud" {
 
 
 module "vcs_connector" {
+  count          = var.vcs_connectors != null ? 1 : 0
   source         = "./stackguardian_connector_vcs"
   vcs_connectors = var.vcs_connectors
   api_key        = var.api_key
@@ -44,6 +45,7 @@ module "vcs_connector" {
 # Create Stackguardian Role
 ################################
 module "stackguardian_role" {
+  count            = var.role_name != null ? 1 : 0
   source           = "./stackguardian_role"
   api_key          = var.api_key
   org_name         = var.org_name
@@ -59,6 +61,7 @@ module "stackguardian_role" {
 #  # Create Stackguardian role assignment
 # ################################
 module "stackguardian_role_assignment" {
+  count         = var.user_or_group != null ? 1 : 0
   source        = "./stackguardian_role_assignment"
   api_key       = var.api_key
   org_name      = var.org_name
