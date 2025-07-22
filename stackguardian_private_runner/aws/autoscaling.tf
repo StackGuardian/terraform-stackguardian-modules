@@ -3,6 +3,10 @@ locals {
   user_data_script = var.build_custom_ami ? "register_runner.sh" : "user_data_all.sh"
 }
 
+data "stackguardian_runner_group_token" "this" {
+  runner_group_id = stackguardian_runner_group.this.resource_name
+}
+
 # Launch Template for Auto Scaling Group
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.name_prefix}-private-runner-"
@@ -32,16 +36,16 @@ resource "aws_launch_template" "this" {
   }
 
   user_data = base64encode("${templatefile("${path.module}/templates/${local.user_data_script}", {
-    os_family            = var.os_family
-    sg_org_name          = var.sg_org_name
-    sg_api_uri           = var.sg_api_uri
-    sg_runner_group_name = stackguardian_runner_group.this.resource_name
-    # sg_runner_group_token = stackguardian_runner_group.this.runner_token
-    sg_runner_group_token = (
-      stackguardian_runner_group.this.runner_token != null
-      ? stackguardian_runner_group.this.runner_token
-      : var.sg_runner_token
-    )
+    os_family             = var.os_family
+    sg_org_name           = var.sg_org_name
+    sg_api_uri            = var.sg_api_uri
+    sg_runner_group_name  = stackguardian_runner_group.this.resource_name
+    sg_runner_group_token = data.stackguardian_runner_group_token.this.runner_group_token
+    # sg_runner_group_token                                             = (
+    #   data.stackguardian_runner_group_token.this.runner_group_token ! = null
+    #   ? data.stackguardian_runner_group_token.this.runner_group_token
+    #   : var.sg_runner_token
+    # )
   })}")
 
   tag_specifications {

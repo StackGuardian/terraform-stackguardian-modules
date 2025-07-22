@@ -19,11 +19,11 @@ variable "sg_api_uri" {
 # TODO (adis.halilovic@stackguardian.io):
 # This variable is used as hardcoded replacement until stackguardian provider
 # is fixed to provide runner_token.
-variable "sg_runner_token" {
-  description = "The Runner Token used to register the Private Runner with StackGuardian Platform"
-  type        = string
-  default     = null
-}
+# variable "sg_runner_token" {
+#   description = "The Runner Token used to register the Private Runner with StackGuardian Platform"
+#   type        = string
+#   default     = null
+# }
 
 /*-------------------+
  | General Variables |

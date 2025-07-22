@@ -9,15 +9,6 @@ output "runner_group" {
   value = stackguardian_runner_group.this.resource_name
 }
 
-# data "stackguardian_runner_group_token" "this" {
-#   runner_group_id = "TF_SG_MODULE-runner-group-790543352839"
-# }
-
-# output "runner_group_token" {
-#   value     = data.stackguardian_runner_group_token.this.runner_group_token
-#   sensitive = true
-# }
-
 /*-----------------------+
  | AWS Resources Outputs |
  +-----------------------*/
