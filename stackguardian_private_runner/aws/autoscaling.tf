@@ -1,6 +1,6 @@
 locals {
   subnet_id        = var.private_subnet_id != null ? var.private_subnet_id : var.public_subnet_id
-  user_data_script = var.build_custom_ami ? "register_runner.sh" : "user_data_all.sh"
+  user_data_script = var.ami_id != "" ? "register_runner.sh" : "user_data_all.sh"
 }
 
 data "stackguardian_runner_group_token" "this" {
@@ -58,8 +58,6 @@ resource "aws_launch_template" "this" {
   lifecycle {
     create_before_destroy = true
   }
-
-  depends_on = [null_resource.build_custom_ami, data.external.packer_ami_id]
 }
 
 # Auto Scaling Group

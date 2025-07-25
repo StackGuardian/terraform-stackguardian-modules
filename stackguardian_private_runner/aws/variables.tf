@@ -86,13 +86,10 @@ variable "os_version" {
   default     = "22.04"
 }
 
-/*----------------------------------+
- | Packer AMI Machine Image Builder |
- +----------------------------------*/
-variable "build_custom_ami" {
-  description = "Whether to build a custom AMI with required software pre-installed"
-  type        = bool
-  default     = false
+variable "ami_id" {
+  description = "The AMI ID for the Private Runner instance with pre-installed dependencies. If not provided, it will be fetched based on the OS family and version and dependencies will be installed in user-data."
+  type        = string
+  default     = ""
 }
 
 /*-----------------------------------+
