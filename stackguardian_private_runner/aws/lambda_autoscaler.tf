@@ -74,11 +74,13 @@ resource "aws_iam_role_policy_attachment" "autoscale_lambda" {
 
 # Lambda Function for Autoscaling
 resource "aws_lambda_function" "autoscale" {
-  filename      = "${path.module}/autoscale-private-runner-8e0b53e2-4ba6-4a0c-8803-893857d0c4dc.zip"
+  package_type = "Image"
+  image_uri    = "${var.image.repository}:${var.image.tag}"
+
+  architectures = ["arm64"]
+
   function_name = "${var.name_prefix}-autoscale-private-runner"
   role          = aws_iam_role.autoscale_lambda.arn
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.13"
   timeout       = 60
   memory_size   = 128
 
@@ -170,4 +172,3 @@ resource "aws_iam_role_policy_attachment" "scheduler_execution" {
   role       = aws_iam_role.scheduler_execution.name
   policy_arn = aws_iam_policy.scheduler_execution.arn
 }
-

@@ -16,15 +16,6 @@ variable "sg_api_uri" {
   type        = string
 }
 
-# TODO (adis.halilovic@stackguardian.io):
-# This variable is used as hardcoded replacement until stackguardian provider
-# is fixed to provide runner_token.
-# variable "sg_runner_token" {
-#   description = "The Runner Token used to register the Private Runner with StackGuardian Platform"
-#   type        = string
-#   default     = null
-# }
-
 /*-------------------+
  | General Variables |
  +-------------------*/
@@ -116,6 +107,19 @@ variable "asg_desired_capacity" {
 /*-----------------------------------+
  | Lambda Autoscaling Variables     |
  +-----------------------------------*/
+variable "image" {
+  description = "Docker image for the Lambda function"
+  type = object({
+    repository = string
+    tag        = string
+  })
+
+  default = {
+    repository = "790543352839.dkr.ecr.eu-central-1.amazonaws.com/private-runner/autoscaler"
+    tag        = "latest"
+  }
+}
+
 variable "scale_out_cooldown_duration" {
   description = "Scale out cooldown duration in minutes"
   type        = string
