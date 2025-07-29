@@ -22,3 +22,12 @@ fi
 
 ## Enable and start Docker and cron services
 sudo systemctl enable --now docker
+
+## Install sg-runner CLI
+echo "Installing sg-runner.."
+DOWNLOAD_URL="$(wget -qO- "https://api.github.com/repos/stackguardian/sg-runner/releases/latest" | jq -r '.tarball_url')"
+wget -q "$DOWNLOAD_URL" -O runner.tar.gz && \
+  tar -xf runner.tar.gz && \
+  sudo cp -rf StackGuardian-sg-runner*/main.sh /usr/bin/sg-runner && \
+  rm -rfd StackGuardian-sg-runner* runner.tar.gz
+echo "Installed to /usr/bin/sg-runner."
