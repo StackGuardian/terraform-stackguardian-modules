@@ -39,20 +39,22 @@ resource "null_resource" "packer_build" {
   provisioner "local-exec" {
     command = "bash ${path.module}/scripts/build_ami.sh"
     environment = {
-      PACKER_VERSION = var.packer_version
-      OS_FAMILY      = var.os_family
-      OS_VERSION     = var.os_family != "amazon" ? var.os_version : ""
-      SSH_USERNAME   = local.ssh_usernames[var.os_family]
-      BASE_AMI       = data.aws_ami.this.id
-      REGION         = var.aws_region
-      VPC_ID         = var.vpc_id
-      SUBNET_ID      = var.public_subnet_id
+      BASE_AMI          = data.aws_ami.this.id
+      OS_FAMILY         = var.os_family
+      OS_VERSION        = var.os_family != "amazon" ? var.os_version : ""
+      PACKER_VERSION    = var.packer_version
+      REGION            = var.aws_region
+      SSH_USERNAME      = local.ssh_usernames[var.os_family]
+      SUBNET_ID         = var.public_subnet_id
+      USER_SCRIPT       = var.user_script
+      TERRAFORM_VERSION = var.terraform_version
+      VPC_ID            = var.vpc_id
     }
   }
 
   triggers = {
-    setup_hash    = filemd5("${path.module}/scripts/setup.sh")
     build_hash    = filemd5("${path.module}/scripts/build_ami.sh")
+    setup_hash    = filemd5("${path.module}/scripts/setup.sh")
     template_hash = filemd5("${path.module}/ami.pkr.hcl")
   }
 }

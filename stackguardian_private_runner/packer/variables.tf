@@ -46,7 +46,19 @@ variable "os_version" {
  | Packer AMI Machine Image Builder |
  +----------------------------------*/
 variable "packer_version" {
-  description = "The version of Packer to use for building the AMI"
+  description = "The version of Packer to use for building the machine image"
   type        = string
   default     = "1.13.1"
+}
+
+variable "user_script" {
+  description = "Custom user script to inject in user data"
+  type        = string
+  default     = ""
+}
+
+variable "terraform_version" {
+  description = "The Terraform version to be preinstalled on machine image"
+  type        = string
+  default     = "1.12.1"
 }
