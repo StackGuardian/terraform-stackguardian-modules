@@ -20,6 +20,7 @@ locals {
 
 # Fetch the latest AMI based on the OS family and version
 data "aws_ami" "this" {
+  count       = var.ami_id != "" ? 0 : 1
   most_recent = true
   owners      = [local.ami_owners[var.os_family]]
 
@@ -35,5 +36,5 @@ data "aws_ami" "this" {
 }
 
 locals {
-  runner_ami_id = var.ami_id != "" ? var.ami_id : data.aws_ami.this.id
+  runner_ami_id = var.ami_id != "" ? var.ami_id : data.aws_ami.this[0].id
 }
