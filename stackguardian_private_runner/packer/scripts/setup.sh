@@ -126,6 +126,34 @@ _install_terraform() { #{{{
 }
 #}}}: _install_terraform
 
+_install_terraform_versions() { #{{{
+  local versions_list=($TERRAFORM_VERSIONS)
+
+  local os_arch="$(_detect_arch)"
+  local os_type="$(_detect_os)"
+
+  for version in "${versions_list[@]}"; do
+    local zip_name="terraform_${version}_${os_type}_${os_arch}.zip"
+    local base_url="https://releases.hashicorp.com/terraform/${version}"
+
+    local download_url="${base_url}/${zip_name}"
+
+    echo "Installing Terraform v${version}.."
+    _mktemp_directory && cd "$WORKING_DIR"
+
+    if _wget_wrapper "$download_url"; then
+      unzip "$zip_name"
+      sudo mv terraform "/usr/bin/terraform$version"
+
+      echo "Installed to $(which "terraform$version")."
+    else
+      echo "Failed to download v$version from: $download_url"
+      exit 1
+    fi
+  done
+}
+#}}}: _install_terraform_versions
+
 _install_sg_runner() { #{{{
   local url="$(wget -qO- "https://api.github.com/repos/stackguardian/sg-runner/releases/latest" | jq -r '.tarball_url')"
   local runner_archive="runner.tar.gz"
@@ -176,6 +204,7 @@ main() { #{{{
   _systemctl_enable "docker"
 
   _install_terraform
+  _install_terraform_versions
   _install_sg_runner
   _user_script_wrapper
 }

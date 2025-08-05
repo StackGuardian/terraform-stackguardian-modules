@@ -12,9 +12,9 @@ locals {
   }
 
   ssh_usernames = {
-    amazon = "ec2-user"
-    ubuntu = "ubuntu"
-    rhel   = "ec2-user"
+    amazon = var.ssh_username != null ? var.ssh_username : "ec2-user"
+    ubuntu = var.ssh_username != null ? var.ssh_username : "ubuntu"
+    rhel   = var.ssh_username != null ? var.ssh_username : "ec2-user"
   }
 }
 
@@ -39,23 +39,22 @@ resource "null_resource" "packer_build" {
   provisioner "local-exec" {
     command = "bash ${path.module}/scripts/build_ami.sh"
     environment = {
-      BASE_AMI          = data.aws_ami.this.id
-      OS_FAMILY         = var.os_family
-      OS_VERSION        = var.os_family != "amazon" ? var.os_version : ""
-      PACKER_VERSION    = var.packer_version
-      REGION            = var.aws_region
-      SSH_USERNAME      = local.ssh_usernames[var.os_family]
-      SUBNET_ID         = var.public_subnet_id
-      USER_SCRIPT       = var.user_script
-      TERRAFORM_VERSION = var.terraform_version
-      VPC_ID            = var.vpc_id
+      BASE_AMI           = data.aws_ami.this.id
+      OS_FAMILY          = var.os_family
+      OS_VERSION         = var.os_family != "amazon" ? var.os_version : ""
+      PACKER_VERSION     = var.packer_version
+      REGION             = var.aws_region
+      SSH_USERNAME       = local.ssh_usernames[var.os_family]
+      SUBNET_ID          = var.public_subnet_id
+      USER_SCRIPT        = var.user_script
+      TERRAFORM_VERSION  = var.terraform_version
+      TERRAFORM_VERSIONS = join(" ", var.terraform_versions)
+      VPC_ID             = var.vpc_id
     }
   }
 
   triggers = {
-    build_hash    = filemd5("${path.module}/scripts/build_ami.sh")
-    setup_hash    = filemd5("${path.module}/scripts/setup.sh")
-    template_hash = filemd5("${path.module}/ami.pkr.hcl")
+    timestamp = timestamp()
   }
 }
 

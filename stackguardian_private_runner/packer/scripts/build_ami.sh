@@ -103,6 +103,7 @@ main() { #{{{
     -var "ssh_username=$SSH_USERNAME" \
     -var "subnet_id="$SUBNET_ID \
     -var "terraform_version=$TERRAFORM_VERSION" \
+    -var "terraform_versions=$TERRAFORM_VERSIONS" \
     -var "user_script=$USER_SCRIPT" \
     -var "vpc_id="$VPC_ID \
     -machine-readable \

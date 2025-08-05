@@ -42,6 +42,12 @@ variable "os_version" {
   default     = ""
 }
 
+variable "ssh_username" {
+  description = "The SSH username for the machine instance."
+  type        = string
+  default     = null
+}
+
 /*----------------------------------+
  | Packer AMI Machine Image Builder |
  +----------------------------------*/
@@ -57,8 +63,23 @@ variable "user_script" {
   default     = ""
 }
 
+variable "terraform_versions" {
+  # description = "List of Terraform versions to be preinstalled on machine image"
+  description = <<-EOT
+   List of Terraform versions to be preinstalled on the machine image.
+   The versions will be installed to /bin/terraform$\{version\}
+   For example: version 1.12.0 will be installed to /bin/terraform1.12.0
+  EOT
+  type        = list(string)
+  default     = ["1.12.0", "1.12.1", "1.12.2"]
+}
+
 variable "terraform_version" {
-  description = "The Terraform version to be preinstalled on machine image"
+  # description = "The Terraform version to be preinstalled on machine image."
+  description = <<-EOT
+    The Terraform version to be preinstalled on the machine image.
+    This version will be the default version installed to /bin/terraform.
+  EOT
   type        = string
   default     = "1.12.1"
 }
