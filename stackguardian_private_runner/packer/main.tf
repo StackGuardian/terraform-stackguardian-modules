@@ -37,7 +37,7 @@ data "aws_ami" "this" {
 # Build custom AMI using Packer
 resource "null_resource" "packer_build" {
   provisioner "local-exec" {
-    command = "bash ${path.module}/scripts/build_ami.sh"
+    command = "sh ${path.module}/scripts/sh/build_ami.sh"
     environment = {
       BASE_AMI           = data.aws_ami.this.id
       OS_FAMILY          = var.os_family
@@ -61,7 +61,7 @@ resource "null_resource" "packer_build" {
 # Parse the AMI ID from the Packer output
 data "external" "packer_ami_id" {
   program = [
-    "bash",
+    "sh",
     "-c",
     "grep 'artifact,0,id' packer_manifest.log | tail -1 | cut -d, -f6 | cut -d: -f2 | xargs -I{} echo '{\"ami_id\": \"{}\"}'"
   ]
