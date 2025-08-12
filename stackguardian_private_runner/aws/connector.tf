@@ -8,7 +8,7 @@ locals {
 
 # This creates the AWS Connector on StackGuardian platform
 resource "stackguardian_connector" "this" {
-  resource_name = locals.connector_name
+  resource_name = local.connector_name
   description   = "AWS connector for accessing Private Runner storage backend (S3 Bucket: ${aws_s3_bucket.this.bucket})."
 
   settings = {

@@ -8,7 +8,7 @@ locals {
 
 # This creates the Runner Group on StackGuardian platform
 resource "stackguardian_runner_group" "this" {
-  resource_name = locals.runner_group_name
+  resource_name = local.runner_group_name
   description   = "Private Runner Group for AWS S3 storage backend"
 
   max_number_of_runners = var.asg_max_size
