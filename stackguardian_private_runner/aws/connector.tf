@@ -1,6 +1,14 @@
+locals {
+  connector_name = (
+    var.override_connector_name != ""
+    ? var.override_connector_name
+    : "${var.name_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
+  )
+}
+
 # This creates the AWS Connector on StackGuardian platform
 resource "stackguardian_connector" "this" {
-  resource_name = "${var.name_prefix}-private-runner-backend"
+  resource_name = locals.connector_name
   description   = "AWS connector for accessing Private Runner storage backend (S3 Bucket: ${aws_s3_bucket.this.bucket})."
 
   settings = {

@@ -27,15 +27,26 @@ variable "aws_region" {
 variable "name_prefix" {
   description = "Prefix for naming AWS resources"
   type        = string
-  default     = "sg"
+  default     = "SG_RUNNER"
 }
 
 variable "override_runner_group_name" {
   description = <<EOT
     Optional: Override the default runner group name.
-    If not provided, the module will use the default group name: {name_prefix}-runner-group-{account_id}
+    If not provided, the module will use the default group name: {name_prefix}-runner-group-{account_id}.
     This is useful if you want to use a specific runner group name for your organization.
     Default is an empty string, meaning the default group name will be used.
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "override_connector_name" {
+  description = <<EOT
+    Optional: Override the default connector name.
+    If not provided, the module will use the default connector name: {name_prefix}-private-runner-backend-{account_id}.
+    This is useful if you want to use a specific connector name for your organization.
+    Default is an empty string, meaning the default connector name will be used.
   EOT
   type        = string
   default     = ""
@@ -63,13 +74,24 @@ variable "vpc_id" {
 }
 
 variable "private_subnet_id" {
-  description = "Existing Private Subnet ID for the Private Runner instance"
-  type        = string
-  default     = null
+  description = <<EOT
+    Existing Private Subnet ID for the Private Runner instance.
+    If provided, the instance will be deployed in a private subnet.
+    If not provided, public_subnet_id is required to deploy in a public subnet.
+    Default is null, meaning no private subnet will be used.
+  EOT
+  # description = "Existing Private Subnet ID for the Private Runner instance"
+  type    = string
+  default = null
 }
 
 variable "public_subnet_id" {
-  description = "Existing Public Subnet ID for the Private Runner instance"
+  description = <<EOT
+    Existing Public Subnet ID for the Private Runner instance.
+    If provided, the instance will be deployed in a public subnet.
+    If not provided, private_subnet_id is required to deploy in a private subnet.
+    Default is null, meaning no public subnet will be used.
+  EOT
   type        = string
 }
 
@@ -104,19 +126,35 @@ variable "delete_volume_on_termination" {
  | EC2 SSH Connection Variables |
  +------------------------------*/
 variable "ssh_key_name" {
-  description = "The existing SSH key name from AWS. If not provided and ssh_public_key is empty, no SSH key will be configured."
+  description = <<EOT
+    Name of the existing SSH key in AWS to use for the Private Runner instance.
+    If provided, this key will be used for SSH access.
+    If ssh_public_key is also provided, it will take precedence over this key.
+    If both ssh_key_name and ssh_public_key are empty, no SSH key will be configured.
+    Default is an empty string, meaning no SSH key will be configured.
+  EOT
   type        = string
   default     = ""
 }
 
 variable "ssh_public_key" {
-  description = "Custom SSH public key content to add to the instance. If provided, this takes precedence over ssh_key_name."
+  description = <<EOT
+    Custom SSH public key content to add to the instance.
+    If provided, this takes precedence over ssh_key_name.
+    If both ssh_key_name and ssh_public_key are empty, no SSH key will be configured.
+    Default is an empty string, meaning no custom SSH key will be added.
+  EOT
   type        = string
   default     = ""
 }
 
 variable "allow_ssh_cidr_blocks" {
-  description = "CIDR blocks allowed to SSH into the Private Runner instance. If empty, no SSH access is allowed."
+  description = <<EOT
+    List of CIDR blocks allowed to SSH into the Private Runner instance.
+    If provided, these CIDR blocks will be added to the security group for SSH access.
+    If empty, no specific CIDR blocks will be allowed for SSH access.
+    Default is an empty list, meaning no CIDR blocks are allowed for SSH access.
+  EOT
   type        = list(string)
   default     = []
 }
@@ -165,7 +203,7 @@ variable "asg_desired_capacity" {
  | Lambda Autoscaling Variables     |
  +-----------------------------------*/
 variable "image" {
-  description = "Docker image for the Lambda function"
+  description = "Docker image for the Lambda function that scales the Auto Scaling Group"
   type = object({
     repository = string
     tag        = string
