@@ -6,6 +6,8 @@ variable "ssh_username" {}
 variable "subnet_id" {}
 variable "terraform_version" {}
 variable "terraform_versions" {}
+variable "opentofu_version" {}
+variable "opentofu_versions" {}
 variable "user_script" {}
 variable "vpc_id" {}
 
@@ -49,11 +51,13 @@ build {
   sources = ["source.amazon-ebs.this"]
 
   provisioner "shell" {
-    script = "scripts/sh/setup.sh"
+    script = "scripts/setup.sh"
     environment_vars = [
       "OS_FAMILY=${var.os_family}",
       "TERRAFORM_VERSION=${var.terraform_version}",
       "TERRAFORM_VERSIONS=${var.terraform_versions}",
+      "OPENTOFU_VERSION=${var.opentofu_version}",
+      "OPENTOFU_VERSIONS=${var.opentofu_versions}",
       "USER_SCRIPT=${var.user_script}"
     ]
   }

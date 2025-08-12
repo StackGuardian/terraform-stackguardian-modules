@@ -8,8 +8,9 @@ PACKER_EXECUTABLE=""
 WORKING_DIR=""
 TEMP_DIRS=""
 
-_cleanup() {
-  echo "Cleaning up.."
+_cleanup() { #{{{
+  echo "## ----------"
+  echo "Cleaning up Packer build.."
 
   if [ -n "$TEMP_DIRS" ]; then
     for temp_dir in $TEMP_DIRS; do
@@ -24,9 +25,11 @@ _cleanup() {
     rm -rf "$WORKING_DIR"
     echo "Removed temporary directory: $WORKING_DIR"
   fi
+  echo "## ----------"
 }
+#}}}: _cleanup
 
-_detect_arch() {
+_detect_arch() { #{{{
   machine="$(uname -m)"
 
   case "$machine" in
@@ -37,21 +40,24 @@ _detect_arch() {
     *) echo "$machine" ;;
   esac
 }
+#}}}: _detect_arch
 
-_detect_os() {
+_detect_os() { #{{{
     uname -s | tr '[:upper:]' '[:lower:]'
 }
+#}}}: _detect_os
 
-_wget_wrapper() {
+_wget_wrapper() { #{{{
   url="$1"
   output_file="${2:-"${url##*/}"}"
 
-  echo "Downloading ${url}.."
+  echo ">> Downloading ${url}.."
   wget -q "$url" -O "$output_file"
-  echo "Saved to ${output_file}."
+  echo ">> Saved to ${output_file}."
 }
+#}}}: _wget_wrapper
 
-_mktemp_directory() {
+_mktemp_directory() { #{{{
   WORKING_DIR="$(mktemp -d)"
   if [ -n "$TEMP_DIRS" ]; then
     TEMP_DIRS="$TEMP_DIRS $WORKING_DIR"
@@ -59,8 +65,9 @@ _mktemp_directory() {
     TEMP_DIRS="$WORKING_DIR"
   fi
 }
+#}}}: _mktemp_directory
 
-_download_packer() {
+_download_packer() { #{{{
   version="$PACKER_VERSION"
   root_dir="$(pwd)"
 
@@ -71,7 +78,8 @@ _download_packer() {
 
   download_url="${base_url}/${zip_name}"
 
-  echo "Downloading Packer v${version}.."
+  echo "## ----------"
+  echo ">> Downloading Packer v${version}.."
   _mktemp_directory && cd "$WORKING_DIR"
 
   if _wget_wrapper "$download_url"; then
@@ -79,14 +87,16 @@ _download_packer() {
     PACKER_EXECUTABLE="$(realpath packer)"
     cd "$root_dir"
 
-    echo "Downloaded to ${PACKER_EXECUTABLE}."
+    echo ">> Downloaded to ${PACKER_EXECUTABLE}."
+    echo "## ----------"
   else
-    echo "Failed to download from: $download_url"
+    echo "ERROR: Failed to download from: $download_url"
     exit 1
   fi
 }
+#}}}: _download_packer
 
-main() {
+main() { #{{{
   _download_packer
 
   $PACKER_EXECUTABLE init ./ami.pkr.hcl
@@ -99,10 +109,13 @@ main() {
     -var "subnet_id=$SUBNET_ID" \
     -var "terraform_version=$TERRAFORM_VERSION" \
     -var "terraform_versions=$TERRAFORM_VERSIONS" \
+    -var "opentofu_version=$OPENTOFU_VERSION" \
+    -var "opentofu_versions=$OPENTOFU_VERSIONS" \
     -var "user_script=$USER_SCRIPT" \
     -var "vpc_id=$VPC_ID" \
     -machine-readable \
     ./ami.pkr.hcl | tee packer_manifest.log
 }
+#}}}: main
 
 main "$@"

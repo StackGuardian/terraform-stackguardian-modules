@@ -37,7 +37,7 @@ data "aws_ami" "this" {
 # Build custom AMI using Packer
 resource "null_resource" "packer_build" {
   provisioner "local-exec" {
-    command = "sh ${path.module}/scripts/sh/build_ami.sh"
+    command = "sh ${path.module}/scripts/build_ami.sh"
     environment = {
       BASE_AMI           = data.aws_ami.this.id
       OS_FAMILY          = var.os_family
@@ -49,6 +49,8 @@ resource "null_resource" "packer_build" {
       USER_SCRIPT        = var.user_script
       TERRAFORM_VERSION  = var.terraform_version
       TERRAFORM_VERSIONS = join(" ", var.terraform_versions)
+      OPENTOFU_VERSION   = var.opentofu_version
+      OPENTOFU_VERSIONS  = join(" ", var.opentofu_versions)
       VPC_ID             = var.vpc_id
     }
   }

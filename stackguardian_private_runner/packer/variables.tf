@@ -37,7 +37,7 @@ variable "os_family" {
 }
 
 variable "os_version" {
-  description = "Specific OS version (e.g., '20.04' for Ubuntu, '8.5' for RHEL)"
+  description = "Specific OS version (e.g., '22.04' for Ubuntu, '9.6' for RHEL)"
   type        = string
   default     = ""
 }
@@ -64,7 +64,6 @@ variable "user_script" {
 }
 
 variable "terraform_versions" {
-  # description = "List of Terraform versions to be preinstalled on machine image"
   description = <<-EOT
    List of Terraform versions to be preinstalled on the machine image.
    The versions will be installed to /bin/terraform$\{version\}
@@ -75,11 +74,29 @@ variable "terraform_versions" {
 }
 
 variable "terraform_version" {
-  # description = "The Terraform version to be preinstalled on machine image."
   description = <<-EOT
     The Terraform version to be preinstalled on the machine image.
     This version will be the default version installed to /bin/terraform.
   EOT
   type        = string
   default     = "1.12.1"
+}
+
+variable "opentofu_versions" {
+  description = <<-EOT
+   List of OpenTofu versions to be preinstalled on the machine image.
+   The versions will be installed to /bin/tofu$\{version\}
+   For example: version 1.12.0 will be installed to /bin/tofu1.12.0
+  EOT
+  type        = list(string)
+  default     = ["1.10.4", "1.9.3"]
+}
+
+variable "opentofu_version" {
+  description = <<-EOT
+    The OpenTofu version to be preinstalled on the machine image.
+    This version will be the default version installed to /bin/tofu.
+  EOT
+  type        = string
+  default     = "1.10.5"
 }
