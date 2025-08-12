@@ -50,21 +50,13 @@ resource "aws_security_group" "this" {
   description = "Block inboud and Allow All outbound for Private Runner."
   vpc_id      = var.vpc_id
 
-  # Allow all ingress
-  # ingress {
-  #   from_port   = 0
-  #   to_port     = 0
-  #   protocol    = "-1"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
-
   # Allow SSH
   ingress {
     description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["178.77.15.22/32"]
+    cidr_blocks = var.allow_ssh_cidr_blocks
   }
 
   egress {

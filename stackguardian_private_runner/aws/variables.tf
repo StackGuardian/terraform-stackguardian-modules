@@ -30,9 +30,33 @@ variable "name_prefix" {
   default     = "sg"
 }
 
-/*------------------------+
- | EC2 Required Variables |
- +------------------------*/
+variable "override_runner_group_name" {
+  description = <<EOT
+    Optional: Override the default runner group name.
+    If not provided, the module will use the default group name: {name_prefix}-runner-group-{account_id}
+    This is useful if you want to use a specific runner group name for your organization.
+    Default is an empty string, meaning the default group name will be used.
+  EOT
+  type        = string
+  default     = ""
+}
+
+/*---------------------------+
+ | Backend Storage Variables |
+ +---------------------------*/
+variable "force_destroy_storage_backend" {
+  description = <<EOT
+    Whether to force destroy the storage backend (S3 bucket) when the module is destroyed.
+    This will delete all data in the bucket, so use with caution.
+    Default is false, meaning the bucket will not be deleted if it contains objects.
+  EOT
+  type        = bool
+  default     = false
+}
+
+/*-----------------------+
+ | EC2 Network Variables |
+ +-----------------------*/
 variable "vpc_id" {
   description = "Existing VPC ID for the Private Runner instance"
   type        = string
@@ -49,36 +73,69 @@ variable "public_subnet_id" {
   type        = string
 }
 
-variable "ssh_key_name" {
-  description = "The SSH Key Name for the Private Runner instance"
-  type        = string
+variable "associate_public_ip" {
+  description = "Whether to assign a public IP to the Private Runner instance"
+  type        = bool
+  default     = true
 }
 
+/*-----------------------+
+ | EC2 Storage Variables |
+ +-----------------------*/
+variable "volume_type" {
+  description = "Type of the EBS volume for the Private Runner instance"
+  type        = string
+  default     = "gp3"
+}
+
+variable "volume_size" {
+  description = "Size of the EBS volume in GB for the Private Runner instance"
+  type        = number
+  default     = 100
+}
+
+variable "delete_volume_on_termination" {
+  description = "Whether to delete the EBS volume on instance termination"
+  type        = bool
+  default     = false
+}
+
+/*------------------------------+
+ | EC2 SSH Connection Variables |
+ +------------------------------*/
+variable "ssh_key_name" {
+  description = "The existing SSH key name from AWS. If not provided and ssh_public_key is empty, no SSH key will be configured."
+  type        = string
+  default     = ""
+}
+
+variable "ssh_public_key" {
+  description = "Custom SSH public key content to add to the instance. If provided, this takes precedence over ssh_key_name."
+  type        = string
+  default     = ""
+}
+
+variable "allow_ssh_cidr_blocks" {
+  description = "CIDR blocks allowed to SSH into the Private Runner instance. If empty, no SSH access is allowed."
+  type        = list(string)
+  default     = []
+}
+
+/*------------------------+
+ | EC2 Instance Variables |
+ +------------------------*/
 variable "instance_type" {
   description = "The EC2 instance type for Private Runner (min 4 vCPU, 8GB RAM recommended)"
   type        = string
-  default     = "t3.medium"
-}
-
-variable "os_family" {
-  description = "The OS family for Private Runner instance: 'amazon', 'ubuntu', or 'rhel'"
-  type        = string
-  default     = "ubuntu"
-
-  validation {
-    condition     = contains(["amazon", "ubuntu", "rhel"], var.os_family)
-    error_message = "The os_family must be one of 'amazon', 'ubuntu', or 'rhel'."
-  }
-}
-
-variable "os_version" {
-  description = "Specific OS version (e.g., '20.04' for Ubuntu, '8.5' for RHEL)"
-  type        = string
-  default     = "22.04"
+  default     = "t3.xlarge"
 }
 
 variable "ami_id" {
-  description = "The AMI ID for the Private Runner instance with pre-installed dependencies. If not provided, it will be fetched based on the OS family and version and dependencies will be installed in user-data."
+  description = <<EOT
+    The AMI ID for the Private Runner instance with pre-installed dependencies.
+    Required dependencies: docker, cron, jq, sg-runner (main.sh)
+    Recommended: Use StackGuardian Template with Packer to build custom AMI.
+  EOT
   type        = string
   default     = ""
 }
@@ -95,7 +152,7 @@ variable "asg_min_size" {
 variable "asg_max_size" {
   description = "Maximum number of instances in the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 5
 }
 
 variable "asg_desired_capacity" {
@@ -123,13 +180,13 @@ variable "image" {
 variable "scale_out_cooldown_duration" {
   description = "Scale out cooldown duration in minutes"
   type        = string
-  default     = "2"
+  default     = "3"
 }
 
 variable "scale_in_cooldown_duration" {
   description = "Scale in cooldown duration in minutes"
   type        = string
-  default     = "2"
+  default     = "5"
 }
 
 variable "scale_out_threshold" {

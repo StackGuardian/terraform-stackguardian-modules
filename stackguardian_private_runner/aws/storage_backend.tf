@@ -5,8 +5,8 @@ resource "random_string" "storage_backend_prefix" {
 }
 
 resource "aws_s3_bucket" "this" {
-  bucket = "${random_string.storage_backend_prefix.result}-private-runner-storage-backend"
-  # force_destroy = true
+  bucket        = "${random_string.storage_backend_prefix.result}-private-runner-storage-backend"
+  force_destroy = var.force_destroy_storage_backend
 }
 
 # Optional: Block public access

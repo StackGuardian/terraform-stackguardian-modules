@@ -4,11 +4,6 @@ terraform {
       source  = "StackGuardian/stackguardian"
       version = "1.3.3"
     }
-    # Local Provider
-    # stackguardian = {
-    #   source  = "terraform/provider/stackguardian"
-    #   version = "0.0.0-dev"
-    # }
     aws = {
       source = "hashicorp/aws"
     }
@@ -25,7 +20,6 @@ terraform {
       source = "hashicorp/random"
     }
   }
-  required_version = ">= 1.3"
 }
 
 provider "aws" {

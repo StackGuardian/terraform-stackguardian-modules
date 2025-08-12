@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env sh
+
 set -e
 
 ## Register Private Runner
