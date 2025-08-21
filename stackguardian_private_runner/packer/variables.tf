@@ -54,13 +54,22 @@ variable "ssh_username" {
 variable "packer_version" {
   description = "The version of Packer to use for building the machine image"
   type        = string
-  default     = "1.13.1"
+  default     = "1.14.1"
 }
 
 variable "user_script" {
   description = "Custom user script to inject in user data"
   type        = string
   default     = ""
+}
+
+variable "terraform_version" {
+  description = <<-EOT
+    The Terraform version to be preinstalled on the machine image.
+    This version will be the default version installed to /bin/terraform.
+  EOT
+  type        = string
+  default     = "1.5.7"
 }
 
 variable "terraform_versions" {
@@ -70,26 +79,7 @@ variable "terraform_versions" {
    For example: version 1.12.0 will be installed to /bin/terraform1.12.0
   EOT
   type        = list(string)
-  default     = ["1.12.0", "1.12.1", "1.12.2"]
-}
-
-variable "terraform_version" {
-  description = <<-EOT
-    The Terraform version to be preinstalled on the machine image.
-    This version will be the default version installed to /bin/terraform.
-  EOT
-  type        = string
-  default     = "1.12.1"
-}
-
-variable "opentofu_versions" {
-  description = <<-EOT
-   List of OpenTofu versions to be preinstalled on the machine image.
-   The versions will be installed to /bin/tofu$\{version\}
-   For example: version 1.12.0 will be installed to /bin/tofu1.12.0
-  EOT
-  type        = list(string)
-  default     = ["1.10.4", "1.9.3"]
+  default     = []
 }
 
 variable "opentofu_version" {
@@ -99,4 +89,14 @@ variable "opentofu_version" {
   EOT
   type        = string
   default     = "1.10.5"
+}
+
+variable "opentofu_versions" {
+  description = <<-EOT
+   List of OpenTofu versions to be preinstalled on the machine image.
+   The versions will be installed to /bin/tofu$\{version\}
+   For example: version 1.12.0 will be installed to /bin/tofu1.12.0
+  EOT
+  type        = list(string)
+  default     = []
 }

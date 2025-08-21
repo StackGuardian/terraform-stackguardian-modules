@@ -6,8 +6,8 @@ locals {
   }
 
   ami_name_patterns = {
-    amazon = "amzn2-ami-hvm-*-x86_64-gp2"
-    ubuntu = "ubuntu/images/hvm-ssd/ubuntu-*${var.os_version}-amd64-server-*"
+    amazon = "amzn2-ami-hvm-*-gp2"
+    ubuntu = "ubuntu/images/hvm-ssd/ubuntu-*${var.os_version}*-server-*"
     rhel   = "RHEL-${var.os_version}*"
   }
 
@@ -31,6 +31,11 @@ data "aws_ami" "this" {
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
   }
 }
 

@@ -27,7 +27,6 @@ _cleanup() { #{{{
     rm -rf "$WORKING_DIR"
     echo "Removed temporary directory: $WORKING_DIR"
   fi
-  echo "## ----------"
 }
 #}}}: _cleanup
 
@@ -35,7 +34,7 @@ _apt_dependencies() { #{{{
   sudo apt update
   sudo apt install -y \
     docker.io \
-    jq \
+    unzip \
     cron \
     wget
 }
@@ -45,7 +44,7 @@ _yum_dependencies() { #{{{
   sudo yum update
   sudo yum install -y \
     docker \
-    jq \
+    unzip \
     cronie \
     gnupg2 \
     wget
@@ -107,7 +106,53 @@ _detect_os() { #{{{
 }
 #}}}: _detect_os
 
+_get_latest_github_release() { #{{{
+  repo="$1"
+  file_name="$2"
+  latest_release_url="https://api.github.com/repos/$repo/releases/latest"
+
+  wget -qO- "$latest_release_url" \
+    | grep "\"browser_download_url\": \".*/$file_name\"" \
+    | tr -d ' "' \
+    | grep -o 'https.*'
+}
+#}}}: _get_latest_github_release
+
+_install_jq() { #{{{
+  os_arch="$OS_ARCH"
+  os_type="$OS_TYPE"
+  file_name="jq-${os_type}-${os_arch}"
+
+  echo "## ----------"
+  echo ">> Fetching latest jq version.."
+  download_url="$(_get_latest_github_release "jqlang/jq" "$file_name")"
+
+  if [ -z "$download_url" ]; then
+    echo "ERROR: Failed to fetch latest jq version"
+    exit 1
+  fi
+
+  echo ">> Installing jq.."
+  _mktemp_directory && cd "$WORKING_DIR"
+
+  if _wget_wrapper "$download_url"; then
+    sudo chmod +x "$file_name"
+    sudo mv "$file_name" "/usr/bin/jq"
+
+    echo ">> Installed to $(which jq)."
+    echo ">> Version: $(jq --version)"
+  else
+    echo "ERROR: Failed to download jq from: $download_url"
+    exit 1
+  fi
+}
+#}}}: _install_jq
+
 _install_terraform() { #{{{
+  if [ -z "$TERRAFORM_VERSION" ]; then
+    return
+  fi
+
   version="${1:-$TERRAFORM_VERSION}"
   target_name="terraform"
 
@@ -115,8 +160,6 @@ _install_terraform() { #{{{
     target_name="terraform$version"
   fi
 
-  # os_arch="$(_detect_arch)"
-  # os_type="$(_detect_os)"
   os_arch="$OS_ARCH"
   os_type="$OS_TYPE"
   zip_name="terraform_${version}_${os_type}_${os_arch}.zip"
@@ -133,7 +176,6 @@ _install_terraform() { #{{{
     sudo mv terraform "/usr/bin/$target_name"
 
     echo ">> Installed to $(which "$target_name")."
-    echo "## ----------"
   else
     echo "ERROR: Failed to download Terraform v$version from: $download_url"
     exit 1
@@ -151,6 +193,10 @@ _install_terraform_versions() { #{{{
 #}}}: _install_terraform_versions
 
 _install_opentofu() { #{{{
+  if [ -z "$OPENTOFU_VERSION" ]; then
+    return
+  fi
+
   version="${1:-$OPENTOFU_VERSION}"
   target_name="tofu"
 
@@ -158,8 +204,6 @@ _install_opentofu() { #{{{
     target_name="tofu$version"
   fi
 
-  # os_arch="$(_detect_arch)"
-  # os_type="$(_detect_os)"
   os_arch="$OS_ARCH"
   os_type="$OS_TYPE"
   zip_name="tofu_${version}_${os_type}_${os_arch}.zip"
@@ -176,7 +220,6 @@ _install_opentofu() { #{{{
     sudo mv tofu "/usr/bin/$target_name"
 
     echo ">> Installed to $(which "$target_name")."
-    echo "## ----------"
   else
     echo "ERROR: Failed to download OpenTofu v$version from: $download_url"
     exit 1
@@ -207,7 +250,6 @@ _install_sg_runner() { #{{{
     sudo cp -rf StackGuardian-sg-runner*/main.sh /usr/bin/sg-runner
 
     echo ">> Installed to $(which sg-runner)."
-    echo "## ----------"
   else
     echo "ERROR: Failed to download from: $url"
     exit 1
@@ -246,6 +288,8 @@ main() { #{{{
 
   OS_ARCH="$(_detect_arch)"
   OS_TYPE="$(_detect_os)"
+
+  _install_jq
 
   _install_terraform
   _install_terraform_versions
