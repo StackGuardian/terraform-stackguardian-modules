@@ -24,11 +24,10 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  # profile = "packer-role"
 }
 
 provider "stackguardian" {
   api_key  = var.sg_api_key
   org_name = local.sg_org_name
-  # api_uri  = var.sg_api_uri
+  api_uri  = local.sg_api_uri
 }

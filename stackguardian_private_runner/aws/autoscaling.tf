@@ -54,8 +54,8 @@ resource "aws_launch_template" "this" {
   }
 
   user_data = base64encode("${templatefile("${path.module}/templates/register_runner.sh", {
-    sg_org_name = local.sg_org_name
-    # sg_api_uri            = var.sg_api_uri
+    sg_org_name           = local.sg_org_name
+    sg_api_uri            = local.sg_api_uri
     sg_runner_group_name  = stackguardian_runner_group.this.resource_name
     sg_runner_group_token = data.stackguardian_runner_group_token.this.runner_group_token
   })}")

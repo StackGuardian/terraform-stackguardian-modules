@@ -84,6 +84,10 @@ resource "aws_lambda_function" "autoscale" {
   timeout       = 60
   memory_size   = 128
 
+  tracing_config {
+    mode = "PassThrough"
+  }
+
   environment {
     variables = {
       SCALE_OUT_COOLDOWN_DURATION = var.scale_out_cooldown_duration

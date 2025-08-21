@@ -13,7 +13,6 @@ terraform {
       source = "hashicorp/local"
     }
   }
-  required_version = ">= 1.3"
 }
 
 provider "aws" {
