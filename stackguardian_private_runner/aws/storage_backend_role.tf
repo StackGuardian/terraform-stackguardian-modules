@@ -24,7 +24,7 @@ resource "aws_iam_role" "storage_backend" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = "${var.sg_org_name}:${random_string.connector_external_id.result}"
+            "sts:ExternalId" = "${local.sg_org_name}:${random_string.connector_external_id.result}"
           }
         }
       }

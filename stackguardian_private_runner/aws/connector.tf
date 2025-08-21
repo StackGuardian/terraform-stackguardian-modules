@@ -16,7 +16,7 @@ resource "stackguardian_connector" "this" {
 
     config = [{
       role_arn         = aws_iam_role.storage_backend.arn
-      external_id      = "${var.sg_org_name}:${random_string.connector_external_id.result}"
+      external_id      = "${local.sg_org_name}:${random_string.connector_external_id.result}"
       duration_seconds = "3600"
     }]
   }

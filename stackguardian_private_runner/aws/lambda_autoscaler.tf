@@ -90,13 +90,13 @@ resource "aws_lambda_function" "autoscale" {
       SCALE_IN_COOLDOWN_DURATION  = var.scale_in_cooldown_duration
       SCALE_OUT_THRESHOLD         = var.scale_out_threshold
       SCALE_IN_THRESHOLD          = var.scale_in_threshold
-      SG_BASE_URI                 = var.sg_api_uri
+      SG_BASE_URI                 = local.sg_api_uri
       SG_API_KEY                  = var.sg_api_key
       SCALE_IN_STEP               = var.scale_in_step
       SCALE_OUT_STEP              = var.scale_out_step
       MIN_RUNNERS                 = var.min_runners
       AWS_ASG_NAME                = aws_autoscaling_group.this.name
-      SG_ORG                      = var.sg_org_name
+      SG_ORG                      = local.sg_org_name
       SG_RUNNER_GROUP             = stackguardian_runner_group.this.resource_name
       AWS_BUCKET_NAME             = aws_s3_bucket.this.bucket
     }

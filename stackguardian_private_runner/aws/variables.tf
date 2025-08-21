@@ -7,14 +7,20 @@ variable "sg_api_key" {
 }
 
 variable "sg_org_name" {
-  description = "Your organization name on the StackGuardian Platform"
+  description = <<EOT
+    Optional: Your organization name on the StackGuardian Platform.
+    If not provided, the module will attempt to read SG_ORG_ID from the environment.
+    If run inside your StackGuardian organization, this will be set automatically.
+    Default is null, meaning the SG_ORG_ID will be used if available.
+  EOT
   type        = string
+  default     = null
 }
 
-variable "sg_api_uri" {
-  description = "The API URI used for authenticating with StackGuardian Platform"
-  type        = string
-}
+# variable "sg_api_uri" {
+#   description = "The API URI used for authenticating with StackGuardian Platform"
+#   type        = string
+# }
 
 /*-------------------+
  | General Variables |
@@ -157,6 +163,21 @@ variable "allow_ssh_cidr_blocks" {
   EOT
   type        = list(string)
   default     = []
+}
+
+variable "additional_ingress_rules" {
+  description = <<EOT
+    List of additional ingress rules for the security group.
+    Each rule should specify port, protocol, and cidr_blocks.
+    Default is an empty list, meaning no additional ingress rules will be added.
+  EOT
+  type = list(object({
+    port        = number
+    protocol    = string
+    cidr_blocks = list(string)
+    description = optional(string, "Additional ingress rule")
+  }))
+  default = []
 }
 
 /*------------------------+
