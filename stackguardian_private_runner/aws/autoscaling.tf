@@ -53,12 +53,17 @@ resource "aws_launch_template" "this" {
     }
   }
 
-  user_data = base64encode("${templatefile("${path.module}/templates/register_runner.sh", {
-    sg_org_name           = local.sg_org_name
-    sg_api_uri            = local.sg_api_uri
-    sg_runner_group_name  = stackguardian_runner_group.this.resource_name
-    sg_runner_group_token = data.stackguardian_runner_group_token.this.runner_group_token
-  })}")
+  user_data = base64encode(
+    "${templatefile("${path.module}/templates/register_runner.sh.tpl",
+      {
+        sg_org_name               = local.sg_org_name
+        sg_api_uri                = local.sg_api_uri
+        sg_runner_group_name      = stackguardian_runner_group.this.resource_name
+        sg_runner_group_token     = data.stackguardian_runner_group_token.this.runner_group_token
+        sg_runner_startup_timeout = var.scale_out_cooldown_duration
+      }
+    )}"
+  )
 
   tag_specifications {
     resource_type = "instance"
@@ -93,6 +98,16 @@ resource "aws_autoscaling_group" "this" {
     key                 = "Name"
     value               = "${var.name_prefix}-private-runner-asg"
     propagate_at_launch = true
+  }
+
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage       = 50
+      instance_warmup              = 300
+      scale_in_protected_instances = "Refresh"
+      standby_instances            = "Terminate"
+    }
   }
 
   lifecycle {
