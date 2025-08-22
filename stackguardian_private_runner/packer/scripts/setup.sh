@@ -41,7 +41,7 @@ _apt_dependencies() { #{{{
 #}}}: _apt_dependencies
 
 _yum_dependencies() { #{{{
-  sudo yum update
+  sudo yum update -y
   sudo yum install -y \
     docker \
     unzip \
@@ -50,6 +50,23 @@ _yum_dependencies() { #{{{
     wget
 }
 #}}}: _yum_dependencies
+
+_dnf_dependencies() { #{{{
+  sudo dnf update -y
+  sudo dnf install -y \
+    dnf-plugins-core \
+    unzip \
+    cronie \
+    wget
+
+  sudo dnf config-manager \
+    --add-repo "https://download.docker.com/linux/rhel/docker-ce.repo"
+  sudo dnf install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io
+}
+#}}}: _dnf_dependencies
 
 _systemctl_enable() { #{{{
   for service in "$@"; do
@@ -274,20 +291,32 @@ _user_script_wrapper() { #{{{
 }
 #}}}: _user_script_wrapper
 
-main() { #{{{
+_handle_os_package_installation() { #{{{
   if [ "$OS_FAMILY" = "ubuntu" ]; then
     _apt_dependencies
-    _systemctl_enable "cron"
+    _systemctl_enable "cron" "docker"
     _usermod_add_to_group "docker" "ubuntu"
-  else
+  elif [ "$OS_FAMILY" = "amazon" ]; then
     _yum_dependencies
-    _systemctl_enable "crond" "amazon-ssm-agent"
+    _systemctl_enable "crond" "docker"
     _usermod_add_to_group "docker" "ec2-user"
+  elif [ "$OS_FAMILY" = "rhel" ]; then
+    _dnf_dependencies
+    _systemctl_enable "crond" "docker"
+    _usermod_add_to_group "docker" "ec2-user"
+  else
+    echo "ERROR: Unsupported OS_FAMILY: $OS_FAMILY"
+    exit 1
   fi
-  _systemctl_enable "docker"
 
+}
+#}}}: _handle_os_family
+
+main() { #{{{
   OS_ARCH="$(_detect_arch)"
   OS_TYPE="$(_detect_os)"
+
+  _handle_os_package_installation
 
   _install_jq
 
