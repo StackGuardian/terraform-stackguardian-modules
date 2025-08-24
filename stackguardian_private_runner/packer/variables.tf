@@ -42,6 +42,12 @@ variable "os_version" {
   default     = ""
 }
 
+variable "update_os_before_install" {
+  description = "Whether to update the OS packages before installing software"
+  type        = bool
+  default     = false
+}
+
 variable "ssh_username" {
   description = "The SSH username for the machine instance."
   type        = string

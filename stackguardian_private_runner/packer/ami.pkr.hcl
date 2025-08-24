@@ -1,6 +1,7 @@
 variable "base_ami" {}
 variable "os_family" {}
 variable "os_version" {}
+variable "update_os_before_install" {}
 variable "region" {}
 variable "ssh_username" {}
 variable "subnet_id" {}
@@ -54,6 +55,7 @@ build {
     script = "scripts/setup.sh"
     environment_vars = [
       "OS_FAMILY=${var.os_family}",
+      "UPDATE_OS=${var.update_os_before_install}",
       "TERRAFORM_VERSION=${var.terraform_version}",
       "TERRAFORM_VERSIONS=${var.terraform_versions}",
       "OPENTOFU_VERSION=${var.opentofu_version}",

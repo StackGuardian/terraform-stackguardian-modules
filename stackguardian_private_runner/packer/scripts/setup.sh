@@ -31,7 +31,8 @@ _cleanup() { #{{{
 #}}}: _cleanup
 
 _apt_dependencies() { #{{{
-  sudo apt update
+  [ "$UPDATE_OS" == "true" ] \
+    && sudo apt update
   sudo apt install -y \
     docker.io \
     unzip \
@@ -41,7 +42,8 @@ _apt_dependencies() { #{{{
 #}}}: _apt_dependencies
 
 _yum_dependencies() { #{{{
-  sudo yum update -y
+  [ "$UPDATE_OS" == "true" ] \
+    && sudo yum update -y
   sudo yum install -y \
     docker \
     unzip \
@@ -52,7 +54,8 @@ _yum_dependencies() { #{{{
 #}}}: _yum_dependencies
 
 _dnf_dependencies() { #{{{
-  sudo dnf update -y
+  [ "$UPDATE_OS" == "true" ] \
+    && sudo dnf update -y
   sudo dnf install -y \
     dnf-plugins-core \
     unzip \

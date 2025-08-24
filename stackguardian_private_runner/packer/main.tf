@@ -47,6 +47,7 @@ resource "null_resource" "packer_build" {
       BASE_AMI           = data.aws_ami.this.id
       OS_FAMILY          = var.os_family
       OS_VERSION         = var.os_family != "amazon" ? var.os_version : ""
+      UPDATE_OS          = var.update_os_before_install
       PACKER_VERSION     = var.packer_version
       REGION             = var.aws_region
       SSH_USERNAME       = local.ssh_usernames[var.os_family]

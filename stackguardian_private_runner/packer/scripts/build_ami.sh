@@ -104,6 +104,7 @@ main() { #{{{
     -var "base_ami=$BASE_AMI" \
     -var "os_family=$OS_FAMILY" \
     -var "os_version=$OS_VERSION" \
+    -var "update_os_before_install=$UPDATE_OS" \
     -var "region=$REGION" \
     -var "ssh_username=$SSH_USERNAME" \
     -var "subnet_id=$SUBNET_ID" \
