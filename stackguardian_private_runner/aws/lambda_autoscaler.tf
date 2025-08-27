@@ -1,6 +1,6 @@
 # IAM Role for Lambda Autoscaling Function
 resource "aws_iam_role" "autoscale_lambda" {
-  name = "${var.name_prefix}-autoscale-lambda-role"
+  name = "${var.override_names.global_prefix}-autoscale-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -18,7 +18,7 @@ resource "aws_iam_role" "autoscale_lambda" {
 
 # IAM Policy for Lambda Autoscaling Function
 resource "aws_iam_policy" "autoscale_lambda" {
-  name        = "${var.name_prefix}-autoscale-lambda-policy"
+  name        = "${var.override_names.global_prefix}-autoscale-lambda-policy"
   description = "Policy for autoscaling Lambda function"
 
   policy = jsonencode({
@@ -79,7 +79,7 @@ resource "aws_lambda_function" "autoscale" {
 
   architectures = ["arm64"]
 
-  function_name = "${var.name_prefix}-autoscale-private-runner"
+  function_name = "${var.override_names.global_prefix}-autoscale-private-runner"
   role          = aws_iam_role.autoscale_lambda.arn
   timeout       = 60
   memory_size   = 128
@@ -90,15 +90,15 @@ resource "aws_lambda_function" "autoscale" {
 
   environment {
     variables = {
-      SCALE_OUT_COOLDOWN_DURATION = var.scale_out_cooldown_duration
-      SCALE_IN_COOLDOWN_DURATION  = var.scale_in_cooldown_duration
-      SCALE_OUT_THRESHOLD         = var.scale_out_threshold
-      SCALE_IN_THRESHOLD          = var.scale_in_threshold
+      SCALE_OUT_COOLDOWN_DURATION = tostring(var.scaling.scale_out_cooldown_duration)
+      SCALE_IN_COOLDOWN_DURATION  = tostring(var.scaling.scale_in_cooldown_duration)
+      SCALE_OUT_THRESHOLD         = tostring(var.scaling.scale_out_threshold)
+      SCALE_IN_THRESHOLD          = tostring(var.scaling.scale_in_threshold)
       SG_BASE_URI                 = local.sg_api_uri
-      SG_API_KEY                  = var.sg_api_key
-      SCALE_IN_STEP               = var.scale_in_step
-      SCALE_OUT_STEP              = var.scale_out_step
-      MIN_RUNNERS                 = var.min_runners
+      SG_API_KEY                  = var.stackguardian.api_key
+      SCALE_IN_STEP               = tostring(var.scaling.scale_in_step)
+      SCALE_OUT_STEP              = tostring(var.scaling.scale_out_step)
+      MIN_RUNNERS                 = tostring(var.scaling.min_runners)
       AWS_ASG_NAME                = aws_autoscaling_group.this.name
       SG_ORG                      = local.sg_org_name
       SG_RUNNER_GROUP             = stackguardian_runner_group.this.resource_name
@@ -114,13 +114,13 @@ resource "aws_lambda_function" "autoscale" {
 
 # CloudWatch Log Group for Lambda
 resource "aws_cloudwatch_log_group" "autoscale_lambda" {
-  name              = "/aws/lambda/${var.name_prefix}-autoscale-private-runner"
+  name              = "/aws/lambda/${var.override_names.global_prefix}-autoscale-private-runner"
   retention_in_days = 14
 }
 
 # EventBridge Scheduler Schedule for triggering Lambda every minute
 resource "aws_scheduler_schedule" "autoscale_trigger" {
-  name       = "${var.name_prefix}-autoscale-trigger"
+  name       = "${var.override_names.global_prefix}-autoscale-trigger"
   group_name = "default"
 
   flexible_time_window {
@@ -137,7 +137,7 @@ resource "aws_scheduler_schedule" "autoscale_trigger" {
 
 # IAM Role for EventBridge Scheduler
 resource "aws_iam_role" "scheduler_execution" {
-  name = "${var.name_prefix}-scheduler-execution-role"
+  name = "${var.override_names.global_prefix}-scheduler-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -155,7 +155,7 @@ resource "aws_iam_role" "scheduler_execution" {
 
 # IAM Policy for EventBridge Scheduler
 resource "aws_iam_policy" "scheduler_execution" {
-  name        = "${var.name_prefix}-scheduler-execution-policy"
+  name        = "${var.override_names.global_prefix}-scheduler-execution-policy"
   description = "Policy for EventBridge Scheduler to invoke Lambda"
 
   policy = jsonencode({

@@ -1,185 +1,3 @@
-/*-----------------------------------+
- | StackGuardian Resources Variables |
- +-----------------------------------*/
-variable "sg_api_key" {
-  description = "Your organization's API key on the StackGuardian Platform"
-  type        = string
-}
-
-variable "sg_org_name" {
-  description = <<EOT
-    Optional: Your organization name on the StackGuardian Platform.
-    If not provided, the module will attempt to read SG_ORG_ID from the environment.
-    If run inside your StackGuardian organization, this will be set automatically.
-    Default is null, meaning the SG_ORG_ID will be used if available.
-  EOT
-  type        = string
-  default     = null
-}
-
-# variable "sg_api_uri" {
-#   description = "The API URI used for authenticating with StackGuardian Platform"
-#   type        = string
-# }
-
-/*-------------------+
- | General Variables |
- +-------------------*/
-variable "aws_region" {
-  description = "The target AWS Region to setup Private Runner"
-  type        = string
-}
-
-variable "name_prefix" {
-  description = "Prefix for naming AWS resources"
-  type        = string
-  default     = "SG_RUNNER"
-}
-
-variable "override_runner_group_name" {
-  description = <<EOT
-    Optional: Override the default runner group name.
-    If not provided, the module will use the default group name: {name_prefix}-runner-group-{account_id}.
-    This is useful if you want to use a specific runner group name for your organization.
-    Default is an empty string, meaning the default group name will be used.
-  EOT
-  type        = string
-  default     = ""
-}
-
-variable "override_connector_name" {
-  description = <<EOT
-    Optional: Override the default connector name.
-    If not provided, the module will use the default connector name: {name_prefix}-private-runner-backend-{account_id}.
-    This is useful if you want to use a specific connector name for your organization.
-    Default is an empty string, meaning the default connector name will be used.
-  EOT
-  type        = string
-  default     = ""
-}
-
-/*---------------------------+
- | Backend Storage Variables |
- +---------------------------*/
-variable "force_destroy_storage_backend" {
-  description = <<EOT
-    Whether to force destroy the storage backend (S3 bucket) when the module is destroyed.
-    This will delete all data in the bucket, so use with caution.
-    Default is false, meaning the bucket will not be deleted if it contains objects.
-  EOT
-  type        = bool
-  default     = false
-}
-
-/*-----------------------+
- | EC2 Network Variables |
- +-----------------------*/
-variable "vpc_id" {
-  description = "Existing VPC ID for the Private Runner instance"
-  type        = string
-}
-
-variable "private_subnet_id" {
-  description = <<EOT
-    Existing Private Subnet ID for the Private Runner instance.
-    If provided, the instance will be deployed in a private subnet.
-    If not provided, public_subnet_id is required to deploy in a public subnet.
-    Default is null, meaning no private subnet will be used.
-  EOT
-  # description = "Existing Private Subnet ID for the Private Runner instance"
-  type    = string
-  default = null
-}
-
-variable "public_subnet_id" {
-  description = <<EOT
-    Existing Public Subnet ID for the Private Runner instance.
-    If provided, the instance will be deployed in a public subnet.
-    If not provided, private_subnet_id is required to deploy in a private subnet.
-    Default is null, meaning no public subnet will be used.
-  EOT
-  type        = string
-}
-
-variable "associate_public_ip" {
-  description = "Whether to assign a public IP to the Private Runner instance"
-  type        = bool
-  default     = true
-}
-
-/*-----------------------+
- | EC2 Storage Variables |
- +-----------------------*/
-variable "volume_type" {
-  description = "Type of the EBS volume for the Private Runner instance"
-  type        = string
-  default     = "gp3"
-}
-
-variable "volume_size" {
-  description = "Size of the EBS volume in GB for the Private Runner instance"
-  type        = number
-  default     = 100
-}
-
-variable "delete_volume_on_termination" {
-  description = "Whether to delete the EBS volume on instance termination"
-  type        = bool
-  default     = false
-}
-
-/*------------------------------+
- | EC2 SSH Connection Variables |
- +------------------------------*/
-variable "ssh_key_name" {
-  description = <<EOT
-    Name of the existing SSH key in AWS to use for the Private Runner instance.
-    If provided, this key will be used for SSH access.
-    If ssh_public_key is also provided, it will take precedence over this key.
-    If both ssh_key_name and ssh_public_key are empty, no SSH key will be configured.
-    Default is an empty string, meaning no SSH key will be configured.
-  EOT
-  type        = string
-  default     = ""
-}
-
-variable "ssh_public_key" {
-  description = <<EOT
-    Custom SSH public key content to add to the instance.
-    If provided, this takes precedence over ssh_key_name.
-    If both ssh_key_name and ssh_public_key are empty, no SSH key will be configured.
-    Default is an empty string, meaning no custom SSH key will be added.
-  EOT
-  type        = string
-  default     = ""
-}
-
-variable "allow_ssh_cidr_blocks" {
-  description = <<EOT
-    List of CIDR blocks allowed to SSH into the Private Runner instance.
-    If provided, these CIDR blocks will be added to the security group for SSH access.
-    If empty, no specific CIDR blocks will be allowed for SSH access.
-    Default is an empty list, meaning no CIDR blocks are allowed for SSH access.
-  EOT
-  type        = list(string)
-  default     = []
-}
-
-variable "additional_ingress_rules" {
-  description = <<EOT
-    List of additional ingress rules for the security group.
-    Each rule should specify port, protocol, and cidr_blocks.
-    Default is an empty list, meaning no additional ingress rules will be added.
-  EOT
-  type = list(object({
-    port        = number
-    protocol    = string
-    cidr_blocks = list(string)
-    description = optional(string, "Additional ingress rule")
-  }))
-  default = []
-}
-
 /*------------------------+
  | EC2 Instance Variables |
  +------------------------*/
@@ -199,25 +17,96 @@ variable "ami_id" {
   default     = ""
 }
 
+/*-------------------+
+ | General Variables |
+ +-------------------*/
+variable "aws_region" {
+  description = "The target AWS Region to setup Private Runner"
+  type        = string
+}
+
+/*---------------------------+
+ | Backend Storage Variables |
+ +---------------------------*/
+variable "force_destroy_storage_backend" {
+  description = <<EOT
+    Whether to force destroy the storage backend (S3 bucket) when the module is destroyed.
+    This will delete all data in the bucket, so use with caution.
+    Default is false, meaning the bucket will not be deleted if it contains objects.
+  EOT
+  type        = bool
+  default     = false
+}
+
 /*-----------------------------------+
- | Auto Scaling Group Variables     |
+ | StackGuardian Resources Variables |
  +-----------------------------------*/
-variable "asg_min_size" {
-  description = "Minimum number of instances in the Auto Scaling Group"
-  type        = number
-  default     = 1
+variable "stackguardian" {
+  description = "StackGuardian platform configuration"
+  type = object({
+    api_key  = string
+    org_name = optional(string, null)
+  })
 }
 
-variable "asg_max_size" {
-  description = "Maximum number of instances in the Auto Scaling Group"
-  type        = number
-  default     = 5
+# variable "sg_api_uri" {
+#   description = "The API URI used for authenticating with StackGuardian Platform"
+#   type        = string
+# }
+
+variable "override_names" {
+  description = "Configuration for overriding default resource names"
+  type = object({
+    global_prefix     = optional(string, "SG_RUNNER")
+    runner_group_name = optional(string, "")
+    connector_name    = optional(string, "")
+  })
+  default = {}
 }
 
-variable "asg_desired_capacity" {
-  description = "Desired number of instances in the Auto Scaling Group"
-  type        = number
-  default     = 1
+/*-----------------------+
+ | EC2 Network Variables |
+ +-----------------------*/
+variable "network" {
+  description = "Network configuration for the Private Runner instance"
+  type = object({
+    vpc_id              = string
+    private_subnet_id   = optional(string, null)
+    public_subnet_id    = string
+    associate_public_ip = optional(bool, true)
+  })
+}
+
+/*-----------------------+
+ | EC2 Storage Variables |
+ +-----------------------*/
+variable "volume" {
+  description = "EBS volume configuration for the Private Runner instance"
+  type = object({
+    type                  = optional(string, "gp3")
+    size                  = optional(number, 100)
+    delete_on_termination = optional(bool, false)
+  })
+  default = {}
+}
+
+/*------------------------------+
+ | EC2 SSH Connection Variables |
+ +------------------------------*/
+variable "firewall" {
+  description = "Firewall and SSH configuration for the Private Runner instance"
+  type = object({
+    ssh_key_name          = optional(string, "")
+    ssh_public_key        = optional(string, "")
+    allow_ssh_cidr_blocks = optional(list(string), [])
+    additional_ingress_rules = optional(list(object({
+      port        = number
+      protocol    = string
+      cidr_blocks = list(string)
+      description = optional(string, "Additional ingress rule")
+    })), [])
+  })
+  default = {}
 }
 
 /*-----------------------------------+
@@ -236,44 +125,17 @@ variable "image" {
   }
 }
 
-variable "scale_out_cooldown_duration" {
-  description = "Scale out cooldown duration in minutes"
-  type        = string
-  default     = "3"
+variable "scaling" {
+  description = "Auto scaling configuration for the Private Runner"
+  type = object({
+    scale_out_cooldown_duration = optional(number, 3)
+    scale_in_cooldown_duration  = optional(number, 5)
+    scale_out_threshold         = optional(number, 5)
+    scale_in_threshold          = optional(number, 2)
+    scale_in_step               = optional(number, 1)
+    scale_out_step              = optional(number, 1)
+    min_runners                 = optional(number, 1)
+  })
+  default = {}
 }
 
-variable "scale_in_cooldown_duration" {
-  description = "Scale in cooldown duration in minutes"
-  type        = string
-  default     = "5"
-}
-
-variable "scale_out_threshold" {
-  description = "Threshold for scaling out"
-  type        = string
-  default     = "5"
-}
-
-variable "scale_in_threshold" {
-  description = "Threshold for scaling in"
-  type        = string
-  default     = "2"
-}
-
-variable "scale_in_step" {
-  description = "Number of instances to scale in"
-  type        = string
-  default     = "1"
-}
-
-variable "scale_out_step" {
-  description = "Number of instances to scale out"
-  type        = string
-  default     = "1"
-}
-
-variable "min_runners" {
-  description = "Minimum number of runners"
-  type        = string
-  default     = "1"
-}

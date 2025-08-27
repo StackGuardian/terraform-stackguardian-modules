@@ -27,7 +27,7 @@ provider "aws" {
 }
 
 provider "stackguardian" {
-  api_key  = var.sg_api_key
+  api_key  = var.stackguardian.api_key
   org_name = local.sg_org_name
   api_uri  = local.sg_api_uri
 }

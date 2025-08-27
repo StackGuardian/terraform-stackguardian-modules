@@ -7,7 +7,7 @@ resource "random_string" "connector_external_id" {
 
 # This IAM role is used by the StackGuardian platform/runner to access the S3 bucket.
 resource "aws_iam_role" "storage_backend" {
-  name = "${var.name_prefix}-private-runner-s3-role"
+  name = "${var.override_names.global_prefix}-private-runner-s3-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -34,7 +34,7 @@ resource "aws_iam_role" "storage_backend" {
 
 # This policy allows the StackGuardian platform/runner to access the S3 bucket.
 resource "aws_iam_policy" "storage_backend_access" {
-  name        = "${var.name_prefix}-runner-s3-policy"
+  name        = "${var.override_names.global_prefix}-runner-s3-policy"
   description = "Policy for access to the Storage Backend (S3 Bucket: ${aws_s3_bucket.this.bucket})"
   policy = jsonencode({
     Version = "2012-10-17"

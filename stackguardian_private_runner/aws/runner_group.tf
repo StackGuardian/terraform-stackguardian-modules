@@ -1,8 +1,8 @@
 locals {
   runner_group_name = (
-    var.override_runner_group_name != ""
-    ? var.override_runner_group_name
-    : "${var.name_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
+    var.override_names.runner_group_name != ""
+    ? var.override_names.runner_group_name
+    : "${var.override_names.global_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
   )
 }
 
@@ -11,7 +11,7 @@ resource "stackguardian_runner_group" "this" {
   resource_name = local.runner_group_name
   description   = "Private Runner Group for AWS S3 storage backend"
 
-  max_number_of_runners = var.asg_max_size
+  max_number_of_runners = var.scaling.scale_out_threshold
 
   storage_backend_config = {
     type           = "aws_s3"
@@ -22,5 +22,5 @@ resource "stackguardian_runner_group" "this" {
     }
   }
 
-  tags = ["private-runner", var.name_prefix]
+  tags = ["private-runner", var.override_names.global_prefix]
 }

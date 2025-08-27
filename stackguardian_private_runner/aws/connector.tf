@@ -1,8 +1,8 @@
 locals {
   connector_name = (
-    var.override_connector_name != ""
-    ? var.override_connector_name
-    : "${var.name_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
+    var.override_names.connector_name != ""
+    ? var.override_names.connector_name
+    : "${var.override_names.global_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
   )
 }
 
@@ -21,5 +21,5 @@ resource "stackguardian_connector" "this" {
     }]
   }
 
-  tags = ["private-runner", var.name_prefix]
+  tags = ["private-runner", var.override_names.global_prefix]
 }

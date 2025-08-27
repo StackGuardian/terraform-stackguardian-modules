@@ -1,10 +1,10 @@
 locals {
-  subnet_id = var.private_subnet_id != null ? var.private_subnet_id : var.public_subnet_id
+  subnet_id = var.network.private_subnet_id != null ? var.network.private_subnet_id : var.network.public_subnet_id
 
   # SSH key logic: custom public key > named key > no key
-  use_custom_key = var.ssh_public_key != ""
-  use_named_key  = var.ssh_key_name != "" && var.ssh_public_key == ""
-  ssh_key_name   = local.use_custom_key ? aws_key_pair.this[0].key_name : (local.use_named_key ? var.ssh_key_name : "")
+  use_custom_key = var.firewall.ssh_public_key != ""
+  use_named_key  = var.firewall.ssh_key_name != "" && var.firewall.ssh_public_key == ""
+  ssh_key_name   = local.use_custom_key ? aws_key_pair.this[0].key_name : (local.use_named_key ? var.firewall.ssh_key_name : "")
 }
 
 data "stackguardian_runner_group_token" "this" {
@@ -14,23 +14,23 @@ data "stackguardian_runner_group_token" "this" {
 # Create SSH key pair when custom public key is provided
 resource "aws_key_pair" "this" {
   count      = local.use_custom_key ? 1 : 0
-  key_name   = "${var.name_prefix}-private-runner-custom-key"
-  public_key = var.ssh_public_key
+  key_name   = "${var.override_names.global_prefix}-private-runner-custom-key"
+  public_key = var.firewall.ssh_public_key
 
   tags = {
-    Name = "${var.name_prefix}-private-runner-custom-key"
+    Name = "${var.override_names.global_prefix}-private-runner-custom-key"
   }
 }
 
 # Launch Template for Auto Scaling Group
 resource "aws_launch_template" "this" {
-  name_prefix   = "${var.name_prefix}-private-runner-"
+  name_prefix   = "${var.override_names.global_prefix}-private-runner-"
   image_id      = var.ami_id
   instance_type = var.instance_type
   key_name      = local.ssh_key_name != "" ? local.ssh_key_name : null
 
   network_interfaces {
-    associate_public_ip_address = var.associate_public_ip
+    associate_public_ip_address = var.network.associate_public_ip
     security_groups             = [aws_security_group.this.id]
   }
 
@@ -47,9 +47,9 @@ resource "aws_launch_template" "this" {
   block_device_mappings {
     device_name = "/dev/sda1"
     ebs {
-      volume_size           = var.volume_size
-      volume_type           = var.volume_type
-      delete_on_termination = var.delete_volume_on_termination
+      volume_size           = var.volume.size
+      volume_type           = var.volume.type
+      delete_on_termination = var.volume.delete_on_termination
     }
   }
 
@@ -60,7 +60,7 @@ resource "aws_launch_template" "this" {
         sg_api_uri                = local.sg_api_uri
         sg_runner_group_name      = stackguardian_runner_group.this.resource_name
         sg_runner_group_token     = data.stackguardian_runner_group_token.this.runner_group_token
-        sg_runner_startup_timeout = var.scale_out_cooldown_duration
+        sg_runner_startup_timeout = tostring(var.scaling.scale_out_cooldown_duration)
       }
     )}"
   )
@@ -68,7 +68,7 @@ resource "aws_launch_template" "this" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "${var.name_prefix}-private-runner-asg"
+      Name = "${var.override_names.global_prefix}-private-runner-asg"
     }
   }
 
@@ -79,15 +79,15 @@ resource "aws_launch_template" "this" {
 
 # Auto Scaling Group
 resource "aws_autoscaling_group" "this" {
-  name                      = "${var.name_prefix}-private-runner-asg"
+  name                      = "${var.override_names.global_prefix}-private-runner-asg"
   vpc_zone_identifier       = [local.subnet_id]
   target_group_arns         = []
   health_check_type         = "EC2"
   health_check_grace_period = 300
 
-  min_size         = var.asg_min_size
-  max_size         = var.asg_max_size
-  desired_capacity = var.asg_desired_capacity
+  min_size         = var.scaling.scale_in_threshold
+  max_size         = var.scaling.scale_out_threshold
+  desired_capacity = var.scaling.min_runners
 
   launch_template {
     id      = aws_launch_template.this.id
@@ -96,7 +96,7 @@ resource "aws_autoscaling_group" "this" {
 
   tag {
     key                 = "Name"
-    value               = "${var.name_prefix}-private-runner-asg"
+    value               = "${var.override_names.global_prefix}-private-runner-asg"
     propagate_at_launch = true
   }
 
