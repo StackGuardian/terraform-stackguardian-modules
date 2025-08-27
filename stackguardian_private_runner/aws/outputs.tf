@@ -9,6 +9,10 @@ output "connector_name" {
   value = stackguardian_connector.this.resource_name
 }
 
+output "runner_group_url" {
+  value = "${replace(local.sg_api_uri, "api.", "")}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${stackguardian_runner_group.this.resource_name}"
+}
+
 /*-----------------------+
  | AWS Resources Outputs |
  +-----------------------*/
