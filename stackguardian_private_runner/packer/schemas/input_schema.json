@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "aws_region": {
+      "type": "string"
+    },
+    "instance_type": {
+      "type": "string",
+      "default": "t3.medium"
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "vpc_id": {
+          "type": "string",
+          "pattern": "^vpc-.*$"
+        },
+        "public_subnet_id": {
+          "type": "string",
+          "pattern": "^subnet-.*$"
+        }
+      },
+      "required": ["vpc_id", "public_subnet_id"]
+    },
+    "os": {
+      "type": "object",
+      "required": ["family", "update_os_before_install"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "family": {
+                "const": "amazon"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "family": {
+                "type": "string",
+                "enum": ["amazon", "ubuntu", "rhel"],
+                "default": "amazon"
+              },
+              "update_os_before_install": {
+                "type": "boolean",
+                "default": true
+              },
+              "ssh_username": {
+                "type": "string",
+                "default": ""
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "family": {
+                "not": {
+                  "const": "amazon"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "family": {
+                "type": "string",
+                "enum": ["amazon", "ubuntu", "rhel"],
+                "default": "amazon"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "update_os_before_install": {
+                "type": "boolean",
+                "default": true
+              },
+              "ssh_username": {
+                "type": "string",
+                "default": ""
+              }
+            },
+            "required": ["version"]
+          }
+        }
+      ]
+    },
+    "packer_config": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "default": "1.14.1",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "user_script": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["version"]
+    },
+    "terraform": {
+      "type": "object",
+      "properties": {
+        "primary_version": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(|[0-9]+\\.[0-9]+\\.[0-9]+)$"
+        },
+        "additional_versions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          },
+          "default": []
+        }
+      },
+      "required": []
+    },
+    "opentofu": {
+      "type": "object",
+      "properties": {
+        "primary_version": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(|[0-9]+\\.[0-9]+\\.[0-9]+)$"
+        },
+        "additional_versions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          },
+          "default": []
+        }
+      },
+      "required": []
+    }
+  },
+  "required": ["aws_region", "network"]
+}

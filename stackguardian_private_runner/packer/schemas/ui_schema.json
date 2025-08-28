@@ -1,0 +1,85 @@
+{
+  "ui:title": "StackGuardian Private Runner - Packer AMI Builder",
+  "ui:description": "Build a custom AMI for StackGuardian Private Runner with pre-installed dependencies including Docker, Terraform, OpenTofu, and StackGuardian runner components. This AMI can then be used with the AWS deployment template for optimal performance.",
+  "aws_region": {
+    "ui:placeholder": "eu-central-1",
+    "ui:description": "The AWS region where the AMI will be built"
+  },
+  "network": {
+    "ui:title": "Network Configuration",
+    "vpc_id": {
+      "ui:placeholder": "vpc-***",
+      "ui:description": "Existing VPC ID where Packer will build the AMI. Must have internet access for downloading packages."
+    },
+    "public_subnet_id": {
+      "ui:placeholder": "subnet-***",
+      "ui:description": "Public subnet ID where Packer will launch the build instance. Must have internet gateway access."
+    }
+  },
+  "instance_type": {
+    "ui:description": "EC2 instance type for the Packer build process (minimum 2 vCPU, 4GB RAM recommended for faster builds)"
+  },
+  "os": {
+    "ui:title": "Operating System Configuration",
+    "family": {
+      "ui:widget": "select",
+      "ui:description": "Base operating system family for the AMI. Amazon Linux 2 is recommended for best compatibility with AWS services."
+    },
+    "version": {
+      "ui:placeholder": "22.04 (for Ubuntu), 9.6 (for RHEL)",
+      "ui:description": "Specific OS version. Required for Ubuntu/RHEL. For Ubuntu use format like '22.04' or '20.04'. For RHEL use format like '9.6' or '8.8'. Not used for Amazon Linux."
+    },
+    "update_os_before_install": {
+      "ui:widget": "checkbox",
+      "ui:description": "⚠️ Recommended for production: Update OS packages before installing StackGuardian components to include latest security patches. This will increase build time but improve security."
+    },
+    "ssh_username": {
+      "ui:placeholder": "auto-detected based on OS family",
+      "ui:description": "SSH username for the build instance. Leave empty to use defaults: 'ec2-user' for Amazon Linux/RHEL, 'ubuntu' for Ubuntu."
+    }
+  },
+  "packer_config": {
+    "ui:title": "Build Tool Configuration",
+    "version": {
+      "ui:description": "Version of HashiCorp Packer to use for building the AMI"
+    },
+    "user_script": {
+      "ui:widget": "textarea",
+      "ui:placeholder": "#!/bin/bash\n# Your custom installation script here\n# This runs after StackGuardian setup",
+      "ui:options": {
+        "rows": 6
+      },
+      "ui:description": "Custom shell script to execute during AMI provisioning. Runs after the standard StackGuardian setup. Use this to install additional tools, configure settings, or customize the environment."
+    }
+  },
+  "terraform": {
+    "ui:title": "Terraform Installation",
+    "primary_version": {
+      "ui:placeholder": "1.5.7",
+      "ui:description": "Primary Terraform version to install as the default '/bin/terraform' binary. This will be the version used when running 'terraform' commands."
+    },
+    "additional_versions": {
+      "ui:widget": "textarea",
+      "ui:placeholder": "[\"1.4.6\", \"1.6.0\", \"1.7.0\"]",
+      "ui:options": {
+        "rows": 3
+      },
+      "ui:description": "Additional Terraform versions to install. Each version will be available as '/bin/terraform{version}'. For example, '1.4.6' becomes '/bin/terraform1.4.6'. Leave empty to install only the primary version."
+    }
+  },
+  "opentofu": {
+    "ui:title": "OpenTofu Installation",
+    "primary_version": {
+      "ui:placeholder": "1.10.5",
+      "ui:description": "Primary OpenTofu version to install as the default '/bin/tofu' binary. OpenTofu is an open-source alternative to Terraform."
+    },
+    "additional_versions": {
+      "ui:widget": "textarea",
+      "ui:placeholder": "[\"1.8.0\", \"1.9.0\", \"1.10.0\"]",
+      "ui:options": {
+        "rows": 3
+      },
+      "ui:description": "Additional OpenTofu versions to install. Each version will be available as '/bin/tofu{version}'. For example, '1.8.0' becomes '/bin/tofu1.8.0'. Leave empty to install only the primary version."
+    }
+  }
+}

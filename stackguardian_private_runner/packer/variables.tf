@@ -2,107 +2,96 @@
  | General Variables |
  +-------------------*/
 variable "aws_region" {
-  description = "The target AWS Region to setup Private Runner"
-  type        = string
-}
-
-/*------------------------+
- | EC2 Required Variables |
- +------------------------*/
-variable "vpc_id" {
-  description = "Existing VPC ID for the Private Runner instance"
-  type        = string
-}
-
-variable "public_subnet_id" {
-  description = "Existing Public Subnet ID for the Private Runner instance"
+  description = "The target AWS Region to build the Private Runner AMI"
   type        = string
 }
 
 variable "instance_type" {
-  description = "The EC2 instance type for Private Runner (min 4 vCPU, 8GB RAM recommended)"
+  description = "The EC2 instance type for the Packer build process (min 2 vCPU, 4GB RAM recommended)"
   type        = string
   default     = "t3.medium"
 }
 
-variable "os_family" {
-  description = "The OS family for Private Runner instance: 'amazon', 'ubuntu', or 'rhel'"
-  type        = string
-  default     = "amazon"
+/*----------------------------+
+ | AMI Build Network Settings |
+ +----------------------------*/
+variable "network" {
+  description = "Network configuration for the Packer build instance"
+  type = object({
+    vpc_id           = string
+    public_subnet_id = string
+  })
+  default = {
+    vpc_id           = ""
+    public_subnet_id = ""
+  }
+}
+
+/*---------------------------+
+ | Operating System Settings |
+ +---------------------------*/
+variable "os" {
+  description = "Operating system configuration for the AMI"
+  type = object({
+    family                   = string
+    version                  = string
+    update_os_before_install = bool
+    ssh_username             = string
+  })
+  default = {
+    family                   = "amazon"
+    version                  = ""
+    update_os_before_install = true
+    ssh_username             = ""
+  }
 
   validation {
-    condition     = contains(["amazon", "ubuntu", "rhel"], var.os_family)
+    condition     = contains(["amazon", "ubuntu", "rhel"], var.os.family)
     error_message = "The os_family must be one of 'amazon', 'ubuntu', or 'rhel'."
   }
 }
 
-variable "os_version" {
-  description = "Specific OS version (e.g., '22.04' for Ubuntu, '9.6' for RHEL)"
-  type        = string
-  default     = ""
-}
-
-variable "update_os_before_install" {
-  description = "Whether to update the OS packages before installing software"
-  type        = bool
-  default     = false
-}
-
-variable "ssh_username" {
-  description = "The SSH username for the machine instance."
-  type        = string
-  default     = null
-}
-
 /*----------------------------------+
- | Packer AMI Machine Image Builder |
+ | Packer Configuration Variables   |
  +----------------------------------*/
-variable "packer_version" {
-  description = "The version of Packer to use for building the machine image"
-  type        = string
-  default     = "1.14.1"
+variable "packer_config" {
+  description = "Packer build configuration"
+  type = object({
+    version     = string
+    user_script = string
+  })
+  default = {
+    version     = "1.14.1"
+    user_script = ""
+  }
 }
 
-variable "user_script" {
-  description = "Custom user script to inject in user data"
-  type        = string
-  default     = ""
+/*---------------------------------+
+ | Terraform Installation Settings |
+ +---------------------------------*/
+variable "terraform" {
+  description = "Terraform installation configuration"
+  type = object({
+    primary_version     = string
+    additional_versions = list(string)
+  })
+  default = {
+    primary_version     = ""
+    additional_versions = []
+  }
 }
 
-variable "terraform_version" {
-  description = <<-EOT
-    The Terraform version to be preinstalled on the machine image.
-    This version will be the default version installed to /bin/terraform.
-  EOT
-  type        = string
-  default     = "1.5.7"
-}
-
-variable "terraform_versions" {
-  description = <<-EOT
-   List of Terraform versions to be preinstalled on the machine image.
-   The versions will be installed to /bin/terraform$\{version\}
-   For example: version 1.12.0 will be installed to /bin/terraform1.12.0
-  EOT
-  type        = list(string)
-  default     = []
-}
-
-variable "opentofu_version" {
-  description = <<-EOT
-    The OpenTofu version to be preinstalled on the machine image.
-    This version will be the default version installed to /bin/tofu.
-  EOT
-  type        = string
-  default     = "1.10.5"
-}
-
-variable "opentofu_versions" {
-  description = <<-EOT
-   List of OpenTofu versions to be preinstalled on the machine image.
-   The versions will be installed to /bin/tofu$\{version\}
-   For example: version 1.12.0 will be installed to /bin/tofu1.12.0
-  EOT
-  type        = list(string)
-  default     = []
+/*-------------------------------+
+ | OpenTofu Installation Settings |
+ +-------------------------------*/
+variable "opentofu" {
+  description = "OpenTofu installation configuration"
+  type = object({
+    primary_version     = string
+    additional_versions = list(string)
+  })
+  default = {
+    primary_version     = ""
+    additional_versions = []
+  }
 }

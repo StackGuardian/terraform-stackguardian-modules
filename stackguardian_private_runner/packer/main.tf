@@ -1,31 +1,11 @@
-locals {
-  ami_owners = {
-    amazon = "amazon"
-    ubuntu = "099720109477" # Canonical
-    rhel   = "309956199498" # Red Hat
-  }
-
-  ami_name_patterns = {
-    amazon = "amzn2-ami-hvm-*-gp2"
-    ubuntu = "ubuntu/images/hvm-ssd/ubuntu-*${var.os_version}*-server-*"
-    rhel   = "RHEL-${var.os_version}*"
-  }
-
-  ssh_usernames = {
-    amazon = var.ssh_username != null ? var.ssh_username : "ec2-user"
-    ubuntu = var.ssh_username != null ? var.ssh_username : "ubuntu"
-    rhel   = var.ssh_username != null ? var.ssh_username : "ec2-user"
-  }
-}
-
 # Fetch the latest AMI based on the OS family and version
 data "aws_ami" "this" {
   most_recent = true
-  owners      = [local.ami_owners[var.os_family]]
+  owners      = [local.ami_owners[var.os.family]]
 
   filter {
     name   = "name"
-    values = [local.ami_name_patterns[var.os_family]]
+    values = [local.ami_name_patterns[var.os.family]]
   }
 
   filter {
@@ -45,19 +25,19 @@ resource "null_resource" "packer_build" {
     command = "sh ${path.module}/scripts/build_ami.sh"
     environment = {
       BASE_AMI           = data.aws_ami.this.id
-      OS_FAMILY          = var.os_family
-      OS_VERSION         = var.os_family != "amazon" ? var.os_version : ""
-      UPDATE_OS          = var.update_os_before_install
-      PACKER_VERSION     = var.packer_version
+      OS_FAMILY          = var.os.family
+      OS_VERSION         = var.os.family != "amazon" ? var.os.version : ""
+      UPDATE_OS          = var.os.update_os_before_install
+      PACKER_VERSION     = var.packer_config.version
       REGION             = var.aws_region
-      SSH_USERNAME       = local.ssh_usernames[var.os_family]
-      SUBNET_ID          = var.public_subnet_id
-      USER_SCRIPT        = var.user_script
-      TERRAFORM_VERSION  = var.terraform_version
-      TERRAFORM_VERSIONS = join(" ", var.terraform_versions)
-      OPENTOFU_VERSION   = var.opentofu_version
-      OPENTOFU_VERSIONS  = join(" ", var.opentofu_versions)
-      VPC_ID             = var.vpc_id
+      SSH_USERNAME       = local.ssh_usernames[var.os.family]
+      SUBNET_ID          = var.network.public_subnet_id
+      USER_SCRIPT        = var.packer_config.user_script
+      TERRAFORM_VERSION  = var.terraform.primary_version
+      TERRAFORM_VERSIONS = join(" ", var.terraform.additional_versions)
+      OPENTOFU_VERSION   = var.opentofu.primary_version
+      OPENTOFU_VERSIONS  = join(" ", var.opentofu.additional_versions)
+      VPC_ID             = var.network.vpc_id
     }
   }
 
