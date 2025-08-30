@@ -23,8 +23,8 @@ Deploy a StackGuardian Private Runner on AWS with auto-scaling capabilities.
 
 **StackGuardian Settings**
 
-- `api_key` - Your StackGuardian API key (starts with `sgu_`)
-- `org_name` - Your organization name (optional, defaults to API key organization)
+- `stackguardian.api_key` - Your StackGuardian API key (required, starts with `sgu_`)
+- `stackguardian.org_name` - Your organization name (optional, defaults to API key organization)
 
 **AWS Configuration**
 
@@ -33,10 +33,10 @@ Deploy a StackGuardian Private Runner on AWS with auto-scaling capabilities.
 
 **Network Settings**
 
-- `vpc_id` - Your existing VPC ID
-- `public_subnet_id` - Public subnet for runner instances
-- `private_subnet_id` - Optional private subnet for enhanced security
-- `associate_public_ip` - Whether instances get public IPs (default: false)
+- `network.vpc_id` - Your existing VPC ID (required)
+- `network.public_subnet_id` - Public subnet for runner instances (required)
+- `network.private_subnet_id` - Optional private subnet for enhanced security
+- `network.associate_public_ip` - Whether instances get public IPs (default: false)
 
 ### Optional Configuration
 
@@ -46,38 +46,38 @@ Deploy a StackGuardian Private Runner on AWS with auto-scaling capabilities.
 
 **Storage Configuration**
 
-- `volume_type` - EBS volume type: gp2, gp3, io1, io2 (default: gp3)
-- `volume_size` - Volume size in GB (default: 100, minimum: 8)
-- `delete_on_termination` - Delete volume when instance terminates (default: false)
+- `volume.type` - EBS volume type: gp2, gp3, io1, io2 (default: gp3)
+- `volume.size` - Volume size in GB (required, default: 100, minimum: 8)
+- `volume.delete_on_termination` - Delete volume when instance terminates (default: false)
 
 **Resource Naming**
 
-- `global_prefix` - Prefix for all resource names (default: SG_RUNNER)
-- `runner_group_name` - Custom name for the runner group (optional)
-- `connector_name` - Custom name for the connector (optional)
+- `override_names.global_prefix` - Prefix for all resource names (required, default: SG_RUNNER)
+- `override_names.runner_group_name` - Custom name for the runner group (optional)
+- `override_names.connector_name` - Custom name for the connector (optional)
 
 **Security & Access**
 
-- `ssh_key_name` - EC2 Key Pair name for SSH access (optional)
-- `ssh_public_key` - SSH public key content (alternative to key name)
-- `allow_ssh_cidr_blocks` - IP ranges allowed SSH access (optional)
-- `additional_ingress_rules` - Custom firewall rules for additional ports
+- `firewall.ssh_key_name` - EC2 Key Pair name for SSH access (optional)
+- `firewall.ssh_public_key` - SSH public key content (alternative to key name)
+- `firewall.allow_ssh_cidr_blocks` - IP ranges allowed SSH access (optional, array)
+- `firewall.additional_ingress_rules` - Custom firewall rules for additional ports (optional, array)
 
 **Auto-scaling Behavior**
 
-- `min_runners` - Minimum number of runner instances (default: 1)
-- `scale_out_threshold` - Scale out when queue exceeds this many jobs (default: 3)
-- `scale_in_threshold` - Scale in when queue drops below this many jobs (default: 2)
-- `scale_out_cooldown_duration` - Minutes to wait before scaling out again (default: 3)
-- `scale_in_cooldown_duration` - Minutes to wait before scaling in again (default: 5)
-- `scale_out_step` - Instances to add per scale-out event (default: 1)
-- `scale_in_step` - Instances to remove per scale-in event (default: 1)
+- `scaling.min_runners` - Minimum number of runner instances (default: 1, minimum: 1)
+- `scaling.scale_out_threshold` - Scale out when queue exceeds this many jobs (default: 3)
+- `scaling.scale_in_threshold` - Scale in when queue drops below this many jobs (default: 2)
+- `scaling.scale_out_cooldown_duration` - Minutes to wait before scaling out again (default: 4, minimum: 4)
+- `scaling.scale_in_cooldown_duration` - Minutes to wait before scaling in again (default: 5)
+- `scaling.scale_out_step` - Instances to add per scale-out event (default: 1)
+- `scaling.scale_in_step` - Instances to remove per scale-in event (default: 1)
 
 **Advanced Settings**
 
 - `force_destroy_storage_backend` - Allow destroying S3 bucket with data (default: false)
-- `image_repository` - Docker image for autoscaler Lambda (uses StackGuardian default)
-- `image_tag` - Docker image tag (default: latest)
+- `image.repository` - Docker image repository for autoscaler Lambda (default: StackGuardian ECR repository)
+- `image.tag` - Docker image tag (default: latest)
 
 ## Important Notes
 

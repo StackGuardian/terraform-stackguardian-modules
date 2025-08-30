@@ -1,6 +1,6 @@
 # Create an Elastic IP for the NAT Gateway
 resource "aws_eip" "this" {
-  count = var.network.private_subnet_id != null ? 1 : 0
+  count = var.network.private_subnet_id != "" ? 1 : 0
 
   domain = "vpc"
   tags = {
@@ -10,7 +10,7 @@ resource "aws_eip" "this" {
 
 # Create a NAT Gateway for internet access from private subnet
 resource "aws_nat_gateway" "this" {
-  count = var.network.private_subnet_id != null ? 1 : 0
+  count = var.network.private_subnet_id != "" ? 1 : 0
 
   allocation_id = aws_eip.this[0].id
   subnet_id     = var.network.public_subnet_id
@@ -22,7 +22,7 @@ resource "aws_nat_gateway" "this" {
 
 # Create a route table for the private subnet
 resource "aws_route_table" "this" {
-  count = var.network.private_subnet_id != null ? 1 : 0
+  count = var.network.private_subnet_id != "" ? 1 : 0
 
   vpc_id = var.network.vpc_id
 
@@ -38,7 +38,7 @@ resource "aws_route_table" "this" {
 
 # Associate the route table with the private subnet
 resource "aws_route_table_association" "private_route_assoc" {
-  count = var.network.private_subnet_id != null ? 1 : 0
+  count = var.network.private_subnet_id != "" ? 1 : 0
 
   subnet_id      = var.network.private_subnet_id
   route_table_id = aws_route_table.this[0].id

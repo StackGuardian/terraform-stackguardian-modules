@@ -9,7 +9,7 @@ data "external" "env" {
 
 locals {
   sg_org_name = (
-    var.stackguardian.org_name != null
+    var.stackguardian.org_name != ""
     ? var.stackguardian.org_name
     : data.external.env.result.sg_org_name
   )

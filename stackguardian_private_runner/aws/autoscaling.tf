@@ -1,5 +1,5 @@
 locals {
-  subnet_id = var.network.private_subnet_id != null ? var.network.private_subnet_id : var.network.public_subnet_id
+  subnet_id = var.network.private_subnet_id != "" ? var.network.private_subnet_id : var.network.public_subnet_id
 
   # SSH key logic: custom public key > named key > no key
   use_custom_key = var.firewall.ssh_public_key != ""

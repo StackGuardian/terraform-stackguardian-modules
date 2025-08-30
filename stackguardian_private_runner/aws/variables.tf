@@ -45,8 +45,12 @@ variable "stackguardian" {
   description = "StackGuardian platform configuration"
   type = object({
     api_key  = string
-    org_name = optional(string, null)
+    org_name = string
   })
+  default = {
+    api_key  = ""
+    org_name = ""
+  }
 }
 
 # variable "sg_api_uri" {
@@ -57,11 +61,15 @@ variable "stackguardian" {
 variable "override_names" {
   description = "Configuration for overriding default resource names"
   type = object({
-    global_prefix     = optional(string, "SG_RUNNER")
-    runner_group_name = optional(string, "")
-    connector_name    = optional(string, "")
+    global_prefix     = string
+    runner_group_name = string
+    connector_name    = string
   })
-  default = {}
+  default = {
+    global_prefix     = "SG_RUNNER"
+    runner_group_name = ""
+    connector_name    = ""
+  }
 }
 
 /*-----------------------+
@@ -71,10 +79,16 @@ variable "network" {
   description = "Network configuration for the Private Runner instance"
   type = object({
     vpc_id              = string
-    private_subnet_id   = optional(string, null)
+    private_subnet_id   = string
     public_subnet_id    = string
-    associate_public_ip = optional(bool, true)
+    associate_public_ip = bool
   })
+  default = {
+    vpc_id              = ""
+    private_subnet_id   = ""
+    public_subnet_id    = ""
+    associate_public_ip = false
+  }
 }
 
 /*-----------------------+
@@ -83,11 +97,15 @@ variable "network" {
 variable "volume" {
   description = "EBS volume configuration for the Private Runner instance"
   type = object({
-    type                  = optional(string, "gp3")
-    size                  = optional(number, 100)
-    delete_on_termination = optional(bool, false)
+    type                  = string
+    size                  = number
+    delete_on_termination = bool
   })
-  default = {}
+  default = {
+    type                  = "gp3"
+    size                  = 100
+    delete_on_termination = false
+  }
 }
 
 /*------------------------------+
@@ -96,17 +114,22 @@ variable "volume" {
 variable "firewall" {
   description = "Firewall and SSH configuration for the Private Runner instance"
   type = object({
-    ssh_key_name          = optional(string, "")
-    ssh_public_key        = optional(string, "")
-    allow_ssh_cidr_blocks = optional(list(string), [])
-    additional_ingress_rules = optional(list(object({
+    ssh_key_name          = string
+    ssh_public_key        = string
+    allow_ssh_cidr_blocks = list(string)
+    additional_ingress_rules = list(object({
       port        = number
       protocol    = string
       cidr_blocks = list(string)
-      description = optional(string, "Additional ingress rule")
-    })), [])
+      description = string
+    }))
   })
-  default = {}
+  default = {
+    ssh_key_name             = ""
+    ssh_public_key           = ""
+    allow_ssh_cidr_blocks    = []
+    additional_ingress_rules = []
+  }
 }
 
 /*-----------------------------------+
@@ -121,21 +144,28 @@ variable "image" {
 
   default = {
     repository = "790543352839.dkr.ecr.eu-central-1.amazonaws.com/private-runner/autoscaler"
-    tag        = "latest"
+    tag        = "94db8a6-dirty"
   }
 }
 
 variable "scaling" {
   description = "Auto scaling configuration for the Private Runner"
   type = object({
-    scale_out_cooldown_duration = optional(number, 3)
-    scale_in_cooldown_duration  = optional(number, 5)
-    scale_out_threshold         = optional(number, 5)
-    scale_in_threshold          = optional(number, 2)
-    scale_in_step               = optional(number, 1)
-    scale_out_step              = optional(number, 1)
-    min_runners                 = optional(number, 1)
+    scale_out_cooldown_duration = number
+    scale_in_cooldown_duration  = number
+    scale_out_threshold         = number
+    scale_in_threshold          = number
+    scale_in_step               = number
+    scale_out_step              = number
+    min_runners                 = number
   })
-  default = {}
+  default = {
+    scale_out_cooldown_duration = 4
+    scale_in_cooldown_duration  = 5
+    scale_out_threshold         = 3
+    scale_in_threshold          = 2
+    scale_in_step               = 1
+    scale_out_step              = 1
+    min_runners                 = 1
+  }
 }
-
