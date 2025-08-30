@@ -12,6 +12,15 @@ variable "instance_type" {
   default     = "t3.medium"
 }
 
+/*----------------------------------+
+ | AMI Cleanup Configuration       |
+ +----------------------------------*/
+variable "cleanup_amis_on_destroy" {
+  description = "Whether to automatically deregister AMIs and delete snapshots during terraform destroy"
+  type        = bool
+  default     = true
+}
+
 /*----------------------------+
  | AMI Build Network Settings |
  +----------------------------*/
@@ -37,12 +46,14 @@ variable "os" {
     version                  = string
     update_os_before_install = bool
     ssh_username             = string
+    user_script              = string
   })
   default = {
     family                   = "amazon"
     version                  = ""
     update_os_before_install = true
     ssh_username             = ""
+    user_script              = ""
   }
 
   validation {
@@ -57,12 +68,10 @@ variable "os" {
 variable "packer_config" {
   description = "Packer build configuration"
   type = object({
-    version     = string
-    user_script = string
+    version = string
   })
   default = {
-    version     = "1.14.1"
-    user_script = ""
+    version = "1.14.1"
   }
 }
 

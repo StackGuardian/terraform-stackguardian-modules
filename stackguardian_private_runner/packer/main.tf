@@ -32,7 +32,7 @@ resource "null_resource" "packer_build" {
       REGION             = var.aws_region
       SSH_USERNAME       = local.ssh_usernames[var.os.family]
       SUBNET_ID          = var.network.public_subnet_id
-      USER_SCRIPT        = var.packer_config.user_script
+      USER_SCRIPT        = var.os.user_script
       TERRAFORM_VERSION  = var.terraform.primary_version
       TERRAFORM_VERSIONS = join(" ", var.terraform.additional_versions)
       OPENTOFU_VERSION   = var.opentofu.primary_version
@@ -41,9 +41,27 @@ resource "null_resource" "packer_build" {
     }
   }
 
+  # Capture AMI information before destroy for cleanup reference
+  provisioner "local-exec" {
+    when    = destroy
+    command = "sh ${path.module}/scripts/pre_destroy_cleanup.sh"
+  }
+
   triggers = {
     timestamp = timestamp()
   }
+}
+
+# Conditional AMI cleanup resource
+resource "null_resource" "ami_cleanup" {
+  count = var.cleanup_amis_on_destroy ? 1 : 0
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "TERRAFORM_DESTROY=true sh ${path.module}/scripts/cleanup_amis.sh"
+  }
+
+  depends_on = [null_resource.packer_build]
 }
 
 # Parse the AMI ID from the Packer output

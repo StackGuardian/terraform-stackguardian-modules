@@ -19,6 +19,11 @@
   "instance_type": {
     "ui:description": "EC2 instance type for the Packer build process (minimum 2 vCPU, 4GB RAM recommended for faster builds)"
   },
+  "cleanup_amis_on_destroy": {
+    "ui:widget": "checkbox",
+    "ui:title": "Automatic AMI Cleanup",
+    "ui:description": "⚠️ When enabled, AMIs and associated EBS snapshots will be automatically deleted when running 'terraform destroy'. Disable this if you want to preserve AMIs for manual cleanup or if they're used by other resources."
+  },
   "os": {
     "ui:title": "Operating System Configuration",
     "family": {
@@ -36,12 +41,6 @@
     "ssh_username": {
       "ui:placeholder": "auto-detected based on OS family",
       "ui:description": "SSH username for the build instance. Leave empty to use defaults: 'ec2-user' for Amazon Linux/RHEL, 'ubuntu' for Ubuntu."
-    }
-  },
-  "packer_config": {
-    "ui:title": "Build Tool Configuration",
-    "version": {
-      "ui:description": "Version of HashiCorp Packer to use for building the AMI"
     },
     "user_script": {
       "ui:widget": "textarea",
@@ -50,6 +49,12 @@
         "rows": 6
       },
       "ui:description": "Custom shell script to execute during AMI provisioning. Runs after the standard StackGuardian setup. Use this to install additional tools, configure settings, or customize the environment."
+    }
+  },
+  "packer_config": {
+    "ui:title": "Build Tool Configuration",
+    "version": {
+      "ui:description": "Version of HashiCorp Packer to use for building the AMI"
     }
   },
   "terraform": {
