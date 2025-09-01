@@ -94,21 +94,16 @@
       },
       "ui:description": "Custom SSH public key content to add to the instance. If provided, this takes precedence over ssh_key_name. If both ssh_key_name and ssh_public_key are empty, no SSH key will be configured."
     },
-    "allow_ssh_cidr_blocks": {
-      "ui:widget": "textarea",
-      "ui:placeholder": "[\"10.0.0.0/8\", \"192.168.0.0/16\"]",
-      "ui:options": {
-        "rows": 3
-      },
-      "ui:description": "List of CIDR blocks allowed to SSH into the Private Runner instance. If provided, these CIDR blocks will be added to the security group for SSH access. If empty, no specific CIDR blocks will be allowed for SSH access."
+    "ssh_access_rules": {
+      "ui:title": "SSH Access Rules",
+      "ui:widget": "string",
+      "ui:placeholder": "10.0.1.0/24",
+      "ui:description": "Object mapping access rule names to CIDR blocks for SSH access. Each key should be a descriptive name (e.g., 'Admin Access') and each value should be a CIDR block. These will appear as 'SSH-{name}' in security group descriptions."
     },
     "additional_ingress_rules": {
-      "ui:widget": "textarea",
-      "ui:placeholder": "[{\"port\": 8080, \"protocol\": \"tcp\", \"cidr_blocks\": [\"10.0.0.0/8\"], \"description\": \"Custom application port\"}]",
-      "ui:options": {
-        "rows": 4
-      },
-      "ui:description": "List of additional ingress rules for the security group. Each rule should specify port, protocol, and cidr_blocks. Default is an empty list, meaning no additional ingress rules will be added."
+      "ui:title": "Additional Ingress Rules",
+      "ui:widget": "string",
+      "ui:description": "Object mapping rule names to ingress rule configurations. Each key should be a descriptive name that will appear as the security group rule description, and each value should contain port, protocol, and cidr_blocks."
     }
   },
   "image": {

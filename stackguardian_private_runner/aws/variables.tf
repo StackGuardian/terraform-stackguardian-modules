@@ -99,13 +99,12 @@ variable "firewall" {
   type = object({
     ssh_key_name          = optional(string, "")
     ssh_public_key        = optional(string, "")
-    allow_ssh_cidr_blocks = optional(list(string), [])
-    additional_ingress_rules = optional(list(object({
+    ssh_access_rules = optional(map(string), {})
+    additional_ingress_rules = optional(map(object({
       port        = number
       protocol    = string
       cidr_blocks = list(string)
-      description = string
-    })), [])
+    })), {})
   })
 }
 
