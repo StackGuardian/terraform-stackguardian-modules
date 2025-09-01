@@ -4,6 +4,7 @@
 variable "aws_region" {
   description = "The target AWS Region to build the Private Runner AMI"
   type        = string
+  default     = "eu-central-1"
 }
 
 variable "instance_type" {
@@ -30,10 +31,6 @@ variable "network" {
     vpc_id           = string
     public_subnet_id = string
   })
-  default = {
-    vpc_id           = ""
-    public_subnet_id = ""
-  }
 }
 
 /*---------------------------+
@@ -43,17 +40,14 @@ variable "os" {
   description = "Operating system configuration for the AMI"
   type = object({
     family                   = string
-    version                  = string
+    version                  = optional(string, "")
     update_os_before_install = bool
-    ssh_username             = string
-    user_script              = string
+    ssh_username             = optional(string, "")
+    user_script              = optional(string, "")
   })
   default = {
     family                   = "amazon"
-    version                  = ""
     update_os_before_install = true
-    ssh_username             = ""
-    user_script              = ""
   }
 
   validation {
@@ -81,8 +75,8 @@ variable "packer_config" {
 variable "terraform" {
   description = "Terraform installation configuration"
   type = object({
-    primary_version     = string
-    additional_versions = list(string)
+    primary_version     = optional(string, "")
+    additional_versions = optional(list(string), [])
   })
   default = {
     primary_version     = ""
@@ -96,11 +90,7 @@ variable "terraform" {
 variable "opentofu" {
   description = "OpenTofu installation configuration"
   type = object({
-    primary_version     = string
-    additional_versions = list(string)
+    primary_version     = optional(string, "")
+    additional_versions = optional(list(string), [])
   })
-  default = {
-    primary_version     = ""
-    additional_versions = []
-  }
 }

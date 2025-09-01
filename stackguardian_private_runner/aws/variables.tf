@@ -14,7 +14,6 @@ variable "ami_id" {
     Recommended: Use StackGuardian Template with Packer to build custom AMI.
   EOT
   type        = string
-  default     = ""
 }
 
 /*-------------------+
@@ -23,6 +22,7 @@ variable "ami_id" {
 variable "aws_region" {
   description = "The target AWS Region to setup Private Runner"
   type        = string
+  default     = "eu-central-1"
 }
 
 /*---------------------------+
@@ -47,10 +47,6 @@ variable "stackguardian" {
     api_key  = string
     org_name = string
   })
-  default = {
-    api_key  = ""
-    org_name = ""
-  }
 }
 
 # variable "sg_api_uri" {
@@ -62,13 +58,11 @@ variable "override_names" {
   description = "Configuration for overriding default resource names"
   type = object({
     global_prefix     = string
-    runner_group_name = string
-    connector_name    = string
+    runner_group_name = optional(string, "")
+    connector_name    = optional(string, "")
   })
   default = {
-    global_prefix     = "SG_RUNNER"
-    runner_group_name = ""
-    connector_name    = ""
+    global_prefix = "SG_RUNNER"
   }
 }
 
@@ -79,16 +73,10 @@ variable "network" {
   description = "Network configuration for the Private Runner instance"
   type = object({
     vpc_id              = string
-    private_subnet_id   = string
+    private_subnet_id   = optional(string, "")
     public_subnet_id    = string
     associate_public_ip = bool
   })
-  default = {
-    vpc_id              = ""
-    private_subnet_id   = ""
-    public_subnet_id    = ""
-    associate_public_ip = false
-  }
 }
 
 /*-----------------------+
@@ -101,11 +89,6 @@ variable "volume" {
     size                  = number
     delete_on_termination = bool
   })
-  default = {
-    type                  = "gp3"
-    size                  = 100
-    delete_on_termination = false
-  }
 }
 
 /*------------------------------+
@@ -114,22 +97,16 @@ variable "volume" {
 variable "firewall" {
   description = "Firewall and SSH configuration for the Private Runner instance"
   type = object({
-    ssh_key_name          = string
-    ssh_public_key        = string
-    allow_ssh_cidr_blocks = list(string)
-    additional_ingress_rules = list(object({
+    ssh_key_name          = optional(string, "")
+    ssh_public_key        = optional(string, "")
+    allow_ssh_cidr_blocks = optional(list(string), [])
+    additional_ingress_rules = optional(list(object({
       port        = number
       protocol    = string
       cidr_blocks = list(string)
       description = string
-    }))
+    })), [])
   })
-  default = {
-    ssh_key_name             = ""
-    ssh_public_key           = ""
-    allow_ssh_cidr_blocks    = []
-    additional_ingress_rules = []
-  }
 }
 
 /*-----------------------------------+
