@@ -45,7 +45,7 @@ variable "stackguardian" {
   description = "StackGuardian platform configuration"
   type = object({
     api_key  = string
-    org_name = string
+    org_name = optional(string, "")
   })
 }
 
@@ -97,8 +97,8 @@ variable "volume" {
 variable "firewall" {
   description = "Firewall and SSH configuration for the Private Runner instance"
   type = object({
-    ssh_key_name          = optional(string, "")
-    ssh_public_key        = optional(string, "")
+    ssh_key_name     = optional(string, "")
+    ssh_public_key   = optional(string, "")
     ssh_access_rules = optional(map(string), {})
     additional_ingress_rules = optional(map(object({
       port        = number
