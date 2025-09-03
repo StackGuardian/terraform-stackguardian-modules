@@ -42,10 +42,10 @@ resource "null_resource" "packer_build" {
   }
 
   # Capture AMI information before destroy for cleanup reference
-  provisioner "local-exec" {
-    when    = destroy
-    command = "sh ${path.module}/scripts/pre_destroy_cleanup.sh"
-  }
+  # provisioner "local-exec" {
+  #   when    = destroy
+  #   command = "sh ${path.module}/scripts/pre_destroy_cleanup.sh"
+  # }
 
   triggers = {
     timestamp = timestamp()
