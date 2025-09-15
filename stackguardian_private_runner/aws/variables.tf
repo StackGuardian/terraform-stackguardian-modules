@@ -14,6 +14,11 @@ variable "ami_id" {
     Recommended: Use StackGuardian Template with Packer to build custom AMI.
   EOT
   type        = string
+
+  validation {
+    condition     = can(regex("^ami-.*", var.ami_id))
+    error_message = "The ami_id must be a valid AMI ID starting with 'ami-'."
+  }
 }
 
 /*-------------------+
@@ -47,6 +52,11 @@ variable "stackguardian" {
     api_key  = string
     org_name = optional(string, "")
   })
+
+  validation {
+    condition     = can(regex("^sgu_.*", var.stackguardian.api_key))
+    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_'."
+  }
 }
 
 variable "override_names" {
@@ -101,6 +111,16 @@ variable "volume" {
     size                  = 100
     delete_on_termination = false
   }
+
+  validation {
+    condition     = contains(["gp2", "gp3", "io1", "io2"], var.volume.type)
+    error_message = "The volume type must be one of: gp2, gp3, io1, io2."
+  }
+
+  validation {
+    condition     = var.volume.size >= 8
+    error_message = "The volume size must be at least 8 GB."
+  }
 }
 
 /*------------------------------+
@@ -118,6 +138,39 @@ variable "firewall" {
       cidr_blocks = list(string)
     })), {})
   })
+
+  validation {
+    condition = alltrue([
+      for cidr in values(var.firewall.ssh_access_rules) : can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$", cidr))
+    ])
+    error_message = "All SSH access rule values must be valid CIDR blocks (e.g., '10.0.0.0/16')."
+  }
+
+  validation {
+    condition = alltrue([
+      for rule in values(var.firewall.additional_ingress_rules) :
+      rule.port >= 1 && rule.port <= 65535
+    ])
+    error_message = "All additional ingress rule ports must be between 1 and 65535."
+  }
+
+  validation {
+    condition = alltrue([
+      for rule in values(var.firewall.additional_ingress_rules) :
+      contains(["tcp", "udp", "icmp"], rule.protocol)
+    ])
+    error_message = "All additional ingress rule protocols must be one of: tcp, udp, icmp."
+  }
+
+  validation {
+    condition = alltrue([
+      for rule in values(var.firewall.additional_ingress_rules) :
+      alltrue([
+        for cidr in rule.cidr_blocks : can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$", cidr))
+      ])
+    ])
+    error_message = "All CIDR blocks in additional ingress rules must be valid CIDR notation (e.g., '10.0.0.0/16')."
+  }
 }
 
 /*-----------------------------------+
@@ -155,5 +208,30 @@ variable "scaling" {
     scale_in_step               = 1
     scale_out_step              = 1
     min_runners                 = 1
+  }
+
+  validation {
+    condition     = var.scaling.scale_out_cooldown_duration >= 4
+    error_message = "The scale_out_cooldown_duration must be at least 4 minutes."
+  }
+
+  validation {
+    condition     = var.scaling.scale_in_threshold >= 1
+    error_message = "The scale_in_threshold must be at least 1."
+  }
+
+  validation {
+    condition     = var.scaling.scale_in_step >= 1
+    error_message = "The scale_in_step must be at least 1."
+  }
+
+  validation {
+    condition     = var.scaling.scale_out_step >= 1
+    error_message = "The scale_out_step must be at least 1."
+  }
+
+  validation {
+    condition     = var.scaling.min_runners >= 1
+    error_message = "The min_runners must be at least 1."
   }
 }

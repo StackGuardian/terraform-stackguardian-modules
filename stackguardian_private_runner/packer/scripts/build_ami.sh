@@ -107,7 +107,9 @@ main() { #{{{
     -var "update_os_before_install=$UPDATE_OS" \
     -var "region=$REGION" \
     -var "ssh_username=$SSH_USERNAME" \
-    -var "subnet_id=$SUBNET_ID" \
+    -var "public_subnet_id=$PUBLIC_SUBNET_ID" \
+    -var "private_subnet_id=$PRIVATE_SUBNET_ID" \
+    -var "proxy_url=$PROXY_URL" \
     -var "terraform_version=$TERRAFORM_VERSION" \
     -var "terraform_versions=$TERRAFORM_VERSIONS" \
     -var "opentofu_version=$OPENTOFU_VERSION" \

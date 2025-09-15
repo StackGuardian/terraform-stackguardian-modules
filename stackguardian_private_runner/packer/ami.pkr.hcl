@@ -4,7 +4,9 @@ variable "os_version" {}
 variable "update_os_before_install" {}
 variable "region" {}
 variable "ssh_username" {}
-variable "subnet_id" {}
+variable "public_subnet_id" {}
+variable "private_subnet_id" {}
+variable "proxy_url" {}
 variable "terraform_version" {}
 variable "terraform_versions" {}
 variable "opentofu_version" {}
@@ -40,10 +42,12 @@ source "amazon-ebs" "this" {
   }
 
   vpc_id        = var.vpc_id
-  subnet_id     = var.subnet_id
+  subnet_id     = var.private_subnet_id != "" ? var.private_subnet_id : var.public_subnet_id
   ssh_username  = var.ssh_username
-  temporary_security_group_source_public_ip = true
-  associate_public_ip_address = true
+
+  # Only set public IP and security group source for public subnets
+  associate_public_ip_address = var.public_subnet_id != ""
+  temporary_security_group_source_public_ip = var.public_subnet_id != ""
 
   shutdown_behavior = "terminate"
 }
@@ -60,7 +64,9 @@ build {
       "TERRAFORM_VERSIONS=${var.terraform_versions}",
       "OPENTOFU_VERSION=${var.opentofu_version}",
       "OPENTOFU_VERSIONS=${var.opentofu_versions}",
-      "USER_SCRIPT=${var.user_script}"
+      "USER_SCRIPT=${var.user_script}",
+      "PRIVATE_NETWORK=${var.private_subnet_id != "" ? "true" : "false"}",
+      "PROXY_URL=${var.proxy_url}"
     ]
   }
 }

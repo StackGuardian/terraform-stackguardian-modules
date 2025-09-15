@@ -10,6 +10,23 @@ OS_TYPE=""
 WORKING_DIR=""
 TEMP_DIRS=""
 
+# Configure proxy settings if provided
+_configure_proxy() { #{{{
+  if [ -n "$PROXY_URL" ]; then
+    echo ">> Configuring proxy settings for $PROXY_URL"
+    export http_proxy="$PROXY_URL"
+    export https_proxy="$PROXY_URL"
+    export HTTP_PROXY="$PROXY_URL"
+    export HTTPS_PROXY="$PROXY_URL"
+
+    # Configure wget proxy
+    echo "http_proxy = $PROXY_URL" >> ~/.wgetrc
+    echo "https_proxy = $PROXY_URL" >> ~/.wgetrc
+    echo "use_proxy = on" >> ~/.wgetrc
+  fi
+}
+#}}}: _configure_proxy
+
 _cleanup() { #{{{
   echo "## ----------"
   echo ">> Cleaning up AMI setup.."
@@ -31,8 +48,14 @@ _cleanup() { #{{{
 #}}}: _cleanup
 
 _apt_dependencies() { #{{{
-  [ "$UPDATE_OS" = "true" ] \
-    && sudo apt update
+  if [ "$UPDATE_OS" = "true" ]; then
+    # Configure apt proxy if in private network
+    if [ -n "$PROXY_URL" ]; then
+      echo "Acquire::http::Proxy \"$PROXY_URL\";" | sudo tee /etc/apt/apt.conf.d/01proxy
+      echo "Acquire::https::Proxy \"$PROXY_URL\";" | sudo tee -a /etc/apt/apt.conf.d/01proxy
+    fi
+    sudo apt update
+  fi
   sudo apt install -y \
     docker.io \
     unzip \
@@ -42,8 +65,13 @@ _apt_dependencies() { #{{{
 #}}}: _apt_dependencies
 
 _yum_dependencies() { #{{{
-  [ "$UPDATE_OS" = "true" ] \
-    && sudo yum update -y
+  if [ "$UPDATE_OS" = "true" ]; then
+    # Configure yum proxy if in private network
+    if [ -n "$PROXY_URL" ]; then
+      echo "proxy=$PROXY_URL" | sudo tee -a /etc/yum.conf
+    fi
+    sudo yum update -y
+  fi
   sudo yum install -y \
     docker \
     unzip \
@@ -54,8 +82,13 @@ _yum_dependencies() { #{{{
 #}}}: _yum_dependencies
 
 _dnf_dependencies() { #{{{
-  [ "$UPDATE_OS" = "true" ] \
-    && sudo dnf update -y
+  if [ "$UPDATE_OS" = "true" ]; then
+    # Configure dnf proxy if in private network
+    if [ -n "$PROXY_URL" ]; then
+      echo "proxy=$PROXY_URL" | sudo tee -a /etc/dnf/dnf.conf
+    fi
+    sudo dnf update -y
+  fi
   sudo dnf install -y \
     dnf-plugins-core \
     unzip \
@@ -93,7 +126,14 @@ _wget_wrapper() { #{{{
   output_file="${2:-"${url##*/}"}"
 
   echo ">> Downloading ${url}.."
-  wget -q "$url" -O "$output_file"
+
+  # Add retry logic and timeout for private networks
+  if [ "$PRIVATE_NETWORK" = "true" ]; then
+    wget -q --timeout=60 --tries=3 --retry-connrefused "$url" -O "$output_file"
+  else
+    wget -q "$url" -O "$output_file"
+  fi
+
   echo ">> Saved to ${output_file}."
 }
 #}}}: _wget_wrapper
@@ -318,6 +358,9 @@ _handle_os_package_installation() { #{{{
 main() { #{{{
   OS_ARCH="$(_detect_arch)"
   OS_TYPE="$(_detect_os)"
+
+  # Configure proxy if in private network
+  _configure_proxy
 
   _handle_os_package_installation
 

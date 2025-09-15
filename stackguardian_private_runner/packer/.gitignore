@@ -30,3 +30,6 @@ override.tf.json
 
 # Ignore provider binary directory
 .terraform/providers/
+
+# AI Agents
+CLAUDE.md

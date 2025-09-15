@@ -26,11 +26,21 @@ variable "cleanup_amis_on_destroy" {
  | AMI Build Network Settings |
  +----------------------------*/
 variable "network" {
-  description = "Network configuration for the Packer build instance"
+  description = "Network configuration for the Packer build instance. Provide either public_subnet_id for public builds or private_subnet_id for private network builds."
   type = object({
-    vpc_id           = string
-    public_subnet_id = string
+    vpc_id            = string
+    public_subnet_id  = optional(string, "")
+    private_subnet_id = optional(string, "")
+    proxy_url         = optional(string, "")
   })
+
+  validation {
+    condition = (
+      (var.network.public_subnet_id != "" && var.network.private_subnet_id == "")
+      || (var.network.public_subnet_id == "" && var.network.private_subnet_id != "")
+    )
+    error_message = "Exactly one of public_subnet_id or private_subnet_id must be provided."
+  }
 }
 
 /*---------------------------+

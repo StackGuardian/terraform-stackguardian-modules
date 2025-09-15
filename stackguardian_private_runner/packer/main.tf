@@ -31,7 +31,9 @@ resource "null_resource" "packer_build" {
       PACKER_VERSION     = var.packer_config.version
       REGION             = var.aws_region
       SSH_USERNAME       = local.ssh_usernames[var.os.family]
-      SUBNET_ID          = var.network.public_subnet_id
+      PUBLIC_SUBNET_ID   = var.network.public_subnet_id
+      PRIVATE_SUBNET_ID  = var.network.private_subnet_id
+      PROXY_URL          = var.network.proxy_url
       USER_SCRIPT        = var.os.user_script
       TERRAFORM_VERSION  = var.terraform.primary_version
       TERRAFORM_VERSIONS = join(" ", var.terraform.additional_versions)
