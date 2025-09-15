@@ -109,4 +109,8 @@ variable "opentofu" {
     primary_version     = optional(string, "")
     additional_versions = optional(list(string), [])
   })
+  default = {
+    primary_version     = ""
+    additional_versions = []
+  }
 }

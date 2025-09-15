@@ -77,6 +77,11 @@
       "ui:title": "Delete EBS Snapshots",
       "ui:description": "When enabled, EBS snapshots associated with the AMI will be automatically deleted during cleanup. Disable to preserve snapshots for cost optimization or compliance requirements."
     },
+    "cleanup_amis_on_destroy": {
+      "ui:widget": "checkbox",
+      "ui:title": "Automatic AMI Cleanup",
+      "ui:description": "⚠️ When enabled, AMIs and associated EBS snapshots will be automatically deleted when running 'terraform destroy'. Disable this if you want to preserve AMIs for manual cleanup or if they're used by other resources."
+    }
   },
   "terraform": {
     "ui:title": "Terraform Installation",
@@ -107,10 +112,5 @@
       },
       "ui:description": "Additional OpenTofu versions to install. Each version will be available as '/bin/tofu{version}'. For example, '1.8.0' becomes '/bin/tofu1.8.0'. Leave empty to install only the primary version."
     }
-  },
-  "cleanup_amis_on_destroy": {
-    "ui:widget": "checkbox",
-    "ui:title": "Automatic AMI Cleanup",
-    "ui:description": "⚠️ When enabled, AMIs and associated EBS snapshots will be automatically deleted when running 'terraform destroy'. Disable this if you want to preserve AMIs for manual cleanup or if they're used by other resources."
   }
 }
