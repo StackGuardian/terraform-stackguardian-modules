@@ -49,11 +49,6 @@ variable "stackguardian" {
   })
 }
 
-# variable "sg_api_uri" {
-#   description = "The API URI used for authenticating with StackGuardian Platform"
-#   type        = string
-# }
-
 variable "override_names" {
   description = "Configuration for overriding default resource names"
   type = object({
