@@ -1,8 +1,12 @@
 # StackGuardian Private Runner - AWS Module
 
-This Terraform module deploys StackGuardian Private Runner infrastructure on AWS. It creates an auto-scaling group of EC2 instances that run StackGuardian runners with Lambda-based autoscaling, S3 storage backend for Terraform state, and complete StackGuardian platform integration.
+Deploy StackGuardian Private Runner infrastructure on AWS with auto-scaling capabilities and complete platform integration.
 
-## Features
+## Overview
+
+This Terraform module creates an auto-scaling group of EC2 instances that run StackGuardian runners with Lambda-based autoscaling, S3 storage backend for Terraform state, and complete StackGuardian platform integration.
+
+### Features
 
 - **Auto-scaling Infrastructure**: EC2 instances with Lambda-based queue monitoring and scaling
 - **State Management**: Dedicated S3 bucket with encryption and versioning for Terraform state storage
@@ -53,9 +57,9 @@ module "stackguardian_private_runner" {
 
 ## Configuration
 
-### Required Variables
+### Required Parameters
 
-| Variable                   | Description                                    | Type     |
+| Parameter                  | Description                                    | Type     |
 | -------------------------- | ---------------------------------------------- | -------- |
 | `ami_id`                   | Custom AMI with sg-runner and dependencies     | `string` |
 | `aws_region`               | Target AWS region                              | `string` |
@@ -63,9 +67,9 @@ module "stackguardian_private_runner" {
 | `network.vpc_id`           | Existing VPC for deployment                    | `string` |
 | `network.public_subnet_id` | Public subnet for runner instances             | `string` |
 
-### Important Optional Variables
+### Optional Parameters
 
-| Variable                            | Description                        | Default           |
+| Parameter                           | Description                        | Default           |
 | ----------------------------------- | ---------------------------------- | ----------------- |
 | `override_names.global_prefix`      | Prefix for all resource names      | `"StackGuardian"` |
 | `autoscaler.max_instances`          | Maximum number of runner instances | `10`              |
@@ -73,29 +77,50 @@ module "stackguardian_private_runner" {
 | `storage_backend.force_destroy`     | Allow bucket deletion with data    | `false`           |
 | `firewall.additional_ingress_rules` | Custom security group rules        | `[]`              |
 
-### Complete Configuration Example
+### Configuration Examples
+
+#### Basic Configuration
 
 ```hcl
 module "stackguardian_private_runner" {
   source = "./stackguardian_private_runner/aws"
 
-  # Required
+  # Required parameters
   ami_id     = "ami-1234567890abcdef0"
   aws_region = "us-west-2"
 
-  # StackGuardian
+  stackguardian = {
+    api_key = "sgu_your_api_key_here"
+  }
+
+  network = {
+    vpc_id           = "vpc-1234567890abcdef0"
+    public_subnet_id = "subnet-1234567890abcdef0"
+  }
+}
+```
+
+#### Advanced Configuration
+
+```hcl
+module "stackguardian_private_runner" {
+  source = "./stackguardian_private_runner/aws"
+
+  # Required parameters
+  ami_id     = "ami-1234567890abcdef0"
+  aws_region = "us-west-2"
+
   stackguardian = {
     api_key   = "sgu_your_api_key_here"
     org_name  = "your-organization"  # Optional: auto-derived from API key
   }
 
-  # Network
   network = {
     vpc_id           = "vpc-1234567890abcdef0"
     public_subnet_id = "subnet-1234567890abcdef0"
   }
 
-  # Auto-scaling
+  # Optional parameters
   autoscaler = {
     max_instances        = 5
     min_instances        = 1
@@ -106,12 +131,10 @@ module "stackguardian_private_runner" {
     scale_in_cooldown    = 300  # 5 minutes
   }
 
-  # Storage
   storage_backend = {
-    force_destroy = true  # Allows Terraform destroy to delete S3 bucket
+    force_destroy = true
   }
 
-  # Security
   firewall = {
     additional_ingress_rules = [
       {
@@ -124,7 +147,6 @@ module "stackguardian_private_runner" {
     ]
   }
 
-  # Naming
   override_names = {
     global_prefix = "mycompany-sg"
   }
@@ -133,7 +155,7 @@ module "stackguardian_private_runner" {
 
 ## Usage
 
-### 1. Initialize and Deploy
+### Deployment
 
 ```bash
 # Initialize Terraform
@@ -149,7 +171,7 @@ terraform plan
 terraform apply
 ```
 
-### 2. Monitor Resources
+### Monitoring
 
 ```bash
 # View outputs
@@ -162,7 +184,7 @@ terraform show
 terraform state list
 ```
 
-### 3. Scaling Operations
+### Auto-scaling
 
 The Lambda autoscaler automatically manages scaling based on StackGuardian job queue metrics:
 
@@ -170,7 +192,7 @@ The Lambda autoscaler automatically manages scaling based on StackGuardian job q
 - **Scale In**: Triggered when <2 jobs are queued
 - **Cooldown**: 4min scale-out, 5min scale-in to prevent oscillations
 
-### 4. Cleanup
+### Cleanup
 
 ```bash
 # Destroy infrastructure

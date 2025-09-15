@@ -18,10 +18,42 @@
         },
         "public_subnet_id": {
           "type": "string",
-          "pattern": "^subnet-.*$"
+          "pattern": "^subnet-.*$",
+          "default": ""
+        },
+        "private_subnet_id": {
+          "type": "string",
+          "pattern": "^subnet-.*$",
+          "default": ""
+        },
+        "proxy_url": {
+          "type": "string",
+          "default": ""
         }
       },
-      "required": ["vpc_id", "public_subnet_id"]
+      "required": ["vpc_id"],
+      "anyOf": [
+        {
+          "properties": {
+            "public_subnet_id": {
+              "minLength": 1
+            },
+            "private_subnet_id": {
+              "maxLength": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "public_subnet_id": {
+              "maxLength": 0
+            },
+            "private_subnet_id": {
+              "minLength": 1
+            }
+          }
+        }
+      ]
     },
     "os": {
       "type": "object",
@@ -125,10 +157,6 @@
         "delete_snapshots": {
           "type": "boolean",
           "default": true
-        },
-        "cleanup_amis_on_destroy": {
-          "type": "boolean",
-          "default": true
         }
       },
       "required": ["version"]
@@ -170,6 +198,10 @@
         }
       },
       "required": []
+    },
+    "cleanup_amis_on_destroy": {
+      "type": "boolean",
+      "default": true
     }
   },
   "required": ["aws_region", "network"]

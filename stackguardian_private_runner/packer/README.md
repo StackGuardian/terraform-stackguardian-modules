@@ -1,6 +1,10 @@
 # StackGuardian Private Runner - Packer AMI Builder
 
-Build custom AMIs for StackGuardian Private Runner with pre-installed dependencies using Terraform and Packer.
+Build custom AMIs for StackGuardian Private Runner with pre-installed dependencies and optimized configuration.
+
+## Overview
+
+This Terraform module builds custom AMIs using Packer for StackGuardian Private Runner deployment. The AMI includes pre-installed dependencies (Docker, Terraform, OpenTofu, sg-runner, etc.) across multiple operating systems.
 
 ## Prerequisites
 
@@ -13,46 +17,35 @@ Build custom AMIs for StackGuardian Private Runner with pre-installed dependenci
 
 ## Quick Start
 
-1. **Clone and navigate to the module:**
+```bash
+# 1. Copy and configure variables
+cp terraform.tfvars.tpl terraform.tfvars
 
-   ```bash
-   cd path/to/packer
-   ```
+# 2. Edit terraform.tfvars with your configuration
+# 3. Build the AMI
+terraform init
+terraform plan
+terraform apply
 
-2. **Copy and configure variables:**
+# 4. Get the AMI ID
+terraform output ami_id
+```
 
-   ```bash
-   cp terraform.tfvars.tpl terraform.tfvars
-   ```
+### Basic Configuration Example
 
-3. **Edit `terraform.tfvars` with your configuration:**
+```hcl
+aws_region = "us-west-2"
 
-   ```hcl
-   aws_region = "us-west-2"
+network = {
+  vpc_id           = "vpc-12345678"
+  public_subnet_id = "subnet-87654321"
+}
 
-   network = {
-     vpc_id           = "vpc-12345678"
-     public_subnet_id = "subnet-87654321"
-   }
-
-   os = {
-     family                   = "amazon"
-     update_os_before_install = true
-   }
-   ```
-
-4. **Build the AMI:**
-
-   ```bash
-   terraform init
-   terraform plan
-   terraform apply
-   ```
-
-5. **Get the AMI ID:**
-   ```bash
-   terraform output ami_id
-   ```
+os = {
+  family                   = "amazon"
+  update_os_before_install = true
+}
+```
 
 ## Network Configuration
 
@@ -169,31 +162,31 @@ os = {
 }
 ```
 
-## Configuration Variables
+## Configuration
 
-### Required Variables
+### Required Parameters
 
-| Variable                                                  | Type   | Description                                      |
-| --------------------------------------------------------- | ------ | ------------------------------------------------ |
-| `aws_region`                                              | string | AWS region for AMI creation                      |
-| `network.vpc_id`                                          | string | VPC ID for build instance                        |
-| `network.public_subnet_id` OR `network.private_subnet_id` | string | Subnet for build instance (exactly one required) |
+| Parameter                                     | Description                                   | Type     |
+| --------------------------------------------- | --------------------------------------------- | -------- |
+| `aws_region`                                  | AWS region for AMI creation                   | `string` |
+| `network.vpc_id`                              | VPC ID for build instance                     | `string` |
+| `network.public_subnet_id` OR `network.private_subnet_id` | Subnet for build instance (exactly one required) | `string` |
 
-### Optional Variables
+### Optional Parameters
 
-| Variable                                                | Type   | Default     | Description                           |
-| ------------------------------------------------------- | ------ | ----------- | ------------------------------------- |
-| `instance_type`                                         | string | `t3.medium` | EC2 instance type for build           |
-| `os.family`                                             | string | `amazon`    | OS family (amazon/ubuntu/rhel)        |
-| `os.version`                                            | string | `""`        | OS version (required for ubuntu/rhel) |
-| `os.update_os_before_install`                           | bool   | `true`      | Update packages before install        |
-| `os.ssh_username`                                       | string | `""`        | SSH username (auto-detected)          |
-| `os.user_script`                                        | string | `""`        | Custom shell script                   |
-| `packer_config.version`                                 | string | `1.14.1`    | Packer version                        |
-| `packer_config.cleanup_amis_on_destroy`                 | bool   | `true`      | Auto-cleanup on destroy               |
-| `packer_config.deregistration_protection.enabled`       | bool   | `true`      | Enable AMI protection                 |
-| `packer_config.deregistration_protection.with_cooldown` | bool   | `false`     | Enable cooldown period                |
-| `packer_config.delete_snapshots`                        | bool   | `true`      | Delete snapshots on cleanup           |
+| Parameter                                       | Description                           | Default     |
+| ----------------------------------------------- | ------------------------------------- | ----------- |
+| `instance_type`                                 | EC2 instance type for build          | `t3.medium` |
+| `os.family`                                     | OS family (amazon/ubuntu/rhel)       | `amazon`    |
+| `os.version`                                    | OS version (required for ubuntu/rhel) | `""`        |
+| `os.update_os_before_install`                   | Update packages before install       | `true`      |
+| `os.ssh_username`                               | SSH username (auto-detected)         | `""`        |
+| `os.user_script`                                | Custom shell script                   | `""`        |
+| `packer_config.version`                         | Packer version                        | `1.14.1`    |
+| `packer_config.cleanup_amis_on_destroy`         | Auto-cleanup on destroy              | `true`      |
+| `packer_config.deregistration_protection.enabled` | Enable AMI protection              | `true`      |
+| `packer_config.deregistration_protection.with_cooldown` | Enable cooldown period      | `false`     |
+| `packer_config.delete_snapshots`                | Delete snapshots on cleanup          | `true`      |
 
 ## AMI Management
 
@@ -239,9 +232,9 @@ aws ec2 disable-image-deregistration-protection --region REGION --image-id AMI_I
 aws ec2 deregister-image --region REGION --image-id AMI_ID
 ```
 
-## Common Commands
+## Usage
 
-### Build Process
+### Deployment
 
 ```bash
 # Initialize Terraform

@@ -60,7 +60,13 @@ variable "stackguardian" {
 }
 
 variable "override_names" {
-  description = "Configuration for overriding default resource names"
+  description = <<EOT
+    Configuration for overriding default resource names.
+
+    - global_prefix: Prefix used for naming all AWS resources created by this module
+    - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {global_prefix}-runner-group-{account_id}
+    - connector_name: Override the default StackGuardian connector name. If not provided, uses {global_prefix}-private-runner-backend-{account_id}
+  EOT
   type = object({
     global_prefix     = string
     runner_group_name = optional(string, "")

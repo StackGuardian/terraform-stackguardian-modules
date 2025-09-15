@@ -2,7 +2,11 @@
 
 Build a custom AMI for StackGuardian Private Runner with pre-installed dependencies and optimized configuration.
 
-## What This Template Creates
+## Overview
+
+This template builds a custom AMI using Packer for StackGuardian Private Runner deployment, enabling faster runner startup and reduced job execution time.
+
+### What This Template Creates
 
 - **Custom AMI** with StackGuardian Private Runner dependencies pre-installed
 - **Multi-OS Support** for Amazon Linux 2, Ubuntu, and RHEL
@@ -17,73 +21,90 @@ Build a custom AMI for StackGuardian Private Runner with pre-installed dependenc
 
 ## Template Parameters
 
-### Required Configuration
+### Required Parameters
 
-**AWS Configuration**
+| Parameter                 | Description                              | Type     |
+| ------------------------- | ---------------------------------------- | -------- |
+| `aws_region`              | AWS region where the AMI will be built  | `string` |
+| `network.vpc_id`          | Existing VPC ID (must have internet access) | `string` |
+| `network.public_subnet_id` | Public subnet for the build instance   | `string` |
 
-- `aws_region` - AWS region where the AMI will be built
+### Optional Parameters
 
-**Network Configuration** (object)
+| Parameter                                       | Description                              | Default    |
+| ----------------------------------------------- | ---------------------------------------- | ---------- |
+| `instance_type`                                 | EC2 instance type for build             | `t3.medium` |
+| `cleanup_amis_on_destroy`                       | Auto-deregister AMIs on terraform destroy | `true`   |
+| `os.family`                                     | Base OS: amazon, ubuntu, or rhel        | `amazon`   |
+| `os.version`                                    | OS version (e.g., 22.04 for Ubuntu)     | `""`       |
+| `os.update_os_before_install`                   | Update packages before install          | `true`     |
+| `os.ssh_username`                               | SSH username (auto-detected)            | `""`       |
+| `os.user_script`                                | Custom shell script for additional setup | `""`      |
+| `packer_config.version`                         | Packer version for builds               | `1.14.1`   |
+| `packer_config.deregistration_protection.enabled` | Enable AMI deregistration protection | `true`     |
+| `packer_config.deregistration_protection.with_cooldown` | Enable deregistration cooldown period | `false` |
+| `packer_config.delete_snapshots`                | Delete EBS snapshots during AMI cleanup | `true`    |
+| `terraform.primary_version`                     | Primary Terraform version               | `""`       |
+| `terraform.additional_versions`                 | Additional Terraform versions           | `[]`       |
+| `opentofu.primary_version`                      | Primary OpenTofu version                | `""`       |
+| `opentofu.additional_versions`                  | Additional OpenTofu versions            | `[]`       |
 
-- `network.vpc_id` - Existing VPC ID (must have internet access)
-- `network.public_subnet_id` - Public subnet for the build instance
+## Configuration Examples
 
-### Optional Configuration
+### Basic Configuration
 
-**Build Instance Settings**
+```hcl
+aws_region = "us-west-2"
 
-- `instance_type` - EC2 instance type for build (default: t3.medium)
+network = {
+  vpc_id           = "vpc-12345678"
+  public_subnet_id = "subnet-87654321"
+}
 
-**AMI Cleanup Configuration**
-
-- `cleanup_amis_on_destroy` - Automatically deregister AMIs on terraform destroy (default: true)
-
-**Operating System Configuration** (object)
-
-- `os.family` - Base OS: amazon, ubuntu, or rhel (default: amazon)
-- `os.version` - OS version (e.g., 22.04 for Ubuntu, 9.4 for RHEL)
-- `os.update_os_before_install` - Update packages before install (default: true)
-- `os.ssh_username` - SSH username (auto-detected if not specified)
-- `os.user_script` - Custom shell script for additional setup
-
-**Packer Configuration** (object)
-
-- `packer_config.version` - Packer version for builds (default: 1.14.1)
-- `packer_config.deregistration_protection.enabled` - Enable AMI deregistration protection (default: true)
-- `packer_config.deregistration_protection.with_cooldown` - Enable deregistration cooldown period (default: false)
-- `packer_config.delete_snapshots` - Delete EBS snapshots during AMI cleanup (default: true)
-
-**Terraform Configuration** (object)
-
-- `terraform.primary_version` - Primary Terraform version (default: "")
-- `terraform.additional_versions` - Additional Terraform versions (default: [])
-
-**OpenTofu Configuration** (object)
-
-- `opentofu.primary_version` - Primary OpenTofu version (default: "")
-- `opentofu.additional_versions` - Additional OpenTofu versions (default: [])
-
-## Configuration Guide
-
-This template creates a customized AMI through the StackGuardian platform interface. Configure the parameters below to match your requirements:
-
-### Basic Setup
-
-- Select your target AWS region
-- Provide VPC and subnet details for the build process
-- Choose your preferred operating system (Amazon Linux 2, Ubuntu, or RHEL)
+os = {
+  family                   = "amazon"
+  update_os_before_install = true
+}
+```
 
 ### Advanced Configuration
 
-- **Custom Scripts**: Add shell commands to install additional software or configure settings
-- **Tool Versions**: Specify which Terraform and OpenTofu versions to pre-install
-- **AMI Management**: Choose whether to automatically clean up AMIs when the template is destroyed
+```hcl
+aws_region = "us-west-2"
+
+network = {
+  vpc_id           = "vpc-12345678"
+  public_subnet_id = "subnet-87654321"
+}
+
+os = {
+  family                   = "ubuntu"
+  version                  = "22.04"
+  update_os_before_install = true
+  user_script              = "apt install -y docker-compose"
+}
+
+terraform = {
+  primary_version     = "1.5.7"
+  additional_versions = ["1.4.6"]
+}
+
+packer_config = {
+  cleanup_amis_on_destroy = false
+  deregistration_protection = {
+    enabled       = true
+    with_cooldown = true
+  }
+}
+```
 
 ## Outputs
 
-- `ami_id` - The ID of the created AMI
-- `ami_info` - Comprehensive AMI information including region, OS details, and timestamp
-- `cleanup_commands` - Ready-to-use AWS CLI commands for manual AMI cleanup
+| Output             | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `ami_id`           | The ID of the created AMI                    |
+| `ami_info`         | Comprehensive AMI information including region, OS details, and timestamp |
+| `cleanup_commands` | Ready-to-use AWS CLI commands for manual AMI cleanup |
 
 ## AMI Cleanup and Management
 
@@ -188,13 +209,13 @@ The built AMI includes:
 - **main.sh** - Runner startup script
 - **Configuration templates** - Pre-configured for optimal performance
 
-## Next Steps
+## Usage
 
 After the AMI is successfully created, use the generated AMI ID with the StackGuardian Private Runner AWS deployment template to launch your private runner instances with the pre-configured environment.
 
-## Template Structure
+## Architecture
 
-This StackGuardian template includes:
+This template includes:
 
 - **Terraform Configuration**: Infrastructure as Code for AMI creation
 - **Packer Templates**: AMI building specifications for multiple OS families

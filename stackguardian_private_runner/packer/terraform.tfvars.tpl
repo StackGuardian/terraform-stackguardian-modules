@@ -8,10 +8,18 @@ instance_type = "t3.medium"
 /*----------------------------+
  | AMI Build Network Settings |
  +----------------------------*/
+# Public subnet build (default)
 network = {
   vpc_id           = "vpc-"
   public_subnet_id = "subnet-"
 }
+
+# Private subnet build alternative:
+# network = {
+#   vpc_id            = "vpc-"
+#   private_subnet_id = "subnet-"
+#   proxy_url         = "http://proxy.company.com:8080"  # Optional
+# }
 
 /*---------------------------+
  | Operating System Settings |
@@ -82,6 +90,8 @@ os = {
 #   additional_versions = ["1.10.1", "1.9.1"]
 # }
 
+# Note: opentofu variable has no default value, must be explicitly set if used
+
 # ## To disable Terraform/OpenTofu installation, use empty strings:
 # terraform = {
 #   primary_version     = ""
@@ -102,6 +112,6 @@ os = {
 #     enabled = true         # Enable/disable deregistration protection
 #     with_cooldown = false  # Enable/disable cooldown period
 #   }
-#   delete_snapshots = true  # Delete EBS snapshots during AMI cleanup
+#   delete_snapshots = true        # Delete EBS snapshots during AMI cleanup
 #   cleanup_amis_on_destroy = true  # Automatically deregister AMIs on terraform destroy
 # }
