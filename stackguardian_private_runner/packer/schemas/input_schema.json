@@ -9,10 +9,6 @@
       "type": "string",
       "default": "t3.medium"
     },
-    "cleanup_amis_on_destroy": {
-      "type": "boolean",
-      "default": true
-    },
     "network": {
       "type": "object",
       "properties": {
@@ -107,6 +103,32 @@
           "type": "string",
           "default": "1.14.1",
           "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "deregistration_protection": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "with_cooldown": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": ["enabled", "with_cooldown"],
+          "default": {
+            "enabled": true,
+            "with_cooldown": false
+          }
+        },
+        "delete_snapshots": {
+          "type": "boolean",
+          "default": true
+        },
+        "cleanup_amis_on_destroy": {
+          "type": "boolean",
+          "default": true
         }
       },
       "required": ["version"]

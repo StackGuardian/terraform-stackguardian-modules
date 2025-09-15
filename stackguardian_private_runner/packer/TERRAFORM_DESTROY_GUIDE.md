@@ -100,9 +100,14 @@ To enable automatic AMI cleanup during destroy, set:
 
 ```hcl
 cleanup_amis_on_destroy = true
+
+# Configure cleanup behavior
+packer_config = {
+  delete_snapshots = true  # Set to false to preserve snapshots
+}
 ```
 
-This will attempt to deregister AMIs and delete snapshots automatically.
+This will automatically deregister AMIs and delete snapshots, bypassing protection (except cooldown periods).
 
 ⚠️ **Warning**: Automatic cleanup is irreversible. Ensure no other resources depend on these AMIs.
 
@@ -134,4 +139,3 @@ This will attempt to deregister AMIs and delete snapshots automatically.
 2. **Naming Convention**: AMIs include timestamps for identification
 3. **State Backup**: Always backup Terraform state before destroy
 4. **Cost Monitoring**: Set up AWS billing alerts for AMI storage
-

@@ -116,6 +116,8 @@ main() { #{{{
     -var "opentofu_versions=$OPENTOFU_VERSIONS" \
     -var "user_script=$USER_SCRIPT" \
     -var "vpc_id=$VPC_ID" \
+    -var "deregistration_protection_enabled=$DEREGISTRATION_PROTECTION_ENABLED" \
+    -var "deregistration_protection_with_cooldown=$DEREGISTRATION_PROTECTION_WITH_COOLDOWN" \
     -machine-readable \
     ./ami.pkr.hcl | tee packer_manifest.log
 }

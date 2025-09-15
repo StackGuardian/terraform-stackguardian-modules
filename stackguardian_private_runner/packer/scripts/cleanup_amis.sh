@@ -32,6 +32,62 @@ _verify_aws_credentials() { #{{{
 }
 #}}}: _verify_aws_credentials
 
+_check_ami_protection() { #{{{
+  ami_id="$1"
+  region="$2"
+
+  echo ">> Checking deregistration protection for AMI: $ami_id"
+  protection_status=$(aws ec2 describe-image-attribute \
+    --region "$region" \
+    --image-id "$ami_id" \
+    --attribute deregistrationProtection \
+    --query 'DeregistrationProtection.Value' \
+    --output text 2>/dev/null || echo "false")
+
+  echo "$protection_status"
+}
+#}}}: _check_ami_protection
+
+_disable_ami_protection() { #{{{
+  ami_id="$1"
+  region="$2"
+
+  echo ">> Disabling deregistration protection for AMI: $ami_id"
+  if aws ec2 disable-image-deregistration-protection --region "$region" --image-id "$ami_id" 2>/dev/null; then
+    echo ">>   ✓ Deregistration protection disabled"
+    return 0
+  else
+    echo ">>   ✗ Failed to disable deregistration protection"
+    return 1
+  fi
+}
+#}}}: _disable_ami_protection
+
+_cleanup_target_ami() { #{{{
+  ami_id="$1"
+  region="$2"
+
+  if [ -z "$ami_id" ] || [ "$ami_id" = "null" ]; then
+    echo ">> No target AMI specified - skipping cleanup"
+    return 0
+  fi
+
+  # Get AMI name for display
+  ami_name=$(aws ec2 describe-images \
+    --region "$region" \
+    --image-ids "$ami_id" \
+    --query 'Images[0].Name' \
+    --output text 2>/dev/null || echo "Unknown")
+
+  if [ "$ami_name" = "None" ] || [ "$ami_name" = "Unknown" ]; then
+    echo ">> AMI $ami_id not found or inaccessible - skipping cleanup"
+    return 0
+  fi
+
+  _cleanup_ami "$ami_id" "$ami_name" "$region"
+}
+#}}}: _cleanup_target_ami
+
 _cleanup_ami() { #{{{
   ami_id="$1"
   ami_name="$2"
@@ -39,97 +95,74 @@ _cleanup_ami() { #{{{
 
   echo ">> Processing AMI: $ami_id ($ami_name)"
 
-  snapshots=$(aws ec2 describe-images \
-      --region "$region" \
-      --image-ids "$ami_id" \
-      --query 'Images[0].BlockDeviceMappings[?Ebs.SnapshotId].Ebs.SnapshotId' \
-      --output text 2>/dev/null || echo "")
+  # Check deregistration protection status
+  protection_enabled=$(_check_ami_protection "$ami_id" "$region")
+
+  if [ "$protection_enabled" != "disabled" ]; then
+    echo ">>   ⚠️  AMI has deregistration protection enabled"
+    echo ">>   🚨 Automatic cleanup enabled - attempting to disable protection"
+
+    if ! _disable_ami_protection "$ami_id" "$region"; then
+      echo ">>   ✗ Cannot proceed with cleanup - protection disable failed"
+      return 1
+    fi
+
+    # Check for cooldown period
+    if [ "$protection_enabled" = "enabled-with-cooldown" ]; then
+      echo ">>   ⏰ WARNING: AMI was configured with 24-hour cooldown period"
+      echo ">>   📅 You may need to wait up to 24 hours before deregistration completes"
+      echo ">>   💡 Manual cleanup commands (run after cooldown expires):"
+      echo ">>      aws ec2 deregister-image --region $region --image-id $ami_id"
+      if [ "${DELETE_SNAPSHOTS:-true}" = "true" ]; then
+        echo ">>      # After deregistration, cleanup snapshots:"
+        echo ">>      aws ec2 describe-images --region $region --image-ids $ami_id --query 'Images[0].BlockDeviceMappings[?Ebs.SnapshotId].Ebs.SnapshotId' --output text | xargs -n1 aws ec2 delete-snapshot --region $region --snapshot-id"
+      fi
+      return 0
+    fi
+  fi
+
+  delete_snapshots_flag="${DELETE_SNAPSHOTS:-true}"
+
+  if [ "$delete_snapshots_flag" = "true" ]; then
+    snapshots=$(aws ec2 describe-images \
+        --region "$region" \
+        --image-ids "$ami_id" \
+        --query 'Images[0].BlockDeviceMappings[?Ebs.SnapshotId].Ebs.SnapshotId' \
+        --output text 2>/dev/null || echo "")
+  fi
 
   echo ">>   Deregistering AMI: $ami_id"
   if aws ec2 deregister-image --region "$region" --image-id "$ami_id" 2>/dev/null; then
     echo ">>   ✓ AMI deregistered successfully"
 
-    if [ -n "$snapshots" ] && [ "$snapshots" != "None" ]; then
-      for snapshot_id in $snapshots; do
-        echo ">>   Deleting snapshot: $snapshot_id"
-        if aws ec2 delete-snapshot --region "$region" --snapshot-id "$snapshot_id" 2>/dev/null; then
-          echo ">>   ✓ Snapshot deleted successfully"
-        else
-          echo ">>   ✗ Failed to delete snapshot: $snapshot_id"
-        fi
-      done
+    if [ "$delete_snapshots_flag" = "true" ]; then
+      if [ -n "$snapshots" ] && [ "$snapshots" != "None" ]; then
+        for snapshot_id in $snapshots; do
+          echo ">>   Deleting snapshot: $snapshot_id"
+          if aws ec2 delete-snapshot --region "$region" --snapshot-id "$snapshot_id" 2>/dev/null; then
+            echo ">>   ✓ Snapshot deleted successfully"
+          else
+            echo ">>   ✗ Failed to delete snapshot: $snapshot_id"
+          fi
+        done
+      else
+        echo ">>   No snapshots found for this AMI"
+      fi
     else
-      echo ">>   No snapshots found for this AMI"
+      echo ">>   Skipping snapshot deletion (delete_snapshots=false)"
     fi
   else
     echo ">>   ✗ Failed to deregister AMI: $ami_id"
+    if [ "$protection_enabled" = "enabled-with-cooldown" ]; then
+      echo ">>   💡 This may be due to the 24-hour cooldown period being active"
+      echo ">>   📅 Please retry this command after the cooldown expires"
+    fi
   fi
 
   echo ""
 }
 #}}}: _cleanup_ami
 
-_list_amis() { #{{{
-  region="$1"
-
-  echo ">> Searching for AMIs with pattern: SG-RUNNER-ami-*"
-  aws ec2 describe-images \
-    --region "$region" \
-    --owners self \
-    --filters "Name=name,Values=SG-RUNNER-ami-*" \
-    --query 'Images[*].[ImageId,Name]' \
-    --output text 2>/dev/null || echo ""
-}
-#}}}: _list_amis
-
-_print_ami_list() { #{{{
-  amis="$1"
-
-  echo ">> Found AMIs:"
-  echo "$amis" | while read -r ami_id ami_name; do
-    echo ">>   $ami_id - $ami_name"
-  done
-  echo ""
-}
-#}}}: _print_ami_list
-
-_cleanup_all_amis() { #{{{
-  amis="$1"
-  region="$2"
-
-  echo "$amis" | while read -r ami_id ami_name; do
-    _cleanup_ami "$ami_id" "$ami_name" "$region"
-  done
-}
-#}}}: _cleanup_all_amis
-
-_interactive_cleanup() { #{{{
-  amis="$1"
-  region="$2"
-
-  echo ">> Interactive mode - you can choose which AMIs to clean up"
-  echo ">> Do you want to proceed with cleanup of ALL listed AMIs? (y/N)"
-  read -r confirm
-
-  case "$confirm" in
-    [Yy]|[Yy][Ee][Ss])
-      echo ">> Proceeding with cleanup.."
-      _cleanup_all_amis "$amis" "$region"
-      ;;
-    *)
-      echo ">> Cleanup cancelled. Use the following commands for manual cleanup:"
-      echo ""
-      echo "$amis" | while read -r ami_id ami_name; do
-        echo "# For AMI: $ami_name"
-        echo "aws ec2 deregister-image --region $region --image-id $ami_id"
-        echo "# Get snapshots: aws ec2 describe-images --region $region --image-ids $ami_id --query 'Images[0].BlockDeviceMappings[?Ebs.SnapshotId].Ebs.SnapshotId' --output text"
-        echo ""
-      done
-      exit 0
-      ;;
-  esac
-}
-#}}}: _interactive_cleanup
 
 main() { #{{{
   echo "## ----------"
@@ -142,20 +175,18 @@ main() { #{{{
   region="$(_detect_region)"
   echo ">> Using AWS region: $region"
 
-  amis="$(_list_amis "$region")"
+  target_ami="${TARGET_AMI_ID:-}"
 
-  if [ -z "$amis" ] || [ "$amis" = "None" ]; then
-    echo ">> No SG-RUNNER AMIs found in region $region"
-    exit 0
-  fi
+  echo ">> 🚨 Automatic cleanup enabled - will bypass AMI protection (except cooldown)"
 
-  _print_ami_list "$amis"
-
-  if [ "${TERRAFORM_DESTROY:-}" = "true" ]; then
-    echo ">> Running in automated mode - cleaning up all SG-RUNNER AMIs"
-    _cleanup_all_amis "$amis" "$region"
+  # Only cleanup the specific AMI from terraform state
+  if [ -n "$target_ami" ] && [ "$target_ami" != "null" ]; then
+    echo ">> Target AMI specified: $target_ami"
+    _cleanup_target_ami "$target_ami" "$region"
   else
-    _interactive_cleanup "$amis" "$region"
+    echo ">> No target AMI specified - nothing to cleanup"
+    echo ">> This script only cleans up the AMI created by this Terraform configuration"
+    exit 0
   fi
 
   echo "## ----------"

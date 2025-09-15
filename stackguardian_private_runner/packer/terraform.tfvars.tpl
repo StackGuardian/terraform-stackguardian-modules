@@ -4,10 +4,6 @@
 aws_region    = "eu-central-1"
 instance_type = "t3.medium"
 
-/*----------------------------------+
- | AMI Cleanup Configuration       |
- +----------------------------------*/
-cleanup_amis_on_destroy = true
 
 /*----------------------------+
  | AMI Build Network Settings |
@@ -95,4 +91,17 @@ os = {
 # opentofu = {
 #   primary_version     = ""
 #   additional_versions = []
+# }
+
+/*----------------------------------+
+ | Packer Configuration Variables   |
+ +----------------------------------*/
+# packer_config = {
+#   version = "1.14.1"
+#   deregistration_protection = {
+#     enabled = true         # Enable/disable deregistration protection
+#     with_cooldown = false  # Enable/disable cooldown period
+#   }
+#   delete_snapshots = true  # Delete EBS snapshots during AMI cleanup
+#   cleanup_amis_on_destroy = true  # Automatically deregister AMIs on terraform destroy
 # }

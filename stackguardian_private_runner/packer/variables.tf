@@ -13,15 +13,6 @@ variable "instance_type" {
   default     = "t3.medium"
 }
 
-/*----------------------------------+
- | AMI Cleanup Configuration       |
- +----------------------------------*/
-variable "cleanup_amis_on_destroy" {
-  description = "Whether to automatically deregister AMIs and delete snapshots during terraform destroy"
-  type        = bool
-  default     = true
-}
-
 /*----------------------------+
  | AMI Build Network Settings |
  +----------------------------*/
@@ -73,9 +64,24 @@ variable "packer_config" {
   description = "Packer build configuration"
   type = object({
     version = string
+    deregistration_protection = optional(object({
+      enabled       = bool
+      with_cooldown = bool
+      }), {
+      enabled       = true
+      with_cooldown = false
+    })
+    delete_snapshots        = optional(bool, true)
+    cleanup_amis_on_destroy = optional(bool, true)
   })
   default = {
     version = "1.14.1"
+    deregistration_protection = {
+      enabled       = true
+      with_cooldown = false
+    }
+    delete_snapshots        = true
+    cleanup_amis_on_destroy = true
   }
 }
 

@@ -13,6 +13,8 @@ variable "opentofu_version" {}
 variable "opentofu_versions" {}
 variable "user_script" {}
 variable "vpc_id" {}
+variable "deregistration_protection_enabled" {}
+variable "deregistration_protection_with_cooldown" {}
 
 packer {
   required_plugins {
@@ -37,8 +39,8 @@ source "amazon-ebs" "this" {
   source_ami    = var.base_ami
 
   deregistration_protection {
-    enabled = true
-    with_cooldown = true
+    enabled = var.deregistration_protection_enabled
+    with_cooldown = var.deregistration_protection_with_cooldown
   }
 
   vpc_id        = var.vpc_id
