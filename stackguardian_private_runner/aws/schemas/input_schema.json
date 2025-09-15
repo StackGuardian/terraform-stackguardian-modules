@@ -12,7 +12,8 @@
       "pattern": "^ami-.*"
     },
     "aws_region": {
-      "type": "string"
+      "type": "string",
+      "default": "eu-central-1"
     },
     "force_destroy_storage_backend": {
       "type": "boolean",
@@ -26,7 +27,8 @@
           "pattern": "^sgu_.*"
         },
         "org_name": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         }
       },
       "required": ["api_key"]
@@ -57,12 +59,17 @@
           "type": "string"
         },
         "private_subnet_id": {
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "public_subnet_id": {
           "type": "string"
         },
         "associate_public_ip": {
+          "type": "boolean",
+          "default": false
+        },
+        "create_network_infrastructure": {
           "type": "boolean",
           "default": false
         }
@@ -141,23 +148,6 @@
       },
       "additionalProperties": false
     },
-    "image": {
-      "type": "object",
-      "properties": {
-        "repository": {
-          "type": "string"
-        },
-        "tag": {
-          "type": "string"
-        }
-      },
-      "required": ["repository", "tag"],
-      "default": {
-        "repository": "790543352839.dkr.ecr.eu-central-1.amazonaws.com/private-runner/autoscaler",
-        "tag": "latest"
-      },
-      "additionalProperties": false
-    },
     "scaling": {
       "type": "object",
       "properties": {
@@ -176,15 +166,18 @@
         },
         "scale_in_threshold": {
           "type": "integer",
-          "default": 2
+          "default": 1,
+          "minimum": 1
         },
         "scale_in_step": {
           "type": "integer",
-          "default": 1
+          "default": 1,
+          "minimum": 1
         },
         "scale_out_step": {
           "type": "integer",
-          "default": 1
+          "default": 1,
+          "minimum": 1
         },
         "min_runners": {
           "type": "integer",

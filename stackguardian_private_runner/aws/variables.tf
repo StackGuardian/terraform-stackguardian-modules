@@ -70,12 +70,24 @@ variable "override_names" {
  | EC2 Network Variables |
  +-----------------------*/
 variable "network" {
-  description = "Network configuration for the Private Runner instance"
+  description = <<EOT
+    Network configuration for the Private Runner instance.
+
+    - vpc_id: Existing VPC ID for deployment
+    - private_subnet_id: Private subnet ID (optional). If specified, instances will be deployed in private subnet
+    - public_subnet_id: Public subnet ID (required). Used for NAT Gateway if private subnet is specified
+    - associate_public_ip: Whether to assign public IP to instances
+    - create_network_infrastructure: Whether to create NAT Gateway and route tables for private subnet connectivity.
+      Defaults to false to support enterprise environments with existing network infrastructure.
+      Set to true if you need the module to create NAT Gateway and routing for private subnet internet access.
+      When disabled, ensure private subnet has proper routing to internet for StackGuardian platform connectivity.
+  EOT
   type = object({
-    vpc_id              = string
-    private_subnet_id   = optional(string, "")
-    public_subnet_id    = string
-    associate_public_ip = bool
+    vpc_id                        = string
+    private_subnet_id             = optional(string, "")
+    public_subnet_id              = string
+    associate_public_ip           = optional(bool, false)
+    create_network_infrastructure = optional(bool, false)
   })
 }
 
@@ -89,6 +101,11 @@ variable "volume" {
     size                  = number
     delete_on_termination = bool
   })
+  default = {
+    type                  = "gp3"
+    size                  = 100
+    delete_on_termination = false
+  }
 }
 
 /*------------------------------+
@@ -127,19 +144,19 @@ variable "image" {
 variable "scaling" {
   description = "Auto scaling configuration for the Private Runner"
   type = object({
-    scale_out_cooldown_duration = number
-    scale_in_cooldown_duration  = number
-    scale_out_threshold         = number
-    scale_in_threshold          = number
-    scale_in_step               = number
-    scale_out_step              = number
-    min_runners                 = number
+    scale_out_cooldown_duration = optional(number, 4)
+    scale_in_cooldown_duration  = optional(number, 5)
+    scale_out_threshold         = optional(number, 3)
+    scale_in_threshold          = optional(number, 1)
+    scale_in_step               = optional(number, 1)
+    scale_out_step              = optional(number, 1)
+    min_runners                 = optional(number, 1)
   })
   default = {
     scale_out_cooldown_duration = 4
     scale_in_cooldown_duration  = 5
     scale_out_threshold         = 3
-    scale_in_threshold          = 2
+    scale_in_threshold          = 1
     scale_in_step               = 1
     scale_out_step              = 1
     min_runners                 = 1

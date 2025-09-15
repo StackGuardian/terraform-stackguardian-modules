@@ -62,6 +62,10 @@
     "associate_public_ip": {
       "ui:widget": "checkbox",
       "ui:description": "Whether to assign a public IP to the Private Runner instance"
+    },
+    "create_network_infrastructure": {
+      "ui:widget": "checkbox",
+      "ui:description": "Whether to create NAT Gateway and route tables for private subnet connectivity. Defaults to false for enterprise environments with existing network infrastructure. Check this box if you need the module to create NAT Gateway and routing. ⚠️ When unchecked, ensure your private subnet has proper routing to the internet for StackGuardian platform connectivity."
     }
   },
   "volume": {
@@ -97,23 +101,12 @@
     "ssh_access_rules": {
       "ui:title": "SSH Access Rules",
       "ui:widget": "string",
-      "ui:placeholder": "10.0.1.0/24",
       "ui:description": "Object mapping access rule names to CIDR blocks for SSH access. Each key should be a descriptive name (e.g., 'Admin Access') and each value should be a CIDR block. These will appear as 'SSH-{name}' in security group descriptions."
     },
     "additional_ingress_rules": {
       "ui:title": "Additional Ingress Rules",
       "ui:widget": "string",
       "ui:description": "Object mapping rule names to ingress rule configurations. Each key should be a descriptive name that will appear as the security group rule description, and each value should contain port, protocol, and cidr_blocks."
-    }
-  },
-  "image": {
-    "ui:title": "Lambda Autoscaler Image Configuration",
-    "ui:description": "Docker image for the Lambda function that handles auto-scaling",
-    "repository": {
-      "ui:description": "Docker image repository URL"
-    },
-    "tag": {
-      "ui:description": "Docker image tag"
     }
   },
   "scaling": {
@@ -129,13 +122,13 @@
       "ui:description": "Threshold for scaling out (queue depth)"
     },
     "scale_in_threshold": {
-      "ui:description": "Threshold for scaling in (queue depth)"
+      "ui:description": "Threshold for scaling in (queue depth) (must be at least 1)"
     },
     "scale_in_step": {
-      "ui:description": "Number of instances to scale in at once"
+      "ui:description": "Number of instances to scale in at once (must be at least 1)"
     },
     "scale_out_step": {
-      "ui:description": "Number of instances to scale out at once"
+      "ui:description": "Number of instances to scale out at once (must be at least 1)"
     },
     "min_runners": {
       "ui:description": "Minimum number of runners (must be at least 1)"

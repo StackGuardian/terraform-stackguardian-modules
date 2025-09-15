@@ -1,110 +1,281 @@
-# StackGuardian Private Runner - AWS Template
+# StackGuardian Private Runner - AWS Module
 
-Deploy a StackGuardian Private Runner on AWS with auto-scaling capabilities.
+This Terraform module deploys StackGuardian Private Runner infrastructure on AWS. It creates an auto-scaling group of EC2 instances that run StackGuardian runners with Lambda-based autoscaling, S3 storage backend for Terraform state, and complete StackGuardian platform integration.
 
-## What This Template Creates
+## Features
 
-- **Auto Scaling Group** with EC2 instances running the StackGuardian runner
-- **Lambda-based autoscaler** that scales runners based on job queue metrics
-- **S3 storage backend** for Terraform state and artifacts with encryption
-- **Security groups** and networking configuration
-- **StackGuardian Runner Group and Connector** for platform integration
+- **Auto-scaling Infrastructure**: EC2 instances with Lambda-based queue monitoring and scaling
+- **State Management**: Dedicated S3 bucket with encryption and versioning for Terraform state storage
+- **Security**: Least-privilege IAM roles with configurable security groups
+- **Platform Integration**: Direct integration with StackGuardian API using Terraform provider
+- **Network Flexibility**: Supports both public and private subnet deployment
 
 ## Prerequisites
 
-1. **StackGuardian API Key** - Generate from your organization settings
-2. **AWS Permissions** - Your AWS account needs sufficient permissions (see `aws_permissions.json`)
-3. **Custom AMI** - AMI with required dependencies: docker, cron, jq, sg-runner
-4. **VPC Infrastructure** - Existing VPC with at least one public subnet
+Before using this module, ensure you have:
 
-## Template Parameters
+1. **Custom AMI**: Built using the companion Packer module that includes:
+   - Docker
+   - cron
+   - jq
+   - sg-runner binary
+2. **StackGuardian API Key**: Starting with `sgu_` prefix
+3. **AWS VPC**: Existing VPC with proper internet connectivity
+4. **Subnet**: Public subnet for runner instances
 
-### Required Configuration
+## Quick Start
 
-**StackGuardian Settings**
+```hcl
+module "stackguardian_private_runner" {
+  source = "./stackguardian_private_runner/aws"
 
-- `stackguardian.api_key` - Your StackGuardian API key (required, starts with `sgu_`)
-- `stackguardian.org_name` - Your organization name (optional, defaults to API key organization)
+  # Required variables
+  ami_id     = "ami-1234567890abcdef0"  # Your custom AMI
+  aws_region = "us-west-2"
 
-**AWS Configuration**
+  # StackGuardian configuration
+  stackguardian = {
+    api_key = "sgu_your_api_key_here"
+  }
 
-- `aws_region` - Target AWS region for deployment
-- `ami_id` - AMI ID with runner dependencies (must start with `ami-`)
+  # Network configuration
+  network = {
+    vpc_id           = "vpc-1234567890abcdef0"
+    public_subnet_id = "subnet-1234567890abcdef0"
+  }
 
-**Network Settings**
+  # Optional: Customize resource names
+  override_names = {
+    global_prefix = "my-company-sg"
+  }
+}
+```
 
-- `network.vpc_id` - Your existing VPC ID (required)
-- `network.public_subnet_id` - Public subnet for runner instances (required)
-- `network.private_subnet_id` - Optional private subnet for enhanced security
-- `network.associate_public_ip` - Whether instances get public IPs (default: false)
+## Configuration
 
-### Optional Configuration
+### Required Variables
 
-**Instance Settings**
+| Variable                   | Description                                    | Type     |
+| -------------------------- | ---------------------------------------------- | -------- |
+| `ami_id`                   | Custom AMI with sg-runner and dependencies     | `string` |
+| `aws_region`               | Target AWS region                              | `string` |
+| `stackguardian.api_key`    | StackGuardian API key (must start with `sgu_`) | `string` |
+| `network.vpc_id`           | Existing VPC for deployment                    | `string` |
+| `network.public_subnet_id` | Public subnet for runner instances             | `string` |
 
-- `instance_type` - EC2 instance type (default: t3.xlarge, minimum 4 vCPU/8GB RAM recommended)
+### Important Optional Variables
 
-**Storage Configuration**
+| Variable                            | Description                        | Default           |
+| ----------------------------------- | ---------------------------------- | ----------------- |
+| `override_names.global_prefix`      | Prefix for all resource names      | `"StackGuardian"` |
+| `autoscaler.max_instances`          | Maximum number of runner instances | `10`              |
+| `autoscaler.min_instances`          | Minimum number of runner instances | `0`               |
+| `storage_backend.force_destroy`     | Allow bucket deletion with data    | `false`           |
+| `firewall.additional_ingress_rules` | Custom security group rules        | `[]`              |
 
-- `volume.type` - EBS volume type: gp2, gp3, io1, io2 (default: gp3)
-- `volume.size` - Volume size in GB (required, default: 100, minimum: 8)
-- `volume.delete_on_termination` - Delete volume when instance terminates (default: false)
+### Complete Configuration Example
 
-**Resource Naming**
+```hcl
+module "stackguardian_private_runner" {
+  source = "./stackguardian_private_runner/aws"
 
-- `override_names.global_prefix` - Prefix for all resource names (required, default: SG_RUNNER)
-- `override_names.runner_group_name` - Custom name for the runner group (optional)
-- `override_names.connector_name` - Custom name for the connector (optional)
+  # Required
+  ami_id     = "ami-1234567890abcdef0"
+  aws_region = "us-west-2"
 
-**Security & Access**
+  # StackGuardian
+  stackguardian = {
+    api_key   = "sgu_your_api_key_here"
+    org_name  = "your-organization"  # Optional: auto-derived from API key
+  }
 
-- `firewall.ssh_key_name` - EC2 Key Pair name for SSH access (optional)
-- `firewall.ssh_public_key` - SSH public key content (alternative to key name)
-- `firewall.allow_ssh_cidr_blocks` - IP ranges allowed SSH access (optional, array)
-- `firewall.additional_ingress_rules` - Custom firewall rules for additional ports (optional, array)
+  # Network
+  network = {
+    vpc_id           = "vpc-1234567890abcdef0"
+    public_subnet_id = "subnet-1234567890abcdef0"
+  }
 
-**Auto-scaling Behavior**
+  # Auto-scaling
+  autoscaler = {
+    max_instances        = 5
+    min_instances        = 1
+    instance_type        = "t3.medium"
+    scale_out_threshold  = 3
+    scale_in_threshold   = 2
+    scale_out_cooldown   = 240  # 4 minutes
+    scale_in_cooldown    = 300  # 5 minutes
+  }
 
-- `scaling.min_runners` - Minimum number of runner instances (default: 1, minimum: 1)
-- `scaling.scale_out_threshold` - Scale out when queue exceeds this many jobs (default: 3)
-- `scaling.scale_in_threshold` - Scale in when queue drops below this many jobs (default: 2)
-- `scaling.scale_out_cooldown_duration` - Minutes to wait before scaling out again (default: 4, minimum: 4)
-- `scaling.scale_in_cooldown_duration` - Minutes to wait before scaling in again (default: 5)
-- `scaling.scale_out_step` - Instances to add per scale-out event (default: 1)
-- `scaling.scale_in_step` - Instances to remove per scale-in event (default: 1)
+  # Storage
+  storage_backend = {
+    force_destroy = true  # Allows Terraform destroy to delete S3 bucket
+  }
 
-**Advanced Settings**
+  # Security
+  firewall = {
+    additional_ingress_rules = [
+      {
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = ["10.0.0.0/8"]
+        description = "SSH access from private networks"
+      }
+    ]
+  }
 
-- `force_destroy_storage_backend` - Allow destroying S3 bucket with data (default: false)
-- `image.repository` - Docker image repository for autoscaler Lambda (default: StackGuardian ECR repository)
-- `image.tag` - Docker image tag (default: latest)
+  # Naming
+  override_names = {
+    global_prefix = "mycompany-sg"
+  }
+}
+```
 
-## Important Notes
+## Usage
 
-**AMI Requirements**: Your AMI must include docker, cron, jq, and the sg-runner binary. Use the StackGuardian Packer template for best results.
+### 1. Initialize and Deploy
 
-**Network Security**: Runners need outbound HTTPS (port 443) access to communicate with StackGuardian. Private subnet deployment requires NAT Gateway or similar for internet access.
+```bash
+# Initialize Terraform
+terraform init
 
-**Auto-scaling**: The Lambda function monitors your StackGuardian job queue and automatically adjusts the number of running instances based on demand.
+# Validate configuration
+terraform validate
 
-## After Deployment
+# Plan deployment
+terraform plan
 
-The template creates a Runner Group that will appear in your StackGuardian organization. Use the Runner Group name (from outputs) when configuring workflows to execute on your private infrastructure.
+# Apply changes
+terraform apply
+```
 
-**Key Outputs:**
+### 2. Monitor Resources
 
-- `runner_group_name` - Use this name in workflow configurations
-- `runner_group_url` - Direct link to manage runners in StackGuardian
-- `storage_backend_name` - S3 bucket for state storage
+```bash
+# View outputs
+terraform output
 
-## Security Features
+# Check state
+terraform show
 
-- S3 bucket with encryption at rest and versioning enabled
-- Security groups restrict access to necessary ports only
-- IAM roles follow least-privilege principles
-- Optional private subnet deployment for network isolation
+# List all resources
+terraform state list
+```
 
----
+### 3. Scaling Operations
 
-This template integrates seamlessly with StackGuardian workflows - simply select the created Runner Group when configuring your infrastructure deployments.
+The Lambda autoscaler automatically manages scaling based on StackGuardian job queue metrics:
+
+- **Scale Out**: Triggered when ≥3 jobs are queued
+- **Scale In**: Triggered when <2 jobs are queued
+- **Cooldown**: 4min scale-out, 5min scale-in to prevent oscillations
+
+### 4. Cleanup
+
+```bash
+# Destroy infrastructure
+terraform destroy
+```
+
+**Note**: If `storage_backend.force_destroy = false`, you'll need to manually empty the S3 bucket before destruction.
+
+## Architecture
+
+### Resource Organization
+
+- **autoscaling.tf**: Auto Scaling Group and Launch Template
+- **lambda_autoscaler.tf**: Queue monitoring and scaling logic
+- **network.tf**: Security groups with configurable rules
+- **storage_backend.tf**: S3 bucket for Terraform state
+- **runner_role.tf**: IAM roles for runner instances
+- **runner_group.tf**: StackGuardian platform integration
+
+### Resource Naming Convention
+
+All resources use the pattern: `{global_prefix}_{resource_type}`
+
+- Auto Scaling Group: `{prefix}_ASG`
+- Lambda Function: `{prefix}_autoscaler`
+- S3 Bucket: `{prefix}-storage-backend-{random_suffix}`
+- Security Groups: `{prefix}_SG`
+
+## Troubleshooting
+
+### Common Issues
+
+1. **AMI Missing Dependencies**
+
+   ```bash
+   # Verify AMI includes required packages
+   # Build new AMI using the Packer module
+   ```
+
+2. **Network Connectivity**
+
+   ```bash
+   # Ensure outbound HTTPS (443) access to StackGuardian platform
+   # Check VPC internet gateway and route tables
+   ```
+
+3. **API Key Issues**
+
+   ```bash
+   # Verify API key format (must start with 'sgu_')
+   # Check API key permissions in StackGuardian console
+   ```
+
+4. **Scaling Not Working**
+   ```bash
+   # Check Lambda function logs in CloudWatch
+   # Verify StackGuardian API connectivity from Lambda
+   ```
+
+### Debugging
+
+```bash
+# Enable detailed Terraform logging
+export TF_LOG=DEBUG
+terraform apply
+
+# View Lambda function logs
+aws logs describe-log-groups --log-group-name-prefix "/aws/lambda"
+
+# Check Auto Scaling Group activity
+aws autoscaling describe-scaling-activities --auto-scaling-group-name <asg-name>
+```
+
+## Outputs
+
+| Output                   | Description                      |
+| ------------------------ | -------------------------------- |
+| `runner_group_id`        | StackGuardian Runner Group ID    |
+| `connector_id`           | StackGuardian Connector ID       |
+| `storage_backend_bucket` | S3 bucket name for state storage |
+| `autoscaling_group_name` | Auto Scaling Group name          |
+| `lambda_function_name`   | Lambda autoscaler function name  |
+
+## Security Considerations
+
+- All IAM roles follow least-privilege principles
+- S3 bucket includes server-side encryption and versioning
+- Security groups deny all ingress by default (configurable)
+- Lambda function has minimal permissions for StackGuardian API access
+- Runner instances can only access designated AWS resources
+
+## Requirements
+
+| Name          | Version |
+| ------------- | ------- |
+| terraform     | >= 1.0  |
+| aws           | >= 5.0  |
+| stackguardian | = 1.3.3 |
+| random        | >= 3.0  |
+
+## Support
+
+For issues and questions:
+
+- Review the troubleshooting section above
+- Check StackGuardian documentation
+- Contact your StackGuardian support team
 

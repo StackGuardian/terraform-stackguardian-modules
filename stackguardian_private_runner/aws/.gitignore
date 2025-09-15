@@ -4,6 +4,7 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*
+tfstate.json
 
 # Crash log files
 crash.log
@@ -27,3 +28,6 @@ override.tf.json
 
 # MacOS
 .DS_Store
+
+# AI Agents
+CLAUDE.md
