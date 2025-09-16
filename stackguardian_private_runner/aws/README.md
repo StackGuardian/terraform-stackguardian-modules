@@ -6,52 +6,77 @@ Deploy StackGuardian Private Runner infrastructure on AWS with auto-scaling capa
 
 This Terraform module creates an auto-scaling group of EC2 instances that run StackGuardian runners with Lambda-based autoscaling, S3 storage backend for Terraform state, and complete StackGuardian platform integration.
 
-### Features
+### What Gets Created
 
-- **Auto-scaling Infrastructure**: EC2 instances with Lambda-based queue monitoring and scaling
-- **State Management**: Dedicated S3 bucket with encryption and versioning for Terraform state storage
-- **Security**: Least-privilege IAM roles with configurable security groups
-- **Platform Integration**: Direct integration with StackGuardian API using Terraform provider
-- **Network Flexibility**: Supports both public and private subnet deployment
+- **Auto Scaling Group**: EC2 instances with Lambda-based queue monitoring and scaling
+- **Lambda Autoscaler**: Monitors job queues and triggers scaling events
+- **S3 Storage Backend**: Dedicated bucket with encryption and versioning for Terraform state
+- **Security Groups**: Configurable network access controls with least-privilege defaults
+- **IAM Roles**: Service roles for runners and storage access with minimal permissions
+- **StackGuardian Integration**: Runner Group and Connector resources for platform integration
 
 ## Prerequisites
 
 Before using this module, ensure you have:
 
-1. **Custom AMI**: Built using the companion Packer module that includes:
-   - Docker
-   - cron
-   - jq
+1. **Custom AMI**: Built using the companion [Packer module](../packer/) that includes:
+   - Docker, cron, jq
    - sg-runner binary
+   - Terraform and OpenTofu (optional)
 2. **StackGuardian API Key**: Starting with `sgu_` prefix
-3. **AWS VPC**: Existing VPC with proper internet connectivity
-4. **Subnet**: Public subnet for runner instances
+3. **AWS Infrastructure**:
+   - Existing VPC with internet connectivity
+   - Public subnet for runner instances
+   - Sufficient IAM permissions (see `../aws_permissions.json`)
 
 ## Quick Start
 
+### Step 1: Get Custom AMI
+
+First, build a custom AMI using the [Packer module](../packer/):
+
+```bash
+cd ../packer
+terraform init
+terraform apply
+# Note the AMI ID output
+```
+
+### Step 2: Deploy Private Runners
+
+Use the AMI ID from Step 1:
+
+```bash
+# Copy and configure variables
+cp terraform.tfvars.example terraform.tfvars
+
+# Deploy infrastructure
+terraform init
+terraform plan
+terraform apply
+```
+
+### Basic Configuration Example
+
 ```hcl
-module "stackguardian_private_runner" {
-  source = "./stackguardian_private_runner/aws"
+# Required variables
+ami_id     = "ami-1234567890abcdef0"  # From Packer module
+aws_region = "eu-central-1"
 
-  # Required variables
-  ami_id     = "ami-1234567890abcdef0"  # Your custom AMI
-  aws_region = "us-west-2"
+# StackGuardian configuration
+stackguardian = {
+  api_key = "sgu_your_api_key_here"
+}
 
-  # StackGuardian configuration
-  stackguardian = {
-    api_key = "sgu_your_api_key_here"
-  }
+# Network configuration
+network = {
+  vpc_id           = "vpc-1234567890abcdef0"
+  public_subnet_id = "subnet-1234567890abcdef0"
+}
 
-  # Network configuration
-  network = {
-    vpc_id           = "vpc-1234567890abcdef0"
-    public_subnet_id = "subnet-1234567890abcdef0"
-  }
-
-  # Optional: Customize resource names
-  override_names = {
-    global_prefix = "my-company-sg"
-  }
+# Optional: Customize resource names
+override_names = {
+  global_prefix = "my-company-sg"
 }
 ```
 
@@ -87,7 +112,7 @@ module "stackguardian_private_runner" {
 
   # Required parameters
   ami_id     = "ami-1234567890abcdef0"
-  aws_region = "us-west-2"
+  aws_region = "eu-central-1"
 
   stackguardian = {
     api_key = "sgu_your_api_key_here"
@@ -108,7 +133,7 @@ module "stackguardian_private_runner" {
 
   # Required parameters
   ami_id     = "ami-1234567890abcdef0"
-  aws_region = "us-west-2"
+  aws_region = "eu-central-1"
 
   stackguardian = {
     api_key   = "sgu_your_api_key_here"
@@ -221,38 +246,59 @@ All resources use the pattern: `{global_prefix}_{resource_type}`
 - S3 Bucket: `{prefix}-storage-backend-{random_suffix}`
 - Security Groups: `{prefix}_SG`
 
+## Architecture
+
+The module creates a scalable runner infrastructure with the following components:
+
+### Resource Organization
+
+- **autoscaling.tf**: Auto Scaling Group and Launch Template
+- **lambda_autoscaler.tf**: Queue monitoring and scaling logic
+- **network.tf**: Security groups with configurable rules
+- **storage_backend.tf**: S3 bucket for Terraform state
+- **runner_role.tf**: IAM roles for runner instances
+- **runner_group.tf**: StackGuardian platform integration
+
+### Auto-scaling Behavior
+
+- **Scale Out**: Triggered when ≥3 jobs are queued
+- **Scale In**: Triggered when <2 jobs are queued
+- **Cooldown**: 4min scale-out, 5min scale-in to prevent oscillations
+- **Range**: Configurable min/max instances (default: 0-10)
+
+### Resource Naming Convention
+
+All resources use the pattern: `{global_prefix}_{resource_type}`
+
+- Auto Scaling Group: `{prefix}_ASG`
+- Lambda Function: `{prefix}_autoscaler`
+- S3 Bucket: `{prefix}-storage-backend-{random_suffix}`
+- Security Groups: `{prefix}_SG`
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **AMI Missing Dependencies**
 
-   ```bash
-   # Verify AMI includes required packages
-   # Build new AMI using the Packer module
-   ```
+   - Verify AMI includes Docker, jq, sg-runner
+   - Rebuild using the [Packer module](../packer/)
 
 2. **Network Connectivity**
 
-   ```bash
-   # Ensure outbound HTTPS (443) access to StackGuardian platform
-   # Check VPC internet gateway and route tables
-   ```
+   - Ensure outbound HTTPS (443) access to StackGuardian platform
+   - Check VPC internet gateway and route tables
 
 3. **API Key Issues**
 
-   ```bash
-   # Verify API key format (must start with 'sgu_')
-   # Check API key permissions in StackGuardian console
-   ```
+   - Verify API key format (must start with `sgu_`)
+   - Check API key permissions in StackGuardian console
 
 4. **Scaling Not Working**
-   ```bash
-   # Check Lambda function logs in CloudWatch
-   # Verify StackGuardian API connectivity from Lambda
-   ```
+   - Check Lambda function logs: `/aws/lambda/{prefix}_autoscaler`
+   - Verify StackGuardian API connectivity from Lambda
 
-### Debugging
+### Debugging Commands
 
 ```bash
 # Enable detailed Terraform logging
@@ -260,10 +306,13 @@ export TF_LOG=DEBUG
 terraform apply
 
 # View Lambda function logs
-aws logs describe-log-groups --log-group-name-prefix "/aws/lambda"
+aws logs tail /aws/lambda/{prefix}_autoscaler --follow
 
 # Check Auto Scaling Group activity
-aws autoscaling describe-scaling-activities --auto-scaling-group-name <asg-name>
+aws autoscaling describe-scaling-activities --auto-scaling-group-name {prefix}_ASG
+
+# Verify runner registration
+# Check StackGuardian console for active runners
 ```
 
 ## Outputs
@@ -293,11 +342,36 @@ aws autoscaling describe-scaling-activities --auto-scaling-group-name <asg-name>
 | stackguardian | = 1.3.3 |
 | random        | >= 3.0  |
 
+## Next Steps
+
+After successful deployment:
+
+1. **Verify Runner Registration**
+
+   ```bash
+   # Check runner group in StackGuardian console
+   terraform output runner_group_url
+   ```
+
+2. **Configure Workflows**
+   Use the runner group name in your StackGuardian workflow configurations:
+
+   ```yaml
+   # In your StackGuardian workflow
+   runner_constraints:
+     runner_group: <terraform output runner_group_name>
+   ```
+
+3. **Monitor and Scale**
+   - Monitor Lambda logs and scaling activities
+   - Adjust scaling thresholds as needed
+   - Set up CloudWatch alarms for cost monitoring
+
 ## Support
 
 For issues and questions:
 
 - Review the troubleshooting section above
-- Check StackGuardian documentation
+- Check the companion [Packer module](../packer/) for AMI issues
+- Refer to `../aws_permissions.json` for IAM requirements
 - Contact your StackGuardian support team
-

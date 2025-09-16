@@ -28,3 +28,23 @@ output "storage_backend_name" {
   description = "The name of the S3 bucket used for Terraform state storage"
   value       = aws_s3_bucket.this.bucket
 }
+
+output "runner_group_id" {
+  description = "The ID of the StackGuardian runner group created by this module"
+  value       = stackguardian_runner_group.this.id
+}
+
+output "connector_id" {
+  description = "The ID of the StackGuardian connector created by this module"
+  value       = stackguardian_connector.this.id
+}
+
+output "storage_backend_bucket" {
+  description = "The name of the S3 bucket used for Terraform state storage (alias for storage_backend_name)"
+  value       = aws_s3_bucket.this.bucket
+}
+
+output "autoscaling_group_name" {
+  description = "The name of the Auto Scaling Group created by this module"
+  value       = aws_autoscaling_group.this.name
+}

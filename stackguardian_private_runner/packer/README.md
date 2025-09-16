@@ -1,4 +1,4 @@
-# StackGuardian Private Runner - Packer AMI Builder
+# StackGuardian Private Runner - Packer Module
 
 Build custom AMIs for StackGuardian Private Runner with pre-installed dependencies and optimized configuration.
 
@@ -6,44 +6,73 @@ Build custom AMIs for StackGuardian Private Runner with pre-installed dependenci
 
 This Terraform module builds custom AMIs using Packer for StackGuardian Private Runner deployment. The AMI includes pre-installed dependencies (Docker, Terraform, OpenTofu, sg-runner, etc.) across multiple operating systems.
 
+### What Gets Created
+
+- **Custom AMI**: Pre-configured with all StackGuardian runner dependencies
+- **Multi-OS Support**: Amazon Linux 2, Ubuntu LTS, and RHEL compatibility
+- **Tool Installation**: Docker, Terraform, OpenTofu, jq, and sg-runner binary
+- **Optimization**: Reduced job startup time through pre-installation
+- **Security**: Configurable AMI deregistration protection and cleanup options
+
 ## Prerequisites
 
-- **Terraform** (>= 1.0)
-- **AWS CLI** configured with appropriate credentials
-- **AWS Permissions** - See `packer_permissions.json` for required IAM permissions
-- **Network Infrastructure** - VPC with either:
-  - Public subnet with internet gateway (default)
-  - Private subnet with NAT Gateway or VPC Endpoints
+Before using this module, ensure you have:
+
+1. **Terraform** (>= 1.0) installed locally
+2. **AWS CLI** configured with appropriate credentials
+3. **AWS Infrastructure**:
+   - Existing VPC with internet connectivity
+   - Public subnet with internet gateway (or private subnet with NAT Gateway)
+   - Sufficient IAM permissions (see `../packer_permissions.json`)
+4. **Network Access**: Outbound HTTPS/HTTP for package downloads
 
 ## Quick Start
 
-```bash
-# 1. Copy and configure variables
-cp terraform.tfvars.tpl terraform.tfvars
+### Step 1: Configure Variables
 
-# 2. Edit terraform.tfvars with your configuration
-# 3. Build the AMI
+Copy and edit the configuration template:
+
+```bash
+# Copy template (if available)
+cp terraform.tfvars.example terraform.tfvars
+
+# Edit with your configuration
+# Required: aws_region, vpc_id, subnet_id
+```
+
+### Step 2: Build AMI
+
+```bash
+# Build the custom AMI
 terraform init
+terraform validate
 terraform plan
 terraform apply
 
-# 4. Get the AMI ID
+# Get the AMI ID for next steps
 terraform output ami_id
 ```
 
 ### Basic Configuration Example
 
 ```hcl
-aws_region = "us-west-2"
+# Required variables
+aws_region = "eu-central-1"
 
 network = {
   vpc_id           = "vpc-12345678"
   public_subnet_id = "subnet-87654321"
 }
 
+# Operating system configuration
 os = {
   family                   = "amazon"
   update_os_before_install = true
+}
+
+# Tool versions (optional)
+terraform = {
+  primary_version = "1.5.7"
 }
 ```
 
@@ -166,27 +195,27 @@ os = {
 
 ### Required Parameters
 
-| Parameter                                     | Description                                   | Type     |
-| --------------------------------------------- | --------------------------------------------- | -------- |
-| `aws_region`                                  | AWS region for AMI creation                   | `string` |
-| `network.vpc_id`                              | VPC ID for build instance                     | `string` |
+| Parameter                                                 | Description                                      | Type     |
+| --------------------------------------------------------- | ------------------------------------------------ | -------- |
+| `aws_region`                                              | AWS region for AMI creation                      | `string` |
+| `network.vpc_id`                                          | VPC ID for build instance                        | `string` |
 | `network.public_subnet_id` OR `network.private_subnet_id` | Subnet for build instance (exactly one required) | `string` |
 
 ### Optional Parameters
 
-| Parameter                                       | Description                           | Default     |
-| ----------------------------------------------- | ------------------------------------- | ----------- |
-| `instance_type`                                 | EC2 instance type for build          | `t3.medium` |
-| `os.family`                                     | OS family (amazon/ubuntu/rhel)       | `amazon`    |
-| `os.version`                                    | OS version (required for ubuntu/rhel) | `""`        |
-| `os.update_os_before_install`                   | Update packages before install       | `true`      |
-| `os.ssh_username`                               | SSH username (auto-detected)         | `""`        |
-| `os.user_script`                                | Custom shell script                   | `""`        |
-| `packer_config.version`                         | Packer version                        | `1.14.1`    |
-| `packer_config.cleanup_amis_on_destroy`         | Auto-cleanup on destroy              | `true`      |
-| `packer_config.deregistration_protection.enabled` | Enable AMI protection              | `true`      |
-| `packer_config.deregistration_protection.with_cooldown` | Enable cooldown period      | `false`     |
-| `packer_config.delete_snapshots`                | Delete snapshots on cleanup          | `true`      |
+| Parameter                                               | Description                           | Default     |
+| ------------------------------------------------------- | ------------------------------------- | ----------- |
+| `instance_type`                                         | EC2 instance type for build           | `t3.medium` |
+| `os.family`                                             | OS family (amazon/ubuntu/rhel)        | `amazon`    |
+| `os.version`                                            | OS version (required for ubuntu/rhel) | `""`        |
+| `os.update_os_before_install`                           | Update packages before install        | `true`      |
+| `os.ssh_username`                                       | SSH username (auto-detected)          | `""`        |
+| `os.user_script`                                        | Custom shell script                   | `""`        |
+| `packer_config.version`                                 | Packer version                        | `1.14.1`    |
+| `packer_config.cleanup_amis_on_destroy`                 | Auto-cleanup on destroy               | `true`      |
+| `packer_config.deregistration_protection.enabled`       | Enable AMI protection                 | `true`      |
+| `packer_config.deregistration_protection.with_cooldown` | Enable cooldown period                | `false`     |
+| `packer_config.delete_snapshots`                        | Delete snapshots on cleanup           | `true`      |
 
 ## AMI Management
 
@@ -289,7 +318,7 @@ aws ce get-cost-and-usage --time-period Start=2024-01-01,End=2024-02-01 --granul
 ### Basic Amazon Linux Build
 
 ```hcl
-aws_region = "us-west-2"
+aws_region = "eu-central-1"
 
 network = {
   vpc_id           = "vpc-12345678"
@@ -305,7 +334,7 @@ os = {
 ### Ubuntu with Custom Tools
 
 ```hcl
-aws_region = "eu-west-1"
+aws_region = "eu-central-1"
 
 network = {
   vpc_id           = "vpc-12345678"
@@ -328,7 +357,7 @@ terraform = {
 ### Private Network Build
 
 ```hcl
-aws_region = "us-east-1"
+aws_region = "eu-central-1"
 
 network = {
   vpc_id            = "vpc-12345678"
@@ -390,9 +419,50 @@ Enable detailed Packer logging:
 PACKER_LOG=1 terraform apply
 ```
 
+## Architecture
+
+The module creates AMIs through the following process:
+
+### Build Process
+
+1. **AMI Selection**: Automatically selects base AMI using data sources and OS mappings
+2. **Packer Execution**: Downloads Packer binary and executes build template
+3. **Instance Provisioning**: Launches EC2 instance and installs dependencies via setup script
+4. **AMI Creation**: Creates snapshot and registers new AMI with deregistration protection
+5. **Cleanup**: Terminates build instance and provides AMI metadata
+
+### Resource Organization
+
+- **main.tf**: Orchestrates Packer build process via `null_resource`
+- **ami.pkr.hcl**: Packer template with build configuration and provisioning steps
+- **locals.tf**: AMI selection mappings for different OS families
+- **scripts/**: Build and setup scripts for dependency installation
+- **variables.tf**: Input variables for OS selection, network config, tool versions
+
+### AMI Naming Convention
+
+Created AMIs use the pattern: `SG-RUNNER-ami-{os_family}{version}-{timestamp}`
+
 ## Next Steps
 
-After successful AMI creation, use the AMI ID with the StackGuardian Private Runner deployment template to launch your runner instances with the pre-configured environment.
+After successful AMI creation:
 
-For detailed cleanup procedures and troubleshooting, see `TERRAFORM_DESTROY_GUIDE.md`.
+1. **Note the AMI ID**
 
+   ```bash
+   terraform output ami_id
+   ```
+
+2. **Deploy Private Runners**
+   Use the AMI with the companion [AWS module](../aws/):
+
+   ```bash
+   cd ../aws
+   # Use AMI ID in your terraform.tfvars
+   terraform apply
+   ```
+
+3. **Configure Workflows**
+   Use the deployed runner group in your StackGuardian workflows
+
+For detailed cleanup procedures, see the cleanup commands in terraform outputs.

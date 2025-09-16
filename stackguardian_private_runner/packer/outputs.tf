@@ -1,6 +1,10 @@
 /*----------------------------------+
  | Packer AMI Machine Image Builder |
  +----------------------------------*/
+output "ami_id" {
+  description = "The ID of the created AMI"
+  value       = data.external.packer_ami_id.result["ami_id"]
+}
 output "ami_info" {
   description = "Comprehensive AMI information for tracking and cleanup"
   value = {
