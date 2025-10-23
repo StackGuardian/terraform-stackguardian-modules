@@ -31,12 +31,12 @@ output "storage_backend_name" {
 
 output "runner_group_id" {
   description = "The ID of the StackGuardian runner group created by this module"
-  value       = stackguardian_runner_group.this.id
+  value       = stackguardian_runner_group.this.resource_name
 }
 
 output "connector_id" {
   description = "The ID of the StackGuardian connector created by this module"
-  value       = stackguardian_connector.this.id
+  value       = stackguardian_connector.this.resource_name
 }
 
 output "storage_backend_bucket" {
