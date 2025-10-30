@@ -2,29 +2,159 @@
 
 set -e
 
+AWS_EXECUTABLE=""
+WORKING_DIR=""
+
+_detect_arch() { #{{{
+  machine="$(uname -m)"
+
+  case "$machine" in
+    x86_64) echo "x86_64" ;;
+    aarch64) echo "aarch64" ;;
+    *) echo "$machine" ;;
+  esac
+}
+#}}}: _detect_arch
+
+_detect_os() { #{{{
+    uname -s | tr '[:upper:]' '[:lower:]'
+}
+#}}}: _detect_os
+
+_wget_wrapper() { #{{{
+  url="$1"
+  output_file="${2:-"${url##*/}"}"
+
+  echo ">> Downloading ${url}.."
+  wget -q "$url" -O "$output_file"
+  echo ">> Saved to ${output_file}."
+}
+#}}}: _wget_wrapper
+
+_mktemp_directory() { #{{{
+  WORKING_DIR="$(mktemp -d)"
+}
+#}}}: _mktemp_directory
+
+_download_aws_cli() { #{{{
+  # First check if AWS CLI is already available on the system
+  if command -v aws >/dev/null 2>&1; then
+    AWS_EXECUTABLE="$(command -v aws)"
+    echo "## ----------"
+    echo ">> Using system AWS CLI: $AWS_EXECUTABLE"
+    if $AWS_EXECUTABLE --version 2>&1; then
+      echo ">> AWS CLI is available and working"
+    else
+      echo ">> WARNING: AWS CLI found but version check failed"
+    fi
+    echo "## ----------"
+    return 0
+  fi
+
+  root_dir="$(pwd)"
+  os_arch="$(_detect_arch)"
+  os_type="$(_detect_os)"
+
+  # Only support Linux
+  if [ "$os_type" != "linux" ]; then
+    echo "ERROR: Unsupported operating system: $os_type"
+    echo ">> AWS CLI v2 automatic installation is only supported on Linux"
+    echo ">> Please install AWS CLI manually: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+    exit 1
+  fi
+
+  echo "## ----------"
+  echo ">> AWS CLI not found on system, downloading AWS CLI v2 for ${os_type} (${os_arch}).."
+
+  zip_name="awscliv2.zip"
+  download_url="https://awscli.amazonaws.com/awscli-exe-${os_type}-${os_arch}.zip"
+
+  _mktemp_directory && cd "$WORKING_DIR"
+
+  if _wget_wrapper "$download_url" "$zip_name"; then
+    echo ">> Extracting AWS CLI.."
+    unzip -q "$zip_name"
+
+    echo ">> Installing AWS CLI v2 to temporary directory.."
+    # Install to temp directory - installer may fail during version check but still create files
+    ./aws/install -i "$WORKING_DIR/aws-cli" -b "$WORKING_DIR/bin" 2>&1 || true
+
+    cd "$root_dir"
+
+    # Use the wrapper symlink created by installer - it handles all path resolution
+    AWS_EXECUTABLE="$WORKING_DIR/bin/aws"
+
+    if [ -f "$AWS_EXECUTABLE" ]; then
+      echo ">> AWS CLI v2 installed: $AWS_EXECUTABLE"
+      # Test if it actually works
+      if $AWS_EXECUTABLE --version >/dev/null 2>&1; then
+        echo ">> AWS CLI v2 is working"
+        echo "## ----------"
+        return 0
+      else
+        echo ">> AWS CLI v2 binary exists but cannot execute (missing system libraries)"
+        echo ">> Falling back to AWS CLI v1 via pip..."
+      fi
+    else
+      echo ">> AWS CLI v2 installation failed, falling back to pip installation..."
+    fi
+
+    # Fallback to AWS CLI v1 via pip (more portable)
+    if command -v pip3 >/dev/null 2>&1; then
+      echo ">> Installing AWS CLI v1 via pip3..."
+      pip3 install --user awscli >/dev/null 2>&1 || pip3 install --user awscli
+      AWS_EXECUTABLE="$HOME/.local/bin/aws"
+
+      if [ -f "$AWS_EXECUTABLE" ] && $AWS_EXECUTABLE --version >/dev/null 2>&1; then
+        echo ">> AWS CLI v1 installed successfully via pip3"
+        echo "## ----------"
+        return 0
+      fi
+    elif command -v pip >/dev/null 2>&1; then
+      echo ">> Installing AWS CLI v1 via pip..."
+      pip install --user awscli >/dev/null 2>&1 || pip install --user awscli
+      AWS_EXECUTABLE="$HOME/.local/bin/aws"
+
+      if [ -f "$AWS_EXECUTABLE" ] && $AWS_EXECUTABLE --version >/dev/null 2>&1; then
+        echo ">> AWS CLI v1 installed successfully via pip"
+        echo "## ----------"
+        return 0
+      fi
+    fi
+
+    echo "ERROR: Failed to install AWS CLI (tried v2 and v1 via pip)"
+    echo ">> Please install AWS CLI manually or ensure glibc is available"
+    exit 1
+
+  else
+    echo "ERROR: Failed to download AWS CLI from: $download_url"
+    exit 1
+  fi
+}
+#}}}: _download_aws_cli
+
 _detect_region() { #{{{
   region="${REGION:-}"
   if [ -z "$region" ]; then
     region="${AWS_DEFAULT_REGION:-}"
   fi
-  if [ -z "$region" ] && command -v aws >/dev/null 2>&1; then
-    region=$(aws configure get region 2>/dev/null || echo "")
+  if [ -z "$region" ] && [ -n "$AWS_EXECUTABLE" ]; then
+    region=$($AWS_EXECUTABLE configure get region 2>/dev/null || echo "")
   fi
   echo "${region:-us-east-1}"
 }
 #}}}: _detect_region
 
 _verify_aws_cli() { #{{{
-  if ! command -v aws >/dev/null 2>&1; then
-    echo "ERROR: AWS CLI not found. Cannot perform automatic cleanup."
-    echo "Please install AWS CLI or perform manual cleanup using the AWS Console."
-    exit 1
+  if [ -z "$AWS_EXECUTABLE" ] || [ ! -x "$AWS_EXECUTABLE" ]; then
+    return 1
   fi
+  return 0
 }
 #}}}: _verify_aws_cli
 
 _verify_aws_credentials() { #{{{
-  if ! aws sts get-caller-identity >/dev/null 2>&1; then
+  if ! $AWS_EXECUTABLE sts get-caller-identity >/dev/null 2>&1; then
     echo "ERROR: AWS credentials not configured or invalid."
     echo "Please configure AWS CLI credentials before running this script."
     exit 1
@@ -37,7 +167,7 @@ _check_ami_protection() { #{{{
   region="$2"
 
   echo ">> Checking deregistration protection for AMI: $ami_id"
-  protection_status=$(aws ec2 describe-image-attribute \
+  protection_status=$($AWS_EXECUTABLE ec2 describe-image-attribute \
     --region "$region" \
     --image-id "$ami_id" \
     --attribute deregistrationProtection \
@@ -53,7 +183,7 @@ _disable_ami_protection() { #{{{
   region="$2"
 
   echo ">> Disabling deregistration protection for AMI: $ami_id"
-  if aws ec2 disable-image-deregistration-protection --region "$region" --image-id "$ami_id" 2>/dev/null; then
+  if $AWS_EXECUTABLE ec2 disable-image-deregistration-protection --region "$region" --image-id "$ami_id" 2>/dev/null; then
     echo ">>   ✓ Deregistration protection disabled"
     return 0
   else
@@ -73,7 +203,7 @@ _cleanup_target_ami() { #{{{
   fi
 
   # Get AMI name for display
-  ami_name=$(aws ec2 describe-images \
+  ami_name=$($AWS_EXECUTABLE ec2 describe-images \
     --region "$region" \
     --image-ids "$ami_id" \
     --query 'Images[0].Name' \
@@ -124,7 +254,7 @@ _cleanup_ami() { #{{{
   delete_snapshots_flag="${DELETE_SNAPSHOTS:-true}"
 
   if [ "$delete_snapshots_flag" = "true" ]; then
-    snapshots=$(aws ec2 describe-images \
+    snapshots=$($AWS_EXECUTABLE ec2 describe-images \
         --region "$region" \
         --image-ids "$ami_id" \
         --query 'Images[0].BlockDeviceMappings[?Ebs.SnapshotId].Ebs.SnapshotId' \
@@ -132,14 +262,14 @@ _cleanup_ami() { #{{{
   fi
 
   echo ">>   Deregistering AMI: $ami_id"
-  if aws ec2 deregister-image --region "$region" --image-id "$ami_id" 2>/dev/null; then
+  if $AWS_EXECUTABLE ec2 deregister-image --region "$region" --image-id "$ami_id" 2>/dev/null; then
     echo ">>   ✓ AMI deregistered successfully"
 
     if [ "$delete_snapshots_flag" = "true" ]; then
       if [ -n "$snapshots" ] && [ "$snapshots" != "None" ]; then
         for snapshot_id in $snapshots; do
           echo ">>   Deleting snapshot: $snapshot_id"
-          if aws ec2 delete-snapshot --region "$region" --snapshot-id "$snapshot_id" 2>/dev/null; then
+          if $AWS_EXECUTABLE ec2 delete-snapshot --region "$region" --snapshot-id "$snapshot_id" 2>/dev/null; then
             echo ">>   ✓ Snapshot deleted successfully"
           else
             echo ">>   ✗ Failed to delete snapshot: $snapshot_id"
@@ -169,7 +299,15 @@ main() { #{{{
   echo ">> AMI Cleanup Script - Automatic AMI deregistration and snapshot deletion"
   echo "## ----------"
 
-  _verify_aws_cli
+  # Download/cache AWS CLI v2 if not already available
+  _download_aws_cli
+
+  if ! _verify_aws_cli; then
+    echo "INFO: AWS CLI not found. AMI should be cleaned up manually."
+    echo ">> Please use AWS Console or install AWS CLI to clean up the AMI."
+    exit 0
+  fi
+
   _verify_aws_credentials
 
   region="$(_detect_region)"
