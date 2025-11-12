@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "instance_type": {
+      "type": "string",
+      "default": "t3.xlarge"
+    },
+    "ami_id": {
+      "type": "string",
+      "default": ""
+    },
+    "aws_region": {
+      "type": "string",
+      "enum": ["us-east-2"],
+      "default": "us-east-2"
+    },
+    "stackguardian": {
+      "type": "object",
+      "properties": {
+        "api_key": {
+          "type": "string"
+        },
+        "org_name": {
+          "type": "string",
+          "default": ""
+        },
+        "api_uri": {
+          "type": "string",
+          "default": ""
+        },
+        "runner_group_name": {
+          "type": "string"
+        },
+        "runner_group_token": {
+          "type": "string"
+        },
+        "bucket_name": {
+          "type": "string"
+        }
+      },
+      "required": ["api_key", "runner_group_name", "runner_group_token", "bucket_name"]
+    },
+    "override_names": {
+      "type": "object",
+      "properties": {
+        "global_prefix": {
+          "type": "string",
+          "default": "SG_RUNNER"
+        }
+      },
+      "required": ["global_prefix"],
+      "additionalProperties": false
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "vpc_id": {
+          "type": "string"
+        },
+        "private_subnet_id": {
+          "type": "string",
+          "default": ""
+        },
+        "public_subnet_id": {
+          "type": "string"
+        },
+        "security_group_id": {
+          "type": "string"
+        },
+        "associate_public_ip": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["vpc_id", "public_subnet_id", "security_group_id"],
+      "additionalProperties": false
+    },
+    "volume": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["gp2", "gp3", "io1", "io2"],
+          "default": "gp3"
+        },
+        "size": {
+          "type": "integer",
+          "default": 100
+        },
+        "delete_on_termination": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["size"],
+      "additionalProperties": false
+    },
+    "firewall": {
+      "type": "object",
+      "properties": {
+        "ssh_key_name": {
+          "type": "string",
+          "default": ""
+        },
+        "ssh_public_key": {
+          "type": "string",
+          "default": ""
+        },
+        "ssh_access_rules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "additional_ingress_rules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "port": {
+                "type": "integer"
+              },
+              "protocol": {
+                "type": "string",
+                "enum": ["tcp", "udp", "icmp"]
+              },
+              "cidr_blocks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["port", "protocol", "cidr_blocks"],
+            "additionalProperties": false
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "runner_startup_timeout": {
+      "type": "integer",
+      "default": 300
+    }
+  },
+  "required": [
+    "instance_type",
+    "ami_id",
+    "stackguardian",
+    "aws_region",
+    "network"
+  ]
+}

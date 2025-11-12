@@ -190,8 +190,8 @@ variable "image" {
   })
 
   default = {
-    repository = "790543352839.dkr.ecr.eu-central-1.amazonaws.com/private-runner/autoscaler"
-    tag        = "94db8a6-dirty"
+    repository = "public.ecr.aws/d4h1t0h5/autoscaler/external"
+    tag        = "75d3b3a-dirty"
   }
 }
 
