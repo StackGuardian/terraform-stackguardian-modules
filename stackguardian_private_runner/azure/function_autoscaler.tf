@@ -149,3 +149,11 @@ resource "azurerm_role_assignment" "storage_blob_contributor" {
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id
 }
+
+# Allow Function App to join VMs to network resources (VNet subnets, NSGs)
+# Required for VMSS scaling operations
+resource "azurerm_role_assignment" "network_contributor" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${local.vmss_resource_group}"
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id
+}

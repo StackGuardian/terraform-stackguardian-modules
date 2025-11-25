@@ -196,6 +196,13 @@ az role assignment create \
   --assignee $PRINCIPAL_ID \
   --role "Storage Blob Data Contributor" \
   --scope "$STORAGE_ID"
+
+# Grant Network Contributor on VMSS resource group (required for scaling)
+# This allows the function to join VMs to subnets and NSGs during scale operations
+az role assignment create \
+  --assignee $PRINCIPAL_ID \
+  --role "Network Contributor" \
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$VMSS_RESOURCE_GROUP"
 ```
 
 ### Step 8: Deploy Function Code
@@ -357,12 +364,35 @@ terraform apply
 
 ## Troubleshooting
 
+### Common Errors
+
+#### 401 Unauthorized (StackGuardian API)
+**Symptoms**: Function executes but fails to communicate with StackGuardian API.
+
+**Cause**: Invalid or expired `SG_API_KEY`.
+
+**Fix**: Update the app setting with a valid API key:
+```bash
+az functionapp config appsettings set \
+  --name <function-app> \
+  --resource-group <rg> \
+  --settings SG_API_KEY="sgu_your_new_key"
+```
+
 ### Check Function App Logs
 ```bash
 az monitor app-insights query \
   --app <app-insights-name> \
   --resource-group <rg> \
   --analytics-query "traces | order by timestamp desc | take 50"
+```
+
+### Check Exceptions in App Insights
+```bash
+az monitor app-insights query \
+  --app <app-insights-name> \
+  --resource-group <rg> \
+  --analytics-query "exceptions | order by timestamp desc | take 10"
 ```
 
 ### Check Function Status
