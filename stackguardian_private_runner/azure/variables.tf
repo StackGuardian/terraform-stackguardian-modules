@@ -23,7 +23,7 @@ variable "stackguardian" {
   })
 
   validation {
-    condition     = can(regex("^sgu_.*", var.stackguardian.api_key))
+    condition     = can(regex("^sg[o|u]_.*", var.stackguardian.api_key))
     error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_'."
   }
 }
