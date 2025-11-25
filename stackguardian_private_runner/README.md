@@ -1,15 +1,19 @@
 # StackGuardian Private Runner
 
-Deploy auto-scaling StackGuardian Private Runners on AWS with custom AMI creation.
+Deploy auto-scaling StackGuardian Private Runners on AWS or Azure.
 
 ## Overview
 
-This template provides two modules that work together to create a complete private runner solution:
+This template provides modules for deploying private runners on different cloud platforms:
 
+### AWS
 1. **[Packer Module](packer/)** - Build custom AMIs with pre-installed dependencies
 2. **[AWS Module](aws/)** - Deploy auto-scaling private runners using the custom AMI
 
-## Complete Deployment Guide
+### Azure
+3. **[Azure Module](azure/)** - Deploy an Azure Function-based autoscaler for existing VM Scale Sets
+
+## AWS Deployment Guide
 
 ### Step 1: Build Custom AMI
 
@@ -214,3 +218,46 @@ module "private_runners" {
   depends_on = [module.custom_ami]
 }
 ```
+
+---
+
+## Azure Deployment Guide
+
+For Azure deployments, the autoscaler manages an **existing** VM Scale Set with StackGuardian runners.
+
+See the **[Azure Module README](azure/README.md)** for complete instructions, including:
+- Manual setup using Azure CLI
+- Terraform module usage (WIP)
+
+### Quick Start
+
+```hcl
+module "azure_autoscaler" {
+  source = "./azure"
+
+  resource_group_name = "my-resource-group"
+  azure_location      = "westeurope"
+
+  vmss = {
+    name                = "my-runner-vmss"
+    resource_group_name = "vmss-resource-group"
+  }
+
+  stackguardian = {
+    api_key  = "sgu_xxxxxxxxxxxx"
+    org_name = "my-org"
+  }
+
+  override_names = {
+    global_prefix     = "sg-runner"
+    runner_group_name = "my-runner-group"
+  }
+}
+```
+
+### What Gets Created (Azure)
+
+- **Function App**: FlexConsumption plan with Python 3.11 runtime
+- **Storage Account**: For function state and autoscaler timestamps
+- **Application Insights**: Monitoring and logging
+- **Role Assignments**: Managed identity with VMSS and storage access
