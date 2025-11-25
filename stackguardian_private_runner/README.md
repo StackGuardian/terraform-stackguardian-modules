@@ -1,6 +1,6 @@
 # StackGuardian Private Runner
 
-Deploy auto-scaling StackGuardian Private Runners on AWS with custom AMI creation.
+Deploy auto-scaling StackGuardian Private Runners on AWS or Azure.
 
 > **Just want a runner running?** [`examples/aws/quickstart/`](examples/aws/quickstart/)
 > wires the runner group, AMI build, and a single runner into one root module. Fill in
@@ -18,7 +18,10 @@ This project provides four templates that work together to create a complete aut
 
 **Alternative**: For simpler deployments without auto-scaling, see [Single Runner](aws/single_runner/), or the ready-made [AWS Quickstart example](examples/aws/quickstart/) that deploys one end to end.
 
-## Complete Deployment Guide
+### Azure
+3. **[Azure Module](azure/)** - Deploy an Azure Function-based autoscaler for existing VM Scale Sets
+
+## AWS Deployment Guide
 
 ### Step 1: Build Custom AMI
 
@@ -292,3 +295,46 @@ terraform apply -auto-approve \
 echo "Deployment complete!"
 echo "Runner Group: $RUNNER_GROUP_NAME"
 ```
+
+---
+
+## Azure Deployment Guide
+
+For Azure deployments, the autoscaler manages an **existing** VM Scale Set with StackGuardian runners.
+
+See the **[Azure Module README](azure/README.md)** for complete instructions, including:
+- Manual setup using Azure CLI
+- Terraform module usage (WIP)
+
+### Quick Start
+
+```hcl
+module "azure_autoscaler" {
+  source = "./azure"
+
+  resource_group_name = "my-resource-group"
+  azure_location      = "westeurope"
+
+  vmss = {
+    name                = "my-runner-vmss"
+    resource_group_name = "vmss-resource-group"
+  }
+
+  stackguardian = {
+    api_key  = "sgu_xxxxxxxxxxxx"
+    org_name = "my-org"
+  }
+
+  override_names = {
+    global_prefix     = "sg-runner"
+    runner_group_name = "my-runner-group"
+  }
+}
+```
+
+### What Gets Created (Azure)
+
+- **Function App**: FlexConsumption plan with Python 3.11 runtime
+- **Storage Account**: For function state and autoscaler timestamps
+- **Application Insights**: Monitoring and logging
+- **Role Assignments**: Managed identity with VMSS and storage access
