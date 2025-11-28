@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     stackguardian = {
-      source  = "StackGuardian/stackguardian"
+      source  = "registry.terraform.io/StackGuardian/stackguardian"
       version = "1.3.3"
     }
     aws = {
