@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/schema#",
+  "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
     "aws_region": {
@@ -29,11 +29,15 @@
           "default": ""
         }
       },
-      "required": ["vpc_id"]
+      "required": [
+        "vpc_id"
+      ]
     },
     "os": {
       "type": "object",
-      "required": ["family"],
+      "required": [
+        "family"
+      ],
       "allOf": [
         {
           "if": {
@@ -47,7 +51,11 @@
             "properties": {
               "family": {
                 "type": "string",
-                "enum": ["amazon", "ubuntu", "rhel"],
+                "enum": [
+                  "amazon",
+                  "ubuntu",
+                  "rhel"
+                ],
                 "default": "amazon"
               },
               "update_os_before_install": {
@@ -79,7 +87,11 @@
             "properties": {
               "family": {
                 "type": "string",
-                "enum": ["amazon", "ubuntu", "rhel"],
+                "enum": [
+                  "amazon",
+                  "ubuntu",
+                  "rhel"
+                ],
                 "default": "amazon"
               },
               "version": {
@@ -99,7 +111,9 @@
                 "default": ""
               }
             },
-            "required": ["version"]
+            "required": [
+              "version"
+            ]
           }
         }
       ]
@@ -124,7 +138,10 @@
               "default": false
             }
           },
-          "required": ["enabled", "with_cooldown"],
+          "required": [
+            "enabled",
+            "with_cooldown"
+          ],
           "default": {
             "enabled": true,
             "with_cooldown": false
@@ -139,7 +156,9 @@
           "default": true
         }
       },
-      "required": ["version"]
+      "required": [
+        "version"
+      ]
     },
     "terraform": {
       "type": "object",
@@ -180,5 +199,8 @@
       "required": []
     }
   },
-  "required": ["aws_region", "network"]
+  "required": [
+    "aws_region",
+    "network"
+  ]
 }

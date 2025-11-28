@@ -49,9 +49,7 @@
     "user_script": {
       "ui:widget": "textarea",
       "ui:placeholder": "#!/bin/bash\n# Your custom installation script here\n# This runs after StackGuardian setup",
-      "ui:options": {
-        "rows": 6
-      },
+      "ui:options": { "rows": 6 },
       "ui:description": "Custom shell script to execute during AMI provisioning. Runs after the standard StackGuardian setup. Use this to install additional tools, configure settings, or customize the environment."
     }
   },
@@ -92,9 +90,7 @@
     "additional_versions": {
       "ui:widget": "textarea",
       "ui:placeholder": "[\"1.4.6\", \"1.6.0\", \"1.7.0\"]",
-      "ui:options": {
-        "rows": 3
-      },
+      "ui:options": { "rows": 3 },
       "ui:description": "Additional Terraform versions to install. Each version will be available as '/bin/terraform{version}'. For example, '1.4.6' becomes '/bin/terraform1.4.6'. Leave empty to install only the primary version."
     }
   },
@@ -107,9 +103,7 @@
     "additional_versions": {
       "ui:widget": "textarea",
       "ui:placeholder": "[\"1.8.0\", \"1.9.0\", \"1.10.0\"]",
-      "ui:options": {
-        "rows": 3
-      },
+      "ui:options": { "rows": 3 },
       "ui:description": "Additional OpenTofu versions to install. Each version will be available as '/bin/tofu{version}'. For example, '1.8.0' becomes '/bin/tofu1.8.0'. Leave empty to install only the primary version."
     }
   }
