@@ -32,26 +32,14 @@ variable "aws_region" {
 
 /*-------------------------------------------+
  | StackGuardian Runner Group Configuration  |
- | (from stackguardian_runner_group module)  |
  +-------------------------------------------*/
 variable "runner_group_name" {
-  description = "The name of the StackGuardian runner group (from stackguardian_runner_group module output)"
+  description = "The name of the StackGuardian runner group. Token and S3 bucket will be fetched automatically."
   type        = string
-}
-
-variable "runner_group_token" {
-  description = "The token for runner registration (from stackguardian_runner_group module output)"
-  type        = string
-  sensitive   = true
 }
 
 variable "storage_backend_role_arn" {
   description = "The ARN of the IAM role for storage backend access (from stackguardian_runner_group module output)"
-  type        = string
-}
-
-variable "s3_bucket_name" {
-  description = "The name of the S3 bucket used for storage backend (from stackguardian_runner_group module output)"
   type        = string
 }
 
@@ -61,9 +49,11 @@ variable "s3_bucket_name" {
 variable "stackguardian" {
   description = "StackGuardian platform configuration for runner registration"
   type = object({
-    org_name = string
-    api_uri  = optional(string, "https://api.app.stackguardian.io")
+    api_key  = string
+    org_name = optional(string, "")
+    api_uri  = optional(string, "")
   })
+  sensitive = true
 }
 
 /*-------------------+
@@ -93,7 +83,7 @@ variable "network" {
     - vpc_id: Existing VPC ID for deployment
     - subnet_id: Subnet ID for the instance (public or private)
     - associate_public_ip: Whether to assign public IP to instances
-    - additional_security_group_ids: Additional security group IDs to attach to the instance
+    - additional_security_group_ids: (Optional) Additional security group IDs to attach to the instance
   EOT
   type = object({
     vpc_id                        = string
@@ -146,29 +136,6 @@ variable "firewall" {
     })), {})
   })
   default = {}
-
-  validation {
-    condition = alltrue([
-      for cidr in values(var.firewall.ssh_access_rules) : can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$", cidr))
-    ])
-    error_message = "All SSH access rule values must be valid CIDR blocks (e.g., '10.0.0.0/16')."
-  }
-
-  validation {
-    condition = alltrue([
-      for rule in values(var.firewall.additional_ingress_rules) :
-      rule.port >= 1 && rule.port <= 65535
-    ])
-    error_message = "All additional ingress rule ports must be between 1 and 65535."
-  }
-
-  validation {
-    condition = alltrue([
-      for rule in values(var.firewall.additional_ingress_rules) :
-      contains(["tcp", "udp", "icmp"], rule.protocol)
-    ])
-    error_message = "All additional ingress rule protocols must be one of: tcp, udp, icmp."
-  }
 }
 
 /*-----------------------------------+
