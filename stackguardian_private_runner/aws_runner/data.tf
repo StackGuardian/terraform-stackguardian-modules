@@ -7,7 +7,7 @@ data "stackguardian_runner_group" "this" {
 
 # Fetch runner group token for registration
 data "stackguardian_runner_group_token" "this" {
-  resource_name = var.runner_group_name
+  runner_group_id = var.runner_group_name
 }
 
 # Fetch S3 bucket details

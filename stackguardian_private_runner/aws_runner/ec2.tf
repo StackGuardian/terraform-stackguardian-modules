@@ -39,7 +39,7 @@ resource "aws_instance" "this" {
         sg_org_name               = local.sg_org_name
         sg_api_uri                = local.sg_api_uri
         sg_runner_group_name      = var.runner_group_name
-        sg_runner_group_token     = data.stackguardian_runner_group_token.this.token
+        sg_runner_group_token     = data.stackguardian_runner_group_token.this.runner_group_token
         sg_runner_startup_timeout = tostring(var.runner_startup_timeout)
       }
     )

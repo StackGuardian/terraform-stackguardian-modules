@@ -24,8 +24,8 @@ output "runner_group_token" {
   sensitive   = true
   value = (
     var.mode == "create"
-    ? data.stackguardian_runner_group_token.created[0].token
-    : data.stackguardian_runner_group_token.existing[0].token
+    ? data.stackguardian_runner_group_token.created[0].runner_group_token
+    : data.stackguardian_runner_group_token.existing[0].runner_group_token
   )
 }
 
