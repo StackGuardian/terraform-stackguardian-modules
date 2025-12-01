@@ -31,6 +31,7 @@ output "runner_group_token" {
 
 output "runner_group_url" {
   description = "Direct URL to the runner group in the StackGuardian web console"
+  sensitive   = true
   value       = "${replace(local.sg_api_uri, "api.", "")}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${local.final_runner_group_name}"
 }
 
@@ -49,6 +50,7 @@ output "connector_id" {
 
 output "connector_external_id" {
   description = "The external ID used for cross-account S3 access"
+  sensitive   = true
   value       = var.mode == "create" ? "${local.sg_org_name}:${random_string.connector_external_id[0].result}" : ""
 }
 
@@ -80,6 +82,7 @@ output "storage_backend_role_name" {
  +---------------------------------*/
 output "sg_org_name" {
   description = "The StackGuardian organization name"
+  sensitive   = true
   value       = local.sg_org_name
 }
 
