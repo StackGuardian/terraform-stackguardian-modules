@@ -1,19 +1,7 @@
-locals {
-  subnet_id = var.network.private_subnet_id != "" ? var.network.private_subnet_id : var.network.public_subnet_id
-
-  # SSH key logic: custom public key > named key > no key
-  use_custom_key = var.firewall.ssh_public_key != ""
-  use_named_key  = var.firewall.ssh_key_name != "" && var.firewall.ssh_public_key == ""
-  ssh_key_name   = local.use_custom_key ? aws_key_pair.this[0].key_name : (local.use_named_key ? var.firewall.ssh_key_name : "")
-}
-
-data "stackguardian_runner_group_token" "this" {
-  runner_group_id = stackguardian_runner_group.this.resource_name
-}
-
-# Create SSH key pair when custom public key is provided
+# Create SSH key pair when custom public key is provided (only when create_asg = true)
 resource "aws_key_pair" "this" {
-  count      = local.use_custom_key ? 1 : 0
+  count = var.create_asg && local.use_custom_key ? 1 : 0
+
   key_name   = "${var.override_names.global_prefix}-private-runner-custom-key"
   public_key = var.firewall.ssh_public_key
 
@@ -22,8 +10,10 @@ resource "aws_key_pair" "this" {
   }
 }
 
-# Launch Template for Auto Scaling Group
+# Launch Template for Auto Scaling Group (only created when create_asg = true)
 resource "aws_launch_template" "this" {
+  count = var.create_asg ? 1 : 0
+
   name_prefix   = "${var.override_names.global_prefix}-private-runner-"
   image_id      = var.ami_id
   instance_type = var.instance_type
@@ -31,11 +21,11 @@ resource "aws_launch_template" "this" {
 
   network_interfaces {
     associate_public_ip_address = var.network.associate_public_ip
-    security_groups             = [aws_security_group.this.id]
+    security_groups             = local.all_security_group_ids
   }
 
   iam_instance_profile {
-    name = aws_iam_instance_profile.this.name
+    name = aws_iam_instance_profile.this[0].name
   }
 
   metadata_options {
@@ -44,6 +34,7 @@ resource "aws_launch_template" "this" {
     http_endpoint               = "enabled"
   }
 
+  # Root volume
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
@@ -54,6 +45,7 @@ resource "aws_launch_template" "this" {
     }
   }
 
+  # Data volume
   block_device_mappings {
     device_name = "/dev/sda1"
     ebs {
@@ -64,15 +56,15 @@ resource "aws_launch_template" "this" {
   }
 
   user_data = base64encode(
-    "${templatefile("${path.module}/templates/register_runner.sh.tpl",
+    templatefile("${path.module}/templates/register_runner.sh.tpl",
       {
-        sg_org_name               = local.sg_org_name
-        sg_api_uri                = local.sg_api_uri
-        sg_runner_group_name      = stackguardian_runner_group.this.resource_name
-        sg_runner_group_token     = data.stackguardian_runner_group_token.this.runner_group_token
-        sg_runner_startup_timeout = tostring(var.scaling.scale_out_cooldown_duration)
+        sg_org_name               = var.stackguardian.org_name
+        sg_api_uri                = var.stackguardian.api_uri
+        sg_runner_group_name      = var.runner_group_name
+        sg_runner_group_token     = var.runner_group_token
+        sg_runner_startup_timeout = tostring(var.runner_startup_timeout)
       }
-    )}"
+    )
   )
 
   tag_specifications {
@@ -87,20 +79,22 @@ resource "aws_launch_template" "this" {
   }
 }
 
-# Auto Scaling Group
+# Auto Scaling Group (only created when create_asg = true)
 resource "aws_autoscaling_group" "this" {
+  count = var.create_asg ? 1 : 0
+
   name                      = "${var.override_names.global_prefix}-private-runner-asg"
-  vpc_zone_identifier       = [local.subnet_id]
+  vpc_zone_identifier       = [var.network.subnet_id]
   target_group_arns         = []
   health_check_type         = "EC2"
   health_check_grace_period = 300
 
-  min_size         = var.scaling.scale_in_threshold
-  max_size         = var.scaling.scale_out_threshold
-  desired_capacity = var.scaling.min_runners
+  min_size         = var.scaling.min_size
+  max_size         = var.scaling.max_size
+  desired_capacity = var.scaling.desired_capacity
 
   launch_template {
-    id      = aws_launch_template.this.id
+    id      = aws_launch_template.this[0].id
     version = "$Latest"
   }
 
@@ -122,7 +116,6 @@ resource "aws_autoscaling_group" "this" {
 
   lifecycle {
     create_before_destroy = true
-
-    ignore_changes = [desired_capacity]
+    ignore_changes        = [desired_capacity]
   }
 }

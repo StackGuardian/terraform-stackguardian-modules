@@ -1,3 +1,21 @@
+/*-------------------+
+ | Mode Configuration |
+ +-------------------*/
+variable "create_asg" {
+  description = <<EOT
+    Whether to create a new Auto Scaling Group.
+    Set to false to use an existing ASG and only deploy the Lambda autoscaler.
+  EOT
+  type    = bool
+  default = true
+}
+
+variable "existing_asg_name" {
+  description = "Name of an existing Auto Scaling Group (required when create_asg = false)"
+  type        = string
+  default     = ""
+}
+
 /*------------------------+
  | EC2 Instance Variables |
  +------------------------*/
@@ -13,11 +31,12 @@ variable "ami_id" {
     Required dependencies: docker, cron, jq, sg-runner (main.sh)
     Recommended: Use StackGuardian Template with Packer to build custom AMI.
   EOT
-  type = string
+  type    = string
+  default = ""
 
   validation {
-    condition     = can(regex("^ami-.*", var.ami_id))
-    error_message = "The ami_id must be a valid AMI ID starting with 'ami-'."
+    condition     = var.ami_id == "" || can(regex("^ami-.*", var.ami_id))
+    error_message = "The ami_id must be a valid AMI ID starting with 'ami-' or empty when using existing ASG."
   }
 }
 
@@ -43,11 +62,13 @@ variable "runner_group_token" {
   description = "The token for runner registration (from stackguardian_runner_group module output)"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "storage_backend_role_arn" {
   description = "The ARN of the IAM role for storage backend access (from stackguardian_runner_group module output)"
   type        = string
+  default     = ""
 }
 
 variable "s3_bucket_name" {
@@ -59,11 +80,18 @@ variable "s3_bucket_name" {
  | StackGuardian Platform Variables  |
  +-----------------------------------*/
 variable "stackguardian" {
-  description = "StackGuardian platform configuration for runner registration"
+  description = "StackGuardian platform configuration"
   type = object({
+    api_key  = string
     org_name = string
     api_uri  = optional(string, "https://api.app.stackguardian.io")
   })
+  sensitive = true
+
+  validation {
+    condition     = can(regex("^sgu_.*", var.stackguardian.api_key))
+    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_'."
+  }
 }
 
 /*-------------------+
@@ -88,12 +116,12 @@ variable "override_names" {
  +-----------------------*/
 variable "network" {
   description = <<EOT
-    Network configuration for the Private Runner instance.
+    Network configuration for the Private Runner instances.
 
     - vpc_id: Existing VPC ID for deployment
-    - subnet_id: Subnet ID for the instance (public or private)
+    - subnet_id: Subnet ID for the ASG instances (public or private)
     - associate_public_ip: Whether to assign public IP to instances
-    - additional_security_group_ids: Additional security group IDs to attach to the instance
+    - additional_security_group_ids: Additional security group IDs to attach to instances
   EOT
   type = object({
     vpc_id                        = string
@@ -101,13 +129,17 @@ variable "network" {
     associate_public_ip           = optional(bool, false)
     additional_security_group_ids = optional(list(string), [])
   })
+  default = {
+    vpc_id    = ""
+    subnet_id = ""
+  }
 }
 
 /*-----------------------+
  | EC2 Storage Variables |
  +-----------------------*/
 variable "volume" {
-  description = "EBS volume configuration for the Private Runner instance"
+  description = "EBS volume configuration for the Private Runner instances"
   type = object({
     type                  = string
     size                  = number
@@ -134,7 +166,7 @@ variable "volume" {
  | EC2 SSH Connection Variables |
  +------------------------------*/
 variable "firewall" {
-  description = "Firewall and SSH configuration for the Private Runner instance"
+  description = "Firewall and SSH configuration for the Private Runner instances"
   type = object({
     ssh_key_name     = optional(string, "")
     ssh_public_key   = optional(string, "")
@@ -146,29 +178,70 @@ variable "firewall" {
     })), {})
   })
   default = {}
+}
+
+/*-----------------------------------+
+ | Auto Scaling Configuration       |
+ +-----------------------------------*/
+variable "scaling" {
+  description = "Auto scaling configuration for the Private Runner"
+  type = object({
+    min_size                    = optional(number, 1)
+    max_size                    = optional(number, 3)
+    desired_capacity            = optional(number, 1)
+    scale_out_threshold         = optional(number, 3)
+    scale_in_threshold          = optional(number, 1)
+    scale_out_step              = optional(number, 1)
+    scale_in_step               = optional(number, 1)
+    scale_out_cooldown_duration = optional(number, 4)
+    scale_in_cooldown_duration  = optional(number, 5)
+  })
+  default = {}
 
   validation {
-    condition = alltrue([
-      for cidr in values(var.firewall.ssh_access_rules) : can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$", cidr))
-    ])
-    error_message = "All SSH access rule values must be valid CIDR blocks (e.g., '10.0.0.0/16')."
+    condition     = var.scaling.min_size >= 1
+    error_message = "min_size must be at least 1."
   }
 
   validation {
-    condition = alltrue([
-      for rule in values(var.firewall.additional_ingress_rules) :
-      rule.port >= 1 && rule.port <= 65535
-    ])
-    error_message = "All additional ingress rule ports must be between 1 and 65535."
+    condition     = var.scaling.max_size >= var.scaling.min_size
+    error_message = "max_size must be greater than or equal to min_size."
   }
 
   validation {
-    condition = alltrue([
-      for rule in values(var.firewall.additional_ingress_rules) :
-      contains(["tcp", "udp", "icmp"], rule.protocol)
-    ])
-    error_message = "All additional ingress rule protocols must be one of: tcp, udp, icmp."
+    condition     = var.scaling.scale_out_cooldown_duration >= 4
+    error_message = "scale_out_cooldown_duration must be at least 4 minutes."
   }
+}
+
+/*-----------------------------------+
+ | Lambda Autoscaler Configuration   |
+ +-----------------------------------*/
+variable "autoscaler_repo" {
+  description = "Configuration for the autoscaler Lambda source repository"
+  type = object({
+    url    = optional(string, "https://github.com/StackGuardian/sg-runner-autoscaler")
+    branch = optional(string, "main")
+  })
+  default = {}
+}
+
+variable "lambda_runtime" {
+  description = "Python runtime version for the Lambda function"
+  type        = string
+  default     = "python3.11"
+}
+
+variable "lambda_timeout" {
+  description = "Timeout in seconds for the Lambda function"
+  type        = number
+  default     = 60
+}
+
+variable "lambda_memory_size" {
+  description = "Memory size in MB for the Lambda function"
+  type        = number
+  default     = 128
 }
 
 /*-----------------------------------+

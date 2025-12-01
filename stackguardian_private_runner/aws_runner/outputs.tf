@@ -17,7 +17,7 @@ output "instance_public_ip" {
 }
 
 output "security_group_id" {
-  description = "The ID of the security group attached to the EC2 instance"
+  description = "The ID of the security group created by this module"
   value       = aws_security_group.this.id
 }
 
@@ -29,4 +29,9 @@ output "iam_role_name" {
 output "iam_role_arn" {
   description = "The ARN of the IAM role attached to the EC2 instance"
   value       = aws_iam_role.runner.arn
+}
+
+output "iam_instance_profile_name" {
+  description = "The name of the IAM instance profile"
+  value       = aws_iam_instance_profile.this.name
 }

@@ -32,7 +32,7 @@ resource "aws_iam_policy" "autoscale_lambda" {
           "s3:GetObject"
         ]
         Resource = [
-          "${aws_s3_bucket.this.arn}/*"
+          "arn:aws:s3:::${var.s3_bucket_name}/*"
         ]
       },
       {
@@ -70,69 +70,6 @@ resource "aws_iam_policy" "autoscale_lambda" {
 resource "aws_iam_role_policy_attachment" "autoscale_lambda" {
   role       = aws_iam_role.autoscale_lambda.name
   policy_arn = aws_iam_policy.autoscale_lambda.arn
-}
-
-# Lambda Function for Autoscaling
-resource "aws_lambda_function" "autoscale" {
-  package_type = "Image"
-  image_uri    = "${var.image.repository}:${var.image.tag}"
-
-  architectures = ["arm64"]
-
-  function_name = "${var.override_names.global_prefix}-autoscale-private-runner"
-  role          = aws_iam_role.autoscale_lambda.arn
-  timeout       = 60
-  memory_size   = 128
-
-  tracing_config {
-    mode = "PassThrough"
-  }
-
-  environment {
-    variables = {
-      SCALE_OUT_COOLDOWN_DURATION = tostring(var.scaling.scale_out_cooldown_duration)
-      SCALE_IN_COOLDOWN_DURATION  = tostring(var.scaling.scale_in_cooldown_duration)
-      SCALE_OUT_THRESHOLD         = tostring(var.scaling.scale_out_threshold)
-      SCALE_IN_THRESHOLD          = tostring(var.scaling.scale_in_threshold)
-      SG_BASE_URI                 = local.sg_api_uri
-      SG_API_KEY                  = var.stackguardian.api_key
-      SCALE_IN_STEP               = tostring(var.scaling.scale_in_step)
-      SCALE_OUT_STEP              = tostring(var.scaling.scale_out_step)
-      MIN_RUNNERS                 = tostring(var.scaling.min_runners)
-      AWS_ASG_NAME                = aws_autoscaling_group.this.name
-      SG_ORG                      = local.sg_org_name
-      SG_RUNNER_GROUP             = stackguardian_runner_group.this.resource_name
-      AWS_BUCKET_NAME             = aws_s3_bucket.this.bucket
-    }
-  }
-
-  depends_on = [
-    aws_iam_role_policy_attachment.autoscale_lambda,
-    aws_cloudwatch_log_group.autoscale_lambda
-  ]
-}
-
-# CloudWatch Log Group for Lambda
-resource "aws_cloudwatch_log_group" "autoscale_lambda" {
-  name              = "/aws/lambda/${var.override_names.global_prefix}-autoscale-private-runner"
-  retention_in_days = 14
-}
-
-# EventBridge Scheduler Schedule for triggering Lambda every minute
-resource "aws_scheduler_schedule" "autoscale_trigger" {
-  name       = "${var.override_names.global_prefix}-autoscale-trigger"
-  group_name = "default"
-
-  flexible_time_window {
-    mode = "OFF"
-  }
-
-  schedule_expression = "rate(1 minute)"
-
-  target {
-    arn      = aws_lambda_function.autoscale.arn
-    role_arn = aws_iam_role.scheduler_execution.arn
-  }
 }
 
 # IAM Role for EventBridge Scheduler

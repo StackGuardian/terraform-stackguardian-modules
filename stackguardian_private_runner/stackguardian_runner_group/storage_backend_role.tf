@@ -1,12 +1,17 @@
-data "aws_caller_identity" "current" {}
+# IAM Role and Policy for Storage Backend Access
+# Always created when mode = "create" (needed for connector and runner access)
 
 resource "random_string" "connector_external_id" {
+  count = var.mode == "create" ? 1 : 0
+
   length  = 24
   special = false
 }
 
-# This IAM role is used by the StackGuardian platform/runner to access the S3 bucket.
+# This IAM role is used by the StackGuardian platform and runners to access the S3 bucket
 resource "aws_iam_role" "storage_backend" {
+  count = var.mode == "create" ? 1 : 0
+
   name = "${var.override_names.global_prefix}-private-runner-s3-role"
 
   assume_role_policy = jsonencode({
@@ -24,7 +29,7 @@ resource "aws_iam_role" "storage_backend" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = "${local.sg_org_name}:${random_string.connector_external_id.result}"
+            "sts:ExternalId" = "${local.sg_org_name}:${random_string.connector_external_id[0].result}"
           }
         }
       }
@@ -32,15 +37,18 @@ resource "aws_iam_role" "storage_backend" {
   })
 }
 
-# This policy allows the StackGuardian platform/runner to access the S3 bucket.
+# This policy allows the StackGuardian platform/runner to access the S3 bucket
 resource "aws_iam_policy" "storage_backend_access" {
+  count = var.mode == "create" ? 1 : 0
+
   name        = "${var.override_names.global_prefix}-runner-s3-policy"
-  description = "Policy for access to the Storage Backend (S3 Bucket: ${aws_s3_bucket.this.bucket})"
+  description = "Policy for access to the Storage Backend S3 Bucket"
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "VisualEditor0"
+        Sid    = "S3BucketAccess"
         Effect = "Allow"
         Action = [
           "s3:DeleteObjectTagging",
@@ -56,15 +64,17 @@ resource "aws_iam_policy" "storage_backend_access" {
           "s3:DeleteObject"
         ]
         Resource = [
-          aws_s3_bucket.this.arn,
-          "${aws_s3_bucket.this.arn}/*"
+          local.s3_bucket_arn,
+          "${local.s3_bucket_arn}/*"
         ]
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "runner_s3" {
-  role       = aws_iam_role.storage_backend.name
-  policy_arn = aws_iam_policy.storage_backend_access.arn
+resource "aws_iam_role_policy_attachment" "storage_backend" {
+  count = var.mode == "create" ? 1 : 0
+
+  role       = aws_iam_role.storage_backend[0].name
+  policy_arn = aws_iam_policy.storage_backend_access[0].arn
 }
