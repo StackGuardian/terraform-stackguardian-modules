@@ -84,14 +84,9 @@ variable "stackguardian" {
   type = object({
     api_key  = string
     org_name = string
-    api_uri  = optional(string, "https://api.app.stackguardian.io")
+    api_uri  = optional(string, "")
   })
   sensitive = true
-
-  validation {
-    condition     = can(regex("^sgu_.*", var.stackguardian.api_key))
-    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_'."
-  }
 }
 
 /*-------------------+

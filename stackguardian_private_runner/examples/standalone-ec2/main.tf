@@ -29,13 +29,12 @@ module "aws_runner" {
   ami_id        = var.ami_id
   instance_type = var.instance_type
 
-  # From runner group module outputs
+  # Runner group name - token and bucket are fetched via data sources
   runner_group_name        = module.sg_runner_group.runner_group_name
-  runner_group_token       = module.sg_runner_group.runner_group_token
   storage_backend_role_arn = module.sg_runner_group.storage_backend_role_arn
-  s3_bucket_name           = module.sg_runner_group.s3_bucket_name
 
   stackguardian = {
+    api_key  = var.sg_api_key
     org_name = module.sg_runner_group.sg_org_name
     api_uri  = module.sg_runner_group.sg_api_uri
   }

@@ -24,7 +24,7 @@ resource "aws_lambda_function" "autoscale" {
       SCALE_OUT_STEP              = tostring(var.scaling.scale_out_step)
       SCALE_IN_STEP               = tostring(var.scaling.scale_in_step)
       MIN_RUNNERS                 = tostring(var.scaling.min_size)
-      SG_BASE_URI                 = var.stackguardian.api_uri
+      SG_BASE_URI                 = local.sg_api_uri
       SG_API_KEY                  = var.stackguardian.api_key
       SG_ORG                      = var.stackguardian.org_name
       SG_RUNNER_GROUP             = var.runner_group_name

@@ -2,12 +2,21 @@
   "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
+    "create_asg": {
+      "type": "boolean",
+      "default": true
+    },
+    "existing_asg_name": {
+      "type": "string",
+      "default": ""
+    },
     "instance_type": {
       "type": "string",
       "default": "t3.xlarge"
     },
     "ami_id": {
-      "type": "string"
+      "type": "string",
+      "default": ""
     },
     "aws_region": {
       "type": "string",
@@ -16,7 +25,15 @@
     "runner_group_name": {
       "type": "string"
     },
+    "runner_group_token": {
+      "type": "string",
+      "default": ""
+    },
     "storage_backend_role_arn": {
+      "type": "string",
+      "default": ""
+    },
+    "s3_bucket_name": {
       "type": "string"
     },
     "stackguardian": {
@@ -26,15 +43,14 @@
           "type": "string"
         },
         "org_name": {
-          "type": "string",
-          "default": ""
+          "type": "string"
         },
         "api_uri": {
           "type": "string",
           "default": ""
         }
       },
-      "required": ["api_key"]
+      "required": ["api_key", "org_name"]
     },
     "override_names": {
       "type": "object",
@@ -135,16 +151,84 @@
       },
       "additionalProperties": false
     },
+    "scaling": {
+      "type": "object",
+      "properties": {
+        "min_size": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "max_size": {
+          "type": "integer",
+          "default": 3
+        },
+        "desired_capacity": {
+          "type": "integer",
+          "default": 1
+        },
+        "scale_out_threshold": {
+          "type": "integer",
+          "default": 3
+        },
+        "scale_in_threshold": {
+          "type": "integer",
+          "default": 1
+        },
+        "scale_out_step": {
+          "type": "integer",
+          "default": 1
+        },
+        "scale_in_step": {
+          "type": "integer",
+          "default": 1
+        },
+        "scale_out_cooldown_duration": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 4
+        },
+        "scale_in_cooldown_duration": {
+          "type": "integer",
+          "default": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    "autoscaler_repo": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "default": "https://github.com/StackGuardian/sg-runner-autoscaler"
+        },
+        "branch": {
+          "type": "string",
+          "default": "main"
+        }
+      },
+      "additionalProperties": false
+    },
+    "lambda_runtime": {
+      "type": "string",
+      "default": "python3.11"
+    },
+    "lambda_timeout": {
+      "type": "integer",
+      "default": 60
+    },
+    "lambda_memory_size": {
+      "type": "integer",
+      "default": 128
+    },
     "runner_startup_timeout": {
       "type": "integer",
       "default": 300
     }
   },
   "required": [
-    "ami_id",
     "runner_group_name",
-    "storage_backend_role_arn",
-    "stackguardian",
-    "network"
+    "s3_bucket_name",
+    "stackguardian"
   ]
 }

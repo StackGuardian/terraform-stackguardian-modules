@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["create", "existing"],
+      "default": "create"
+    },
+    "existing_runner_group_name": {
+      "type": "string",
+      "default": ""
+    },
+    "create_storage_backend": {
+      "type": "boolean",
+      "default": true
+    },
+    "existing_s3_bucket_name": {
+      "type": "string",
+      "default": ""
+    },
+    "force_destroy_storage_backend": {
+      "type": "boolean",
+      "default": false
+    },
+    "stackguardian": {
+      "type": "object",
+      "properties": {
+        "api_key": {
+          "type": "string"
+        },
+        "org_name": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["api_key"]
+    },
+    "aws_region": {
+      "type": "string",
+      "default": "eu-central-1"
+    },
+    "override_names": {
+      "type": "object",
+      "properties": {
+        "global_prefix": {
+          "type": "string",
+          "default": "SG_RUNNER"
+        },
+        "runner_group_name": {
+          "type": "string",
+          "default": ""
+        },
+        "connector_name": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["global_prefix"],
+      "additionalProperties": false
+    },
+    "max_runners": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 1
+    },
+    "runner_group_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["private-runner"]
+    }
+  },
+  "required": [
+    "stackguardian"
+  ]
+}

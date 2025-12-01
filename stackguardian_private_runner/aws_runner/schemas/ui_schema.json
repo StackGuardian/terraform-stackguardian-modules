@@ -1,16 +1,23 @@
 {
   "ui:title": "StackGuardian Private Runner for AWS",
-  "ui:description": "Configure and deploy a StackGuardian Private Runner on AWS with auto-scaling, networking, and security settings. This module sets up EC2 instances with Lambda-based auto-scaling to process your organization's workflows securely within your AWS infrastructure.",
+  "ui:description": "Deploy a standalone StackGuardian Private Runner on AWS EC2. This module creates a single EC2 instance configured to register with your StackGuardian runner group.",
   "instance_type": {
     "ui:description": "The EC2 instance type for Private Runner (min 4 vCPU, 8GB RAM recommended)"
   },
   "ami_id": {
     "ui:placeholder": "ami-***",
-    "ui:description": "The AMI ID for the Private Runner instance with pre-installed dependencies. Required dependencies: docker, cron, jq, sg-runner (main.sh). Recommended: Use StackGuardian Template with Packer to build custom AMI."
+    "ui:description": "The AMI ID with pre-installed dependencies (docker, cron, jq, sg-runner). Required."
   },
   "aws_region": {
-    "ui:widget": "select",
-    "ui:description": "The target AWS Region to setup Private Runner"
+    "ui:description": "The target AWS Region for deployment"
+  },
+  "runner_group_name": {
+    "ui:placeholder": "my-runner-group",
+    "ui:description": "Name of the runner group on StackGuardian (from stackguardian_runner_group module)"
+  },
+  "storage_backend_role_arn": {
+    "ui:placeholder": "arn:aws:iam::***:role/***",
+    "ui:description": "ARN of the IAM role for S3 storage backend access (from stackguardian_runner_group module)"
   },
   "stackguardian": {
     "ui:title": "StackGuardian Configuration",
@@ -21,71 +28,53 @@
       "ui:description": "Your organization's API key on the StackGuardian Platform"
     },
     "org_name": {
-      "ui:placeholder": "your-org-name (optional) (default: from workflow runtime)",
-      "ui:description": "Your organization name on the StackGuardian Platform. If not provided, the module will attempt to read SG_ORG_ID from the environment. If run inside your StackGuardian organization, this will be set automatically."
+      "ui:placeholder": "your-org-name (optional)",
+      "ui:description": "Your organization name on the StackGuardian Platform. If not provided, will be extracted from environment."
     },
     "api_uri": {
-      "ui:placeholder": "https://api.app.stackguardian.io (optional)",
-      "ui:description": "StackGuardian API URI. Defaults to the standard StackGuardian API endpoint if not provided."
-    },
-    "runner_group_name": {
-      "ui:placeholder": "my-runner-group",
-      "ui:description": "Name of the runner group on the StackGuardian Platform"
-    },
-    "runner_group_token": {
-      "ui:placeholder": "sgr_***",
-      "ui:widget": "password",
-      "ui:description": "Authentication token for the runner group"
-    },
-    "bucket_name": {
-      "ui:placeholder": "your-bucket-name",
-      "ui:description": "S3 bucket name for Private Runner state storage"
+      "ui:placeholder": "https://api.app.stackguardian.io",
+      "ui:description": "StackGuardian API URI (defaults to standard endpoint)"
     }
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",
     "ui:description": "Customize resource names (optional)",
     "global_prefix": {
-      "ui:description": "Prefix for naming AWS resources"
+      "ui:description": "Prefix for naming all AWS resources"
     }
   },
   "network": {
     "ui:title": "Network Configuration",
-    "ui:description": "Configure VPC and subnet settings",
+    "ui:description": "Configure VPC and subnet settings for the runner instance",
     "vpc_id": {
       "ui:placeholder": "vpc-***",
-      "ui:description": "Existing VPC ID for the Private Runner instance"
+      "ui:description": "Existing VPC ID for deployment"
     },
-    "private_subnet_id": {
-      "ui:placeholder": "subnet-*** (optional)",
-      "ui:description": "Existing Private Subnet ID for the Private Runner instance. If provided, the instance will be deployed in a private subnet. If not provided, public_subnet_id is required to deploy in a public subnet."
-    },
-    "public_subnet_id": {
+    "subnet_id": {
       "ui:placeholder": "subnet-***",
-      "ui:description": "Existing Public Subnet ID for the Private Runner instance. Required if private_subnet_id is not provided."
-    },
-    "security_group_id": {
-      "ui:placeholder": "sg-***",
-      "ui:description": "Additional security group ID to attach to the instance"
+      "ui:description": "Subnet ID for the runner instance (public or private)"
     },
     "associate_public_ip": {
       "ui:widget": "checkbox",
-      "ui:description": "Whether to assign a public IP to the Private Runner instance"
+      "ui:description": "Whether to assign a public IP to the runner instance"
+    },
+    "additional_security_group_ids": {
+      "ui:description": "Additional security group IDs to attach to the instance (optional)"
     }
   },
   "volume": {
     "ui:title": "EBS Volume Configuration",
-    "ui:description": "Configure storage settings for the Private Runner",
+    "ui:description": "Configure storage settings for the runner instance",
     "type": {
       "ui:widget": "select",
-      "ui:description": "Type of the EBS volume for the Private Runner instance"
+      "ui:description": "Type of the EBS volume"
     },
     "size": {
-      "ui:description": "Size of the EBS volume in GB for the Private Runner instance (minimum 8GB, 100GB recommended)"
+      "ui:description": "Size of the EBS volume in GB (minimum 8GB, 100GB recommended)"
     },
     "delete_on_termination": {
       "ui:widget": "checkbox",
-      "ui:description": "Whether to delete the EBS volume on instance termination (recommended: keep false for data persistence)"
+      "ui:description": "Whether to delete the EBS volume on instance termination"
     }
   },
   "firewall": {
@@ -93,7 +82,7 @@
     "ui:description": "Configure SSH access and additional security rules",
     "ssh_key_name": {
       "ui:placeholder": "my-keypair",
-      "ui:description": "Name of the existing SSH key in AWS to use for the Private Runner instance. If provided, this key will be used for SSH access. If ssh_public_key is also provided, it will take precedence over this key."
+      "ui:description": "Name of existing SSH key pair in AWS"
     },
     "ssh_public_key": {
       "ui:widget": "textarea",
@@ -101,20 +90,16 @@
       "ui:options": {
         "rows": 3
       },
-      "ui:description": "Custom SSH public key content to add to the instance. If provided, this takes precedence over ssh_key_name. If both ssh_key_name and ssh_public_key are empty, no SSH key will be configured."
+      "ui:description": "Custom SSH public key content (takes precedence over ssh_key_name)"
     },
     "ssh_access_rules": {
-      "ui:title": "SSH Access Rules",
-      "ui:widget": "string",
-      "ui:description": "Object mapping access rule names to CIDR blocks for SSH access. Each key should be a descriptive name (e.g., 'Admin Access') and each value should be a CIDR block. These will appear as 'SSH-{name}' in security group descriptions."
+      "ui:description": "Map of CIDR blocks for SSH access (e.g., {\"office\": \"10.0.0.0/8\"})"
     },
     "additional_ingress_rules": {
-      "ui:title": "Additional Ingress Rules",
-      "ui:widget": "string",
-      "ui:description": "Object mapping rule names to ingress rule configurations. Each key should be a descriptive name that will appear as the security group rule description, and each value should contain port, protocol, and cidr_blocks."
+      "ui:description": "Additional ingress rules with port, protocol, and cidr_blocks"
     }
   },
   "runner_startup_timeout": {
-    "ui:description": "Maximum time in seconds to wait for Docker to start before shutting down the instance"
+    "ui:description": "Maximum seconds to wait for Docker to start before shutting down instance"
   }
 }

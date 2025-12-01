@@ -1,0 +1,61 @@
+{
+  "ui:title": "StackGuardian Runner Group",
+  "ui:description": "Create or reference a StackGuardian Runner Group with S3 storage backend and AWS connector. This module manages the platform-side resources needed for private runners.",
+  "mode": {
+    "ui:widget": "select",
+    "ui:description": "Choose 'create' to provision a new runner group, or 'existing' to use an existing one"
+  },
+  "existing_runner_group_name": {
+    "ui:placeholder": "my-existing-runner-group",
+    "ui:description": "Name of an existing runner group on StackGuardian (only used when mode = 'existing')"
+  },
+  "create_storage_backend": {
+    "ui:widget": "checkbox",
+    "ui:description": "Whether to create a new S3 bucket for the storage backend"
+  },
+  "existing_s3_bucket_name": {
+    "ui:placeholder": "my-existing-bucket",
+    "ui:description": "Name of an existing S3 bucket to use (only used when create_storage_backend = false)"
+  },
+  "force_destroy_storage_backend": {
+    "ui:widget": "checkbox",
+    "ui:description": "Whether to force destroy the S3 bucket on module destruction (WARNING: deletes all data)"
+  },
+  "stackguardian": {
+    "ui:title": "StackGuardian Configuration",
+    "ui:description": "Configure your StackGuardian platform connection",
+    "api_key": {
+      "ui:placeholder": "sgu_***",
+      "ui:widget": "password",
+      "ui:description": "Your organization's API key on the StackGuardian Platform"
+    },
+    "org_name": {
+      "ui:placeholder": "your-org-name (optional)",
+      "ui:description": "Your organization name on the StackGuardian Platform. If not provided, will be extracted from environment."
+    }
+  },
+  "aws_region": {
+    "ui:description": "The target AWS Region for S3 bucket and IAM resources"
+  },
+  "override_names": {
+    "ui:title": "Resource Naming Configuration",
+    "ui:description": "Customize resource names (optional)",
+    "global_prefix": {
+      "ui:description": "Prefix for naming all resources"
+    },
+    "runner_group_name": {
+      "ui:placeholder": "(auto-generated)",
+      "ui:description": "Override the runner group name. If empty, uses {global_prefix}-runner-group-{account_id}"
+    },
+    "connector_name": {
+      "ui:placeholder": "(auto-generated)",
+      "ui:description": "Override the connector name. If empty, uses {global_prefix}-private-runner-backend-{account_id}"
+    }
+  },
+  "max_runners": {
+    "ui:description": "Maximum number of runners allowed in the runner group"
+  },
+  "runner_group_tags": {
+    "ui:description": "Tags to apply to the runner group on StackGuardian"
+  }
+}
