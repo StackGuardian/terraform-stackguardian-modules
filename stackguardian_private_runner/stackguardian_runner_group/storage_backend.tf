@@ -34,8 +34,11 @@ resource "aws_s3_bucket_cors_configuration" "this" {
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD", "PUT"]
-    allowed_origins = ["https://app.stackguardian.io"]
-    expose_headers  = []
+    # allowed_origins = ["https://app.stackguardian.io"]
+    allowed_origins = [
+      "${replace(local.sg_api_uri, "api.", "")}"
+    ]
+    expose_headers = []
   }
 }
 
