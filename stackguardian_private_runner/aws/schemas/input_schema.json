@@ -23,8 +23,7 @@
       "type": "object",
       "properties": {
         "api_key": {
-          "type": "string",
-          "pattern": "^sgu_.*"
+          "type": "string"
         },
         "org_name": {
           "type": "string",
@@ -151,6 +150,10 @@
     "scaling": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
         "scale_out_cooldown_duration": {
           "type": "integer",
           "default": 4,

@@ -13,7 +13,7 @@ output "connector_name" {
 
 output "runner_group_url" {
   description = "Direct URL to the runner group in the StackGuardian web console"
-  value       = "${replace(local.sg_api_uri, "api.", "")}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${stackguardian_runner_group.this.resource_name}"
+  value       = "${replace(local.sg_api_uri, "/^(https:\\/\\/).*api\\./", "$1")}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${stackguardian_runner_group.this.resource_name}"
 }
 
 /*-----------------------+
@@ -21,7 +21,7 @@ output "runner_group_url" {
  +-----------------------*/
 output "lambda_function_name" {
   description = "The name of the Lambda function that handles auto-scaling"
-  value       = aws_lambda_function.autoscale.function_name
+  value       = var.scaling.enabled ? aws_lambda_function.autoscale[0].function_name : null
 }
 
 output "storage_backend_name" {

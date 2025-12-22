@@ -1,6 +1,7 @@
 # IAM Role for Lambda Autoscaling Function
 resource "aws_iam_role" "autoscale_lambda" {
-  name = "${var.override_names.global_prefix}-autoscale-lambda-role"
+  count = var.scaling.enabled ? 1 : 0
+  name  = "${var.override_names.global_prefix}-autoscale-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -18,6 +19,7 @@ resource "aws_iam_role" "autoscale_lambda" {
 
 # IAM Policy for Lambda Autoscaling Function
 resource "aws_iam_policy" "autoscale_lambda" {
+  count       = var.scaling.enabled ? 1 : 0
   name        = "${var.override_names.global_prefix}-autoscale-lambda-policy"
   description = "Policy for autoscaling Lambda function"
 
@@ -68,19 +70,21 @@ resource "aws_iam_policy" "autoscale_lambda" {
 }
 
 resource "aws_iam_role_policy_attachment" "autoscale_lambda" {
-  role       = aws_iam_role.autoscale_lambda.name
-  policy_arn = aws_iam_policy.autoscale_lambda.arn
+  count      = var.scaling.enabled ? 1 : 0
+  role       = aws_iam_role.autoscale_lambda[0].name
+  policy_arn = aws_iam_policy.autoscale_lambda[0].arn
 }
 
 # Lambda Function for Autoscaling
 resource "aws_lambda_function" "autoscale" {
+  count        = var.scaling.enabled ? 1 : 0
   package_type = "Image"
   image_uri    = "${var.image.repository}:${var.image.tag}"
 
   architectures = ["arm64"]
 
   function_name = "${var.override_names.global_prefix}-autoscale-private-runner"
-  role          = aws_iam_role.autoscale_lambda.arn
+  role          = aws_iam_role.autoscale_lambda[0].arn
   timeout       = 60
   memory_size   = 128
 
@@ -114,12 +118,14 @@ resource "aws_lambda_function" "autoscale" {
 
 # CloudWatch Log Group for Lambda
 resource "aws_cloudwatch_log_group" "autoscale_lambda" {
+  count             = var.scaling.enabled ? 1 : 0
   name              = "/aws/lambda/${var.override_names.global_prefix}-autoscale-private-runner"
   retention_in_days = 14
 }
 
 # EventBridge Scheduler Schedule for triggering Lambda every minute
 resource "aws_scheduler_schedule" "autoscale_trigger" {
+  count      = var.scaling.enabled ? 1 : 0
   name       = "${var.override_names.global_prefix}-autoscale-trigger"
   group_name = "default"
 
@@ -130,14 +136,15 @@ resource "aws_scheduler_schedule" "autoscale_trigger" {
   schedule_expression = "rate(1 minute)"
 
   target {
-    arn      = aws_lambda_function.autoscale.arn
-    role_arn = aws_iam_role.scheduler_execution.arn
+    arn      = aws_lambda_function.autoscale[0].arn
+    role_arn = aws_iam_role.scheduler_execution[0].arn
   }
 }
 
 # IAM Role for EventBridge Scheduler
 resource "aws_iam_role" "scheduler_execution" {
-  name = "${var.override_names.global_prefix}-scheduler-execution-role"
+  count = var.scaling.enabled ? 1 : 0
+  name  = "${var.override_names.global_prefix}-scheduler-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -155,6 +162,7 @@ resource "aws_iam_role" "scheduler_execution" {
 
 # IAM Policy for EventBridge Scheduler
 resource "aws_iam_policy" "scheduler_execution" {
+  count       = var.scaling.enabled ? 1 : 0
   name        = "${var.override_names.global_prefix}-scheduler-execution-policy"
   description = "Policy for EventBridge Scheduler to invoke Lambda"
 
@@ -166,13 +174,14 @@ resource "aws_iam_policy" "scheduler_execution" {
         Action = [
           "lambda:InvokeFunction"
         ]
-        Resource = aws_lambda_function.autoscale.arn
+        Resource = aws_lambda_function.autoscale[0].arn
       }
     ]
   })
 }
 
 resource "aws_iam_role_policy_attachment" "scheduler_execution" {
-  role       = aws_iam_role.scheduler_execution.name
-  policy_arn = aws_iam_policy.scheduler_execution.arn
+  count      = var.scaling.enabled ? 1 : 0
+  role       = aws_iam_role.scheduler_execution[0].name
+  policy_arn = aws_iam_policy.scheduler_execution[0].arn
 }

@@ -198,6 +198,7 @@ variable "image" {
 variable "scaling" {
   description = "Auto scaling configuration for the Private Runner"
   type = object({
+    enabled                     = optional(bool, true)
     scale_out_cooldown_duration = optional(number, 4)
     scale_in_cooldown_duration  = optional(number, 5)
     scale_out_threshold         = optional(number, 3)
@@ -207,6 +208,7 @@ variable "scaling" {
     min_runners                 = optional(number, 1)
   })
   default = {
+    enabled                     = true
     scale_out_cooldown_duration = 4
     scale_in_cooldown_duration  = 5
     scale_out_threshold         = 3

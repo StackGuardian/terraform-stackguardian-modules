@@ -20,8 +20,7 @@
     "ui:title": "StackGuardian Configuration",
     "ui:description": "Configure your StackGuardian platform connection",
     "api_key": {
-      "ui:placeholder": "sgu_***",
-      "ui:widget": "password",
+      "ui:placeholder": "sg[u|o]_*** or secret vault reference",
       "ui:description": "Your organization's API key on the StackGuardian Platform"
     },
     "org_name": {
@@ -112,6 +111,10 @@
   "scaling": {
     "ui:title": "Auto Scaling Configuration",
     "ui:description": "Configure scaling behavior and thresholds",
+    "enabled": {
+      "ui:widget": "checkbox",
+      "ui:description": "Enable Lambda-based auto scaling. When disabled, the ASG will maintain a static number of instances."
+    },
     "scale_out_cooldown_duration": {
       "ui:description": "Scale out cooldown duration in minutes (minimum 4 minutes)"
     },
