@@ -33,13 +33,22 @@ variable "stackguardian" {
   description = "StackGuardian platform configuration"
   type = object({
     api_key  = string
+    api_uri  = optional(string, "https://api.app.stackguardian.io")
     org_name = optional(string, "")
   })
   sensitive = true
 
   validation {
-    condition     = can(regex("^sgu_.*", var.stackguardian.api_key))
-    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_'."
+    condition     = can(regex("^sg[uo]_.*", var.stackguardian.api_key))
+    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_' (user) or 'sgo_' (organization)."
+  }
+
+  validation {
+    condition = contains([
+      "https://api.app.stackguardian.io",
+      "https://api.us.stackguardian.io"
+    ], var.stackguardian.api_uri)
+    error_message = "The api_uri must be either 'https://api.app.stackguardian.io' (EU1) or 'https://api.us.stackguardian.io' (US1)."
   }
 }
 

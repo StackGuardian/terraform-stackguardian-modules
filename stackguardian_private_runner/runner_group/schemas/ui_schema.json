@@ -13,9 +13,13 @@
   "stackguardian": {
     "ui:title": "StackGuardian Configuration",
     "ui:description": "Configure your StackGuardian platform connection",
+    "ui:order": ["api_uri", "api_key", "org_name"],
+    "api_uri": {
+      "ui:widget": "select",
+      "ui:description": "Select your StackGuardian platform region"
+    },
     "api_key": {
-      "ui:placeholder": "sgu_***",
-      "ui:widget": "password",
+      "ui:placeholder": "sg(u|o)_*** or Vault Secret Reference",
       "ui:description": "Your organization's API key on the StackGuardian Platform"
     },
     "org_name": {

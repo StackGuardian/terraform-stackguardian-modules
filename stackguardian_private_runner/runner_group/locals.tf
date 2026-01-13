@@ -2,7 +2,7 @@ data "external" "env" {
   program = [
     "sh",
     "-c",
-    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\", \"sg_api_uri\": \"'$${SG_API_URI:-https://api.app.stackguardian.io}'\"}'"
+    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\"}'"
   ]
 }
 
@@ -15,7 +15,7 @@ locals {
     ? var.stackguardian.org_name
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = data.external.env.result.sg_api_uri
+  sg_api_uri = var.stackguardian.api_uri
 
   # Computed prefix with optional org name
   effective_prefix = (

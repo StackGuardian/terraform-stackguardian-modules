@@ -6,6 +6,19 @@
       "title": "StackGuardian Configuration",
       "type": "object",
       "properties": {
+        "api_uri": {
+          "title": "API Region",
+          "type": "string",
+          "enum": [
+            "https://api.app.stackguardian.io",
+            "https://api.us.stackguardian.io"
+          ],
+          "enumNames": [
+            "EU1 - Europe",
+            "US1 - East"
+          ],
+          "default": "https://api.app.stackguardian.io"
+        },
         "api_key": {
           "title": "API Key",
           "type": "string"
