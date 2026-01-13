@@ -3,13 +3,11 @@
  +---------------------------------*/
 output "runner_group_name" {
   description = "The name of the StackGuardian runner group"
-  sensitive   = true
   value       = stackguardian_runner_group.this.resource_name
 }
 
 output "runner_group_id" {
   description = "The ID of the StackGuardian runner group"
-  sensitive   = true
   value       = stackguardian_runner_group.this.resource_name
 }
 
@@ -21,7 +19,6 @@ output "runner_group_token" {
 
 output "runner_group_url" {
   description = "Direct URL to the runner group in the StackGuardian web console"
-  sensitive   = true
   value       = "${replace(local.sg_api_uri, "api.", "")}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${local.final_runner_group_name}"
 }
 
@@ -30,19 +27,16 @@ output "runner_group_url" {
  +---------------------------------*/
 output "connector_name" {
   description = "The name of the StackGuardian connector"
-  sensitive   = true
   value       = stackguardian_connector.this.resource_name
 }
 
 output "connector_id" {
   description = "The ID of the StackGuardian connector"
-  sensitive   = true
   value       = stackguardian_connector.this.resource_name
 }
 
 output "connector_external_id" {
   description = "The external ID used for cross-account S3 access"
-  sensitive   = true
   value       = "${local.sg_org_name}:${random_string.connector_external_id.result}"
 }
 
@@ -61,13 +55,11 @@ output "s3_bucket_arn" {
 
 output "storage_backend_role_arn" {
   description = "The ARN of the IAM role for storage backend access"
-  sensitive   = true
   value       = aws_iam_role.storage_backend.arn
 }
 
 output "storage_backend_role_name" {
   description = "The name of the IAM role for storage backend access"
-  sensitive   = true
   value       = aws_iam_role.storage_backend.name
 }
 
@@ -76,13 +68,11 @@ output "storage_backend_role_name" {
  +---------------------------------*/
 output "sg_org_name" {
   description = "The StackGuardian organization name"
-  sensitive   = true
   value       = local.sg_org_name
 }
 
 output "sg_api_uri" {
   description = "The StackGuardian API URI"
-  sensitive   = true
   value       = local.sg_api_uri
 }
 

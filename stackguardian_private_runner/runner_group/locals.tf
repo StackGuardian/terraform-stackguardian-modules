@@ -10,16 +10,17 @@ data "aws_caller_identity" "current" {}
 
 locals {
   # StackGuardian configuration
+  # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
   sg_org_name = (
-    var.stackguardian.org_name != ""
-    ? var.stackguardian.org_name
+    nonsensitive(var.stackguardian.org_name) != ""
+    ? nonsensitive(var.stackguardian.org_name)
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = var.stackguardian.api_uri
+  sg_api_uri = nonsensitive(var.stackguardian.api_uri)
 
   # Computed prefix with optional org name
   effective_prefix = (
-    var.override_names.include_org_in_prefix
+    var.override_names.include_org_in_prefix && local.sg_org_name != ""
     ? "${var.override_names.global_prefix}_${local.sg_org_name}"
     : var.override_names.global_prefix
   )

@@ -9,12 +9,13 @@ data "external" "env" {
 
 locals {
   # StackGuardian configuration - use provided values or extract from environment
+  # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
   sg_org_name = (
-    var.stackguardian.org_name != ""
-    ? var.stackguardian.org_name
+    nonsensitive(var.stackguardian.org_name) != ""
+    ? nonsensitive(var.stackguardian.org_name)
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = var.stackguardian.api_uri
+  sg_api_uri = nonsensitive(var.stackguardian.api_uri)
 
   # Effective prefix for resource naming (optionally includes org name)
   effective_prefix = (

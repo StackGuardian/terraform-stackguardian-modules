@@ -21,13 +21,13 @@
       "ui:placeholder": "vpc-***",
       "ui:description": "Existing VPC ID where Packer will build the AMI. Must have internet access for downloading packages."
     },
-    "public_subnet_id": {
-      "ui:placeholder": "subnet-***",
-      "ui:description": "Public subnet ID where Packer will launch the build instance. Must have internet gateway access. Leave empty if using private_subnet_id."
-    },
     "private_subnet_id": {
       "ui:placeholder": "subnet-***",
       "ui:description": "Private subnet ID where Packer will launch the build instance. Requires NAT Gateway or VPC Endpoints for internet access. Leave empty if using public_subnet_id."
+    },
+    "public_subnet_id": {
+      "ui:placeholder": "subnet-***",
+      "ui:description": "Public subnet ID where Packer will launch the build instance. Must have internet gateway access. Leave empty if using private_subnet_id."
     },
     "proxy_url": {
       "ui:placeholder": "http://proxy.company.com:8080",

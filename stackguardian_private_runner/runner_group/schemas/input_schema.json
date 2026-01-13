@@ -1,5 +1,4 @@
 {
-  "$schema": "http://json-schema.org/schema#",
   "type": "object",
   "properties": {
     "stackguardian": {
@@ -11,11 +10,13 @@
           "type": "string",
           "enum": [
             "https://api.app.stackguardian.io",
-            "https://api.us.stackguardian.io"
+            "https://api.us.stackguardian.io",
+            "https://testapi.qa.stackguardian.io"
           ],
           "enumNames": [
             "EU1 - Europe",
-            "US1 - East"
+            "US1 - East",
+            "DASH - QA Environment"
           ],
           "default": "https://api.app.stackguardian.io"
         },
