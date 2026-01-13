@@ -1,0 +1,246 @@
+{
+  "type": "object",
+  "properties": {
+    "instance_type": {
+      "title": "Instance Type",
+      "type": "string",
+      "default": "t3.xlarge"
+    },
+    "ami_id": {
+      "title": "AMI ID",
+      "type": "string",
+      "pattern": "^ami-.*$"
+    },
+    "aws_region": {
+      "title": "AWS Region",
+      "type": "string",
+      "enum": [
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+        "af-south-1",
+        "ap-east-1",
+        "ap-south-1",
+        "ap-south-2",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-southeast-3",
+        "ap-southeast-4",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ca-central-1",
+        "ca-west-1",
+        "eu-central-1",
+        "eu-central-2",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "eu-south-1",
+        "eu-south-2",
+        "eu-north-1",
+        "il-central-1",
+        "me-south-1",
+        "me-central-1",
+        "sa-east-1"
+      ],
+      "default": "eu-central-1"
+    },
+    "runner_group_name": {
+      "title": "Runner Group Name",
+      "type": "string"
+    },
+    "storage_backend_role_arn": {
+      "title": "Storage Backend Role ARN",
+      "type": "string",
+      "pattern": "^arn:aws:iam::[0-9]+:role/.*$"
+    },
+    "stackguardian": {
+      "title": "StackGuardian Configuration",
+      "type": "object",
+      "properties": {
+        "api_key": {
+          "title": "API Key",
+          "type": "string"
+        },
+        "api_uri": {
+          "title": "API Region",
+          "type": "string",
+          "enum": [
+            "https://api.app.stackguardian.io",
+            "https://api.us.stackguardian.io"
+          ],
+          "enumNames": [
+            "EU1 - Europe",
+            "US1 - East"
+          ],
+          "default": "https://api.app.stackguardian.io"
+        },
+        "org_name": {
+          "title": "Organization Name",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["api_key"]
+    },
+    "override_names": {
+      "title": "Resource Naming",
+      "type": "object",
+      "properties": {
+        "global_prefix": {
+          "title": "Global Prefix",
+          "type": "string",
+          "default": "SG_RUNNER"
+        }
+      },
+      "required": ["global_prefix"],
+      "additionalProperties": false
+    },
+    "network": {
+      "title": "Network Configuration",
+      "type": "object",
+      "properties": {
+        "vpc_id": {
+          "title": "VPC ID",
+          "type": "string",
+          "pattern": "^vpc-.*$"
+        },
+        "subnet_id": {
+          "title": "Subnet ID (Legacy)",
+          "type": "string",
+          "pattern": "^(|subnet-.*)$",
+          "default": ""
+        },
+        "private_subnet_id": {
+          "title": "Private Subnet ID",
+          "type": "string",
+          "pattern": "^(|subnet-.*)$",
+          "default": ""
+        },
+        "public_subnet_id": {
+          "title": "Public Subnet ID",
+          "type": "string",
+          "pattern": "^(|subnet-.*)$",
+          "default": ""
+        },
+        "associate_public_ip": {
+          "title": "Associate Public IP",
+          "type": "boolean",
+          "default": false
+        },
+        "create_network_infrastructure": {
+          "title": "Create Network Infrastructure",
+          "type": "boolean",
+          "default": false
+        },
+        "proxy_url": {
+          "title": "Proxy URL",
+          "type": "string",
+          "default": ""
+        },
+        "additional_security_group_ids": {
+          "title": "Additional Security Group IDs",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sg-.*$"
+          },
+          "default": []
+        }
+      },
+      "required": ["vpc_id"],
+      "additionalProperties": false
+    },
+    "volume": {
+      "title": "EBS Volume",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Volume Type",
+          "type": "string",
+          "enum": ["gp2", "gp3", "io1", "io2"],
+          "default": "gp3"
+        },
+        "size": {
+          "title": "Volume Size (GB)",
+          "type": "integer",
+          "minimum": 8,
+          "default": 100
+        },
+        "delete_on_termination": {
+          "title": "Delete on Termination",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "firewall": {
+      "title": "Firewall Configuration",
+      "type": "object",
+      "properties": {
+        "ssh_key_name": {
+          "title": "SSH Key Name",
+          "type": "string",
+          "default": ""
+        },
+        "ssh_public_key": {
+          "title": "SSH Public Key",
+          "type": "string",
+          "default": ""
+        },
+        "ssh_access_rules": {
+          "title": "SSH Access Rules",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "additional_ingress_rules": {
+          "title": "Additional Ingress Rules",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "port": {
+                "title": "Port",
+                "type": "integer"
+              },
+              "protocol": {
+                "title": "Protocol",
+                "type": "string",
+                "enum": ["tcp", "udp", "icmp"]
+              },
+              "cidr_blocks": {
+                "title": "CIDR Blocks",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["port", "protocol", "cidr_blocks"],
+            "additionalProperties": false
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "runner_startup_timeout": {
+      "title": "Runner Startup Timeout",
+      "type": "integer",
+      "default": 300
+    }
+  },
+  "required": [
+    "ami_id",
+    "runner_group_name",
+    "storage_backend_role_arn",
+    "stackguardian",
+    "network"
+  ]
+}

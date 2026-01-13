@@ -1,0 +1,98 @@
+# StackGuardian Private Runner - AWS Single Runner Template
+
+Deploy a standalone StackGuardian Private Runner on AWS using the StackGuardian platform.
+
+## Overview
+
+This template creates a single EC2 instance configured as a StackGuardian Private Runner. The runner automatically registers with your organization and executes workflows in your private AWS environment.
+
+### What This Template Creates
+
+- **EC2 Instance** running the StackGuardian runner with your custom AMI
+- **IAM Role** with permissions for S3 storage backend access
+- **Security Group** with configurable firewall rules
+- **NAT Gateway** (optional) for private subnet deployments
+
+## Prerequisites
+
+1. **StackGuardian API Key** - Generate from your organization settings (starts with `sgu_` or `sgo_`)
+2. **Custom AMI** - Build using the Packer template with required dependencies (docker, cron, jq, sg-runner)
+3. **Runner Group** - Create using the Runner Group template to get the runner group name and storage backend role ARN
+4. **AWS VPC** - Existing VPC with at least one subnet
+
+## Template Parameters
+
+### Required Parameters
+
+| Parameter | Description | Type |
+|-----------|-------------|------|
+| AMI ID | The AMI with pre-installed dependencies (docker, cron, jq, sg-runner) | `string` |
+| Runner Group Name | Name of the runner group from the Runner Group template | `string` |
+| Storage Backend Role ARN | IAM role ARN for S3 storage access from the Runner Group template | `string` |
+| API Key | Your StackGuardian API key | `string` |
+| VPC ID | Existing VPC for deployment | `string` |
+
+### Optional Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| Instance Type | EC2 instance type (min 4 vCPU, 8GB RAM recommended) | `t3.xlarge` |
+| AWS Region | Target AWS region for deployment | `eu-central-1` |
+| API Region | StackGuardian API endpoint (EU1 or US1) | EU1 - Europe |
+| Organization Name | Your organization name (auto-detected if not provided) | - |
+| Global Prefix | Prefix for naming all AWS resources | `SG_RUNNER` |
+| Subnet ID | Subnet for the runner instance | - |
+| Private Subnet ID | Private subnet for secure deployments | - |
+| Public Subnet ID | Public subnet (required for NAT Gateway) | - |
+| Associate Public IP | Assign a public IP to the instance | `false` |
+| Create Network Infrastructure | Create NAT Gateway and route tables | `false` |
+| Proxy URL | HTTP proxy for private network deployments | - |
+| Additional Security Groups | Extra security groups to attach | `[]` |
+| Volume Type | EBS volume type (gp2, gp3, io1, io2) | `gp3` |
+| Volume Size (GB) | Storage size in GB (minimum 8GB) | `100` |
+| Delete on Termination | Delete volume when instance terminates | `false` |
+| SSH Key Name | Existing AWS key pair name for SSH access | - |
+| SSH Public Key | Custom SSH public key content | - |
+| SSH Access Rules | CIDR blocks allowed for SSH access | `{}` |
+| Additional Ingress Rules | Custom firewall rules | `{}` |
+| Runner Startup Timeout | Seconds to wait for Docker startup | `300` |
+
+## Important Notes
+
+**AMI Requirements**: Your AMI must include Docker, cron, jq, and the sg-runner binary. Use the StackGuardian Packer template to build a compatible AMI.
+
+**Runner Group Dependency**: This template requires outputs from the Runner Group template. Deploy the Runner Group template first to obtain the `runner_group_name` and `storage_backend_role_arn` values.
+
+**Network Connectivity**: The runner needs outbound HTTPS (port 443) access to communicate with StackGuardian. For private subnet deployments, enable NAT Gateway creation or configure a proxy URL.
+
+**SSH Access**: SSH access is disabled by default. To enable, provide an SSH key and configure access rules with allowed CIDR blocks.
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| Instance ID | EC2 instance identifier for management |
+| Private IP | Internal IP address of the runner |
+| Public IP | External IP address (if assigned) |
+| Security Group ID | ID of the created security group |
+| IAM Role ARN | Role ARN for reference in other configurations |
+
+## Security Features
+
+- IMDSv2 required for instance metadata access
+- EBS volumes encrypted with AWS-managed keys
+- Security group allows only outbound HTTPS by default
+- SSH access requires explicit configuration
+- API keys stored as sensitive values
+- Private subnet deployment supported with NAT Gateway or proxy
+
+## Usage
+
+After deployment:
+
+1. The runner automatically registers with your StackGuardian organization
+2. Navigate to **Orchestrator > Runner Groups** to verify registration
+3. Configure your workflows to use the runner group name
+4. Monitor runner health and job execution in the StackGuardian platform
+
+For auto-scaling capabilities, consider using the Autoscaling Group Runner template instead.
