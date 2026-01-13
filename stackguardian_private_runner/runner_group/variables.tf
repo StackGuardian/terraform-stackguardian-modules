@@ -46,9 +46,10 @@ variable "stackguardian" {
   validation {
     condition = contains([
       "https://api.app.stackguardian.io",
-      "https://api.us.stackguardian.io"
+      "https://api.us.stackguardian.io",
+      "https://testapi.qa.stackguardian.io"
     ], var.stackguardian.api_uri)
-    error_message = "The api_uri must be either 'https://api.app.stackguardian.io' (EU1) or 'https://api.us.stackguardian.io' (US1)."
+    error_message = "The api_uri must be either 'https://api.app.stackguardian.io' (EU1), 'https://api.us.stackguardian.io' (US1) or 'https://testapi.qa.stackguardian.io' (DASH)."
   }
 }
 
@@ -94,4 +95,3 @@ variable "max_runners" {
     error_message = "max_runners must be at least 1."
   }
 }
-

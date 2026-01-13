@@ -76,6 +76,7 @@ output "sg_org_name" {
 
 output "sg_api_uri" {
   description = "The StackGuardian API URI"
+  sensitive   = true
   value       = local.sg_api_uri
 }
 
