@@ -70,9 +70,22 @@
           "type": "string"
         },
         "subnet_id": {
-          "type": "string"
+          "type": "string",
+          "default": ""
+        },
+        "private_subnet_id": {
+          "type": "string",
+          "default": ""
+        },
+        "public_subnet_id": {
+          "type": "string",
+          "default": ""
         },
         "associate_public_ip": {
+          "type": "boolean",
+          "default": false
+        },
+        "create_network_infrastructure": {
           "type": "boolean",
           "default": false
         },
@@ -84,7 +97,7 @@
           "default": []
         }
       },
-      "required": ["vpc_id", "subnet_id"],
+      "required": ["vpc_id"],
       "additionalProperties": false
     },
     "volume": {

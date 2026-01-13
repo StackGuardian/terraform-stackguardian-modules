@@ -13,7 +13,7 @@ variable "ami_id" {
     Required dependencies: docker, cron, jq, sg-runner (main.sh)
     Recommended: Use StackGuardian Template with Packer to build custom AMI.
   EOT
-  type = string
+  type        = string
 
   validation {
     condition     = can(regex("^ami-.*", var.ami_id))
@@ -81,16 +81,41 @@ variable "network" {
     Network configuration for the Private Runner instance.
 
     - vpc_id: Existing VPC ID for deployment
-    - subnet_id: Subnet ID for the instance (public or private)
-    - associate_public_ip: Whether to assign public IP to instances
+    - subnet_id: Subnet ID for the instance (backwards compatible, use this OR private/public subnet combination)
+    - private_subnet_id: Private subnet ID (optional, for private deployments)
+    - public_subnet_id: Public subnet ID (required when using NAT Gateway with create_network_infrastructure)
+    - associate_public_ip: Whether to assign public IP to instance
+    - create_network_infrastructure: Whether to create NAT Gateway and route tables for private subnet connectivity.
+      Set to true if you need the module to create NAT Gateway and routing for private subnet internet access.
+      When disabled, ensure private subnet has proper routing to internet for StackGuardian platform connectivity.
     - additional_security_group_ids: (Optional) Additional security group IDs to attach to the instance
   EOT
   type = object({
     vpc_id                        = string
-    subnet_id                     = string
+    subnet_id                     = optional(string, "")
+    private_subnet_id             = optional(string, "")
+    public_subnet_id              = optional(string, "")
     associate_public_ip           = optional(bool, false)
+    create_network_infrastructure = optional(bool, false)
     additional_security_group_ids = optional(list(string), [])
   })
+
+  validation {
+    condition = (
+      var.network.subnet_id != "" ||
+      var.network.private_subnet_id != "" ||
+      var.network.public_subnet_id != ""
+    )
+    error_message = "At least one subnet must be provided (subnet_id, private_subnet_id, or public_subnet_id)."
+  }
+
+  validation {
+    condition = (
+      !var.network.create_network_infrastructure ||
+      (var.network.private_subnet_id != "" && var.network.public_subnet_id != "")
+    )
+    error_message = "Both private_subnet_id and public_subnet_id are required when create_network_infrastructure is true."
+  }
 }
 
 /*-----------------------+

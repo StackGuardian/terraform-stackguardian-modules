@@ -84,7 +84,7 @@ resource "aws_autoscaling_group" "this" {
   count = var.create_asg ? 1 : 0
 
   name                      = "${var.override_names.global_prefix}-private-runner-asg"
-  vpc_zone_identifier       = [var.network.subnet_id]
+  vpc_zone_identifier       = [local.subnet_id]
   target_group_arns         = []
   health_check_type         = "EC2"
   health_check_grace_period = 300

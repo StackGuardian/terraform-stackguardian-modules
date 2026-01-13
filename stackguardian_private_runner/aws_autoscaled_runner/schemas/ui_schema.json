@@ -69,11 +69,23 @@
     },
     "subnet_id": {
       "ui:placeholder": "subnet-***",
-      "ui:description": "Subnet ID for runner instances (public or private)"
+      "ui:description": "Subnet ID for runner instances (backwards compatible, use this OR private/public subnet combination)"
+    },
+    "private_subnet_id": {
+      "ui:placeholder": "subnet-private-***",
+      "ui:description": "Private subnet ID for runner instances (optional, for private deployments)"
+    },
+    "public_subnet_id": {
+      "ui:placeholder": "subnet-public-***",
+      "ui:description": "Public subnet ID (required when using NAT Gateway with create_network_infrastructure)"
     },
     "associate_public_ip": {
       "ui:widget": "checkbox",
       "ui:description": "Whether to assign public IPs to runner instances"
+    },
+    "create_network_infrastructure": {
+      "ui:widget": "checkbox",
+      "ui:description": "Create NAT Gateway and route tables for private subnet connectivity. Requires both private_subnet_id and public_subnet_id."
     },
     "additional_security_group_ids": {
       "ui:description": "Additional security group IDs to attach to instances (optional)"

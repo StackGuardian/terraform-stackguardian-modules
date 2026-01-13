@@ -62,3 +62,16 @@ output "iam_instance_profile_name" {
   description = "The name of the IAM instance profile (only when create_asg = true)"
   value       = var.create_asg ? aws_iam_instance_profile.this[0].name : ""
 }
+
+/*-----------------------+
+ | NAT Gateway Outputs    |
+ +-----------------------*/
+output "nat_gateway_id" {
+  description = "The ID of the NAT Gateway (only when create_network_infrastructure = true)"
+  value       = local.create_nat_gateway ? aws_nat_gateway.this[0].id : null
+}
+
+output "nat_gateway_public_ip" {
+  description = "The public IP of the NAT Gateway (only when create_network_infrastructure = true)"
+  value       = local.create_nat_gateway ? aws_eip.nat[0].public_ip : null
+}

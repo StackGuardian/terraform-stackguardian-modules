@@ -15,6 +15,21 @@ locals {
     : data.external.env.result.sg_api_uri
   )
 
+  # Determine which subnet to use for ASG instances
+  # Priority: subnet_id > private_subnet_id > public_subnet_id
+  subnet_id = coalesce(
+    var.network.subnet_id,
+    var.network.private_subnet_id,
+    var.network.public_subnet_id
+  )
+
+  # Whether to create NAT Gateway infrastructure
+  create_nat_gateway = (
+    var.network.create_network_infrastructure &&
+    var.network.private_subnet_id != "" &&
+    var.network.public_subnet_id != ""
+  )
+
   # SSH key logic: custom public key > named key > no key
   use_custom_key = var.firewall.ssh_public_key != ""
   use_named_key  = var.firewall.ssh_key_name != "" && var.firewall.ssh_public_key == ""

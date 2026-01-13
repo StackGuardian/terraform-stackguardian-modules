@@ -15,7 +15,7 @@ resource "aws_instance" "this" {
   instance_type = var.instance_type
   key_name      = local.ssh_key_name != "" ? local.ssh_key_name : null
 
-  subnet_id              = var.network.subnet_id
+  subnet_id              = local.subnet_id
   vpc_security_group_ids = local.all_security_group_ids
 
   associate_public_ip_address = var.network.associate_public_ip
