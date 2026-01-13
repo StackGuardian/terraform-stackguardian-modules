@@ -42,7 +42,7 @@ variable "os" {
   type = object({
     family                   = string
     version                  = optional(string, "")
-    update_os_before_install = bool
+    update_os_before_install = optional(bool, false)
     ssh_username             = optional(string, "")
     user_script              = optional(string, "")
   })

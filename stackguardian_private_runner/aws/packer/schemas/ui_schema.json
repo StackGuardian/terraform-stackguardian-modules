@@ -99,10 +99,10 @@
       "ui:description": "Primary Terraform version to install as the default '/bin/terraform' binary. This will be the version used when running 'terraform' commands."
     },
     "additional_versions": {
-      "ui:widget": "textarea",
-      "ui:placeholder": "[\"1.4.6\", \"1.6.0\", \"1.7.0\"]",
-      "ui:options": { "rows": 3 },
-      "ui:description": "Additional Terraform versions to install. Each version will be available as '/bin/terraform{version}'. For example, '1.4.6' becomes '/bin/terraform1.4.6'. Leave empty to install only the primary version."
+      "ui:description": "Additional Terraform versions to install. Each version will be available as '/bin/terraform{version}'. For example, '1.4.6' becomes '/bin/terraform1.4.6'. Leave empty to install only the primary version.",
+      "items": {
+        "ui:placeholder": "1.4.6"
+      }
     }
   },
   "opentofu": {
@@ -112,10 +112,10 @@
       "ui:description": "Primary OpenTofu version to install as the default '/bin/tofu' binary. OpenTofu is an open-source alternative to Terraform."
     },
     "additional_versions": {
-      "ui:widget": "textarea",
-      "ui:placeholder": "[\"1.8.0\", \"1.9.0\", \"1.10.0\"]",
-      "ui:options": { "rows": 3 },
-      "ui:description": "Additional OpenTofu versions to install. Each version will be available as '/bin/tofu{version}'. For example, '1.8.0' becomes '/bin/tofu1.8.0'. Leave empty to install only the primary version."
+      "ui:description": "Additional OpenTofu versions to install. Each version will be available as '/bin/tofu{version}'. For example, '1.8.0' becomes '/bin/tofu1.8.0'. Leave empty to install only the primary version.",
+      "items": {
+        "ui:placeholder": "1.8.0"
+      }
     }
   }
 }

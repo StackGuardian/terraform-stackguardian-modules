@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
     "aws_region": {
@@ -52,13 +51,13 @@
         "public_subnet_id": {
           "title": "Public Subnet ID",
           "type": "string",
-          "pattern": "^subnet-.*$",
+          "pattern": "^(|subnet-.*)$",
           "default": ""
         },
         "private_subnet_id": {
           "title": "Private Subnet ID",
           "type": "string",
-          "pattern": "^subnet-.*$",
+          "pattern": "^(|subnet-.*)$",
           "default": ""
         },
         "proxy_url": {
@@ -74,7 +73,6 @@
       "title": "Operating System",
       "type": "object",
       "required": ["family"],
-      "additionalProperties": false,
       "allOf": [
         {
           "if": {
@@ -92,11 +90,6 @@
                 "enum": ["amazon", "ubuntu", "rhel"],
                 "enumNames": ["Amazon Linux 2", "Ubuntu", "RHEL (Red Hat Enterprise Linux)"],
                 "default": "amazon"
-              },
-              "version": {
-                "title": "OS Version",
-                "type": "string",
-                "default": ""
               },
               "update_os_before_install": {
                 "title": "Update OS Before Install",

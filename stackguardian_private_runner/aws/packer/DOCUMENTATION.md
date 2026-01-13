@@ -36,22 +36,22 @@ Before deploying this template:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| Instance Type | EC2 instance type for the Packer build process | `t3.medium` |
+| Instance Type | EC2 instance type for the Packer build process (minimum 2 vCPU, 4GB RAM recommended) | `t3.medium` |
 | OS Family | Base operating system: Amazon Linux 2, Ubuntu, or RHEL | Amazon Linux 2 |
-| OS Version | Specific OS version (required for Ubuntu/RHEL) | Empty |
-| Update OS Before Install | Update OS packages before installing components | Enabled |
-| SSH Username | SSH username for the build instance | Auto-detected |
-| Custom User Script | Shell script for additional customization | Empty |
-| Packer Version | Version of HashiCorp Packer to use | `1.14.1` |
-| Enable Deregistration Protection | Prevent accidental AMI deletion | Enabled |
-| Enable Cooldown Period | 24-hour waiting period before deregistration | Disabled |
-| Delete EBS Snapshots | Delete snapshots during cleanup | Enabled |
+| OS Version | Specific OS version (required for Ubuntu/RHEL, e.g., "22.04" or "9.6") | Empty |
+| Update OS Before Install | Update OS packages before installing components for latest security patches | Enabled |
+| SSH Username | SSH username for the build instance (auto-detected based on OS if empty) | Auto-detected |
+| Custom User Script | Shell script for additional customization (runs after standard setup) | Empty |
+| Packer Version | Version of HashiCorp Packer to use for building the AMI | `1.14.1` |
+| Enable Deregistration Protection | Prevent accidental AMI deletion through AWS console or API | Enabled |
+| Enable Cooldown Period | 24-hour waiting period before allowing deregistration | Disabled |
+| Delete EBS Snapshots | Delete EBS snapshots during cleanup | Enabled |
 | Automatic AMI Cleanup | Auto-cleanup AMI on stack destroy | Enabled |
-| Primary Terraform Version | Main Terraform version to install | Empty |
-| Additional Terraform Versions | Extra Terraform versions to install | Empty |
-| Primary OpenTofu Version | Main OpenTofu version to install | Empty |
-| Additional OpenTofu Versions | Extra OpenTofu versions to install | Empty |
-| Proxy URL | HTTP proxy for private network builds | Empty |
+| Primary Terraform Version | Main Terraform version to install as `/bin/terraform` | Empty |
+| Additional Terraform Versions | Extra Terraform versions (installed as `/bin/terraform{version}`) | Empty |
+| Primary OpenTofu Version | Main OpenTofu version to install as `/bin/tofu` | Empty |
+| Additional OpenTofu Versions | Extra OpenTofu versions (installed as `/bin/tofu{version}`) | Empty |
+| Proxy URL | HTTP proxy for private network builds (e.g., `http://proxy.company.com:8080`) | Empty |
 
 ## Important Notes
 
@@ -76,12 +76,12 @@ Before deploying this template:
 The built AMI includes:
 
 - **Docker** - Container runtime for job execution
-- **cron** - Task scheduling
+- **cron** - Task scheduling service
 - **jq** - JSON processing utility
 - **wget, curl, unzip** - Essential utilities
 - **Terraform** - If specified, primary and additional versions
 - **OpenTofu** - If specified, primary and additional versions
-- **StackGuardian Runner** - sg-runner binary and startup scripts
+- **StackGuardian Runner** - sg-runner binary for workflow execution
 
 ## Operating System Support
 

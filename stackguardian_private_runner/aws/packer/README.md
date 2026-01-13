@@ -243,7 +243,7 @@ After creation, use the AMI ID with the AWS Private Runner deployment module:
 AMI_ID=$(terraform output -raw ami_id)
 
 # Deploy runners using this AMI
-cd ../aws_autoscaled_runner
+cd ../autoscaling_group_runner
 terraform apply -var="ami_id=$AMI_ID"
 ```
 
@@ -402,7 +402,7 @@ terraform apply
 
 After building your AMI:
 
-1. **Deploy Private Runners**: Use the `aws_autoscaled_runner` module with the created AMI ID
+1. **Deploy Private Runners**: Use the `autoscaling_group_runner` or `single_runner` module with the created AMI ID
 2. **Configure Runner Group**: Set up StackGuardian runner group using the `stackguardian_runner_group` module
 3. **Test the Deployment**: Verify runners connect to StackGuardian platform
 
