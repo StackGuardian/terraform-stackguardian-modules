@@ -90,6 +90,9 @@
     },
     "additional_security_group_ids": {
       "ui:description": "Additional security group IDs to attach to the instance (optional)"
+    },
+    "vpc_endpoint_security_group_ids": {
+      "ui:description": "Security group IDs of VPC endpoints (STS, SSM, ECR, etc.). An inbound rule will be added to allow HTTPS (443) traffic from the runner."
     }
   },
   "volume": {

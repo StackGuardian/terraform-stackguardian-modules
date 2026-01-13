@@ -105,15 +105,18 @@ variable "network" {
       When disabled, ensure private subnet has proper routing to internet for StackGuardian platform connectivity.
     - proxy_url: HTTP proxy URL for private network deployments (e.g., http://proxy.example.com:8080)
     - additional_security_group_ids: (Optional) Additional security group IDs to attach to the instance
+    - vpc_endpoint_security_group_ids: (Optional) Security group IDs of VPC endpoints (STS, SSM, ECR, etc.).
+      An inbound rule will be added to allow HTTPS (443) traffic from the runner's security group.
   EOT
   type = object({
-    vpc_id                        = string
-    private_subnet_id             = optional(string, "")
-    public_subnet_id              = optional(string, "")
-    associate_public_ip           = optional(bool, false)
-    create_network_infrastructure = optional(bool, false)
-    proxy_url                     = optional(string, "")
-    additional_security_group_ids = optional(list(string), [])
+    vpc_id                          = string
+    private_subnet_id               = optional(string, "")
+    public_subnet_id                = optional(string, "")
+    associate_public_ip             = optional(bool, false)
+    create_network_infrastructure   = optional(bool, false)
+    proxy_url                       = optional(string, "")
+    additional_security_group_ids   = optional(list(string), [])
+    vpc_endpoint_security_group_ids = optional(list(string), [])
   })
 
   validation {
