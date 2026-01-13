@@ -297,11 +297,29 @@ _install_opentofu_versions() { #{{{
 #}}}: _install_opentofu_versions
 
 _install_sg_runner() { #{{{
-  url="$(wget -qO- "https://api.github.com/repos/stackguardian/sg-runner/releases/latest" | jq -r '.tarball_url')"
   runner_archive="runner.tar.gz"
+  github_api_base="https://api.github.com/repos/stackguardian/sg-runner"
 
   echo "## ----------"
   echo ">> Installing sg-runner.."
+
+  # Determine which release to fetch based on SG_RUNNER_PRE_RELEASE env var
+  if [ "$SG_RUNNER_PRE_RELEASE" = "true" ]; then
+    echo ">> Fetching latest pre-release.."
+    url="$(wget -qO- "${github_api_base}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tarball_url // empty')"
+    if [ -z "$url" ]; then
+      echo ">> No pre-release found, falling back to latest stable.."
+      url="$(wget -qO- "${github_api_base}/releases/latest" | jq -r '.tarball_url')"
+    fi
+  else
+    echo ">> Fetching latest stable release.."
+    url="$(wget -qO- "${github_api_base}/releases/latest" | jq -r '.tarball_url')"
+  fi
+
+  if [ -z "$url" ]; then
+    echo "ERROR: Failed to fetch sg-runner release URL"
+    exit 1
+  fi
 
   _mktemp_directory && cd "$WORKING_DIR"
 
@@ -314,8 +332,75 @@ _install_sg_runner() { #{{{
     echo "ERROR: Failed to download from: $url"
     exit 1
   fi
+
+  # Save configuration for sg-runner-update
+  echo "# StackGuardian Runner configuration" | sudo tee /etc/sg-runner.conf > /dev/null
+  echo "SG_RUNNER_PRE_RELEASE=${SG_RUNNER_PRE_RELEASE:-false}" | sudo tee -a /etc/sg-runner.conf > /dev/null
+  echo ">> Saved config to /etc/sg-runner.conf"
 }
 #}}}: _install_sg_runner
+
+_install_sg_runner_update() { #{{{
+  echo "## ----------"
+  echo ">> Installing sg-runner-update script.."
+
+  sudo tee /usr/bin/sg-runner-update > /dev/null << 'SCRIPT_EOF'
+#!/bin/sh
+set -e
+
+GITHUB_API_BASE="https://api.github.com/repos/stackguardian/sg-runner"
+CONFIG_FILE="/etc/sg-runner.conf"
+
+# Read configuration
+SG_RUNNER_PRE_RELEASE="false"
+if [ -f "$CONFIG_FILE" ]; then
+  . "$CONFIG_FILE"
+fi
+
+# Determine download URL
+if [ -n "$1" ]; then
+  # Specific ref provided (tag, branch, or commit)
+  echo ">> Downloading sg-runner ref: $1"
+  url="${GITHUB_API_BASE}/tarball/$1"
+else
+  # No ref provided, use config to determine release type
+  if [ "$SG_RUNNER_PRE_RELEASE" = "true" ]; then
+    echo ">> Fetching latest pre-release.."
+    url="$(wget -qO- "${GITHUB_API_BASE}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tarball_url // empty')"
+    if [ -z "$url" ]; then
+      echo ">> No pre-release found, falling back to latest stable.."
+      url="$(wget -qO- "${GITHUB_API_BASE}/releases/latest" | jq -r '.tarball_url')"
+    fi
+  else
+    echo ">> Fetching latest stable release.."
+    url="$(wget -qO- "${GITHUB_API_BASE}/releases/latest" | jq -r '.tarball_url')"
+  fi
+fi
+
+if [ -z "$url" ]; then
+  echo "ERROR: Failed to determine download URL"
+  exit 1
+fi
+
+# Download and install
+TEMP_DIR="$(mktemp -d)"
+trap "rm -rf '$TEMP_DIR'" EXIT
+
+cd "$TEMP_DIR"
+echo ">> Downloading from: $url"
+wget -q "$url" -O runner.tar.gz
+
+tar -xf runner.tar.gz
+sudo cp -rf StackGuardian-sg-runner*/main.sh /usr/bin/sg-runner
+
+echo ">> sg-runner updated successfully!"
+echo ">> Installed to: $(which sg-runner)"
+SCRIPT_EOF
+
+  sudo chmod +x /usr/bin/sg-runner-update
+  echo ">> Installed sg-runner-update to /usr/bin/sg-runner-update"
+}
+#}}}: _install_sg_runner_update
 
 _user_script_wrapper() { #{{{
   script="$USER_SCRIPT"
@@ -373,6 +458,7 @@ main() { #{{{
   _install_opentofu_versions
 
   _install_sg_runner
+  _install_sg_runner_update
 
   _user_script_wrapper
 }

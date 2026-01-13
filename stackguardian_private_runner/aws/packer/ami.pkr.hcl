@@ -11,6 +11,7 @@ variable "terraform_version" {}
 variable "terraform_versions" {}
 variable "opentofu_version" {}
 variable "opentofu_versions" {}
+variable "sg_runner_pre_release" {}
 variable "user_script" {}
 variable "vpc_id" {}
 variable "deregistration_protection_enabled" {}
@@ -66,6 +67,7 @@ build {
       "TERRAFORM_VERSIONS=${var.terraform_versions}",
       "OPENTOFU_VERSION=${var.opentofu_version}",
       "OPENTOFU_VERSIONS=${var.opentofu_versions}",
+      "SG_RUNNER_PRE_RELEASE=${var.sg_runner_pre_release}",
       "USER_SCRIPT=${var.user_script}",
       "PRIVATE_NETWORK=${var.private_subnet_id != "" ? "true" : "false"}",
       "PROXY_URL=${var.proxy_url}"

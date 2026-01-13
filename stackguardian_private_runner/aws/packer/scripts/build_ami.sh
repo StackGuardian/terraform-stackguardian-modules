@@ -114,6 +114,7 @@ main() { #{{{
     -var "terraform_versions=$TERRAFORM_VERSIONS" \
     -var "opentofu_version=$OPENTOFU_VERSION" \
     -var "opentofu_versions=$OPENTOFU_VERSIONS" \
+    -var "sg_runner_pre_release=${SG_RUNNER_PRE_RELEASE:-false}" \
     -var "user_script=$USER_SCRIPT" \
     -var "vpc_id=$VPC_ID" \
     -var "deregistration_protection_enabled=$DEREGISTRATION_PROTECTION_ENABLED" \
