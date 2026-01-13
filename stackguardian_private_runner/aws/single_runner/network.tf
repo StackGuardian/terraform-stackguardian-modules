@@ -1,6 +1,6 @@
 # Security group for the EC2 instance (no SSH, only outbound)
 resource "aws_security_group" "this" {
-  name        = "${var.override_names.global_prefix}-private-runner"
+  name        = "${local.effective_prefix}-private-runner"
   description = "Block inbound (except SSH if provided) and Allow All outbound for Private Runner."
   vpc_id      = var.network.vpc_id
 

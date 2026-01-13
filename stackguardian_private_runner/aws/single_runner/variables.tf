@@ -78,9 +78,11 @@ variable "override_names" {
     Configuration for overriding default resource names.
 
     - global_prefix: Prefix used for naming all AWS resources created by this module
+    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
   EOT
   type = object({
-    global_prefix = string
+    global_prefix         = string
+    include_org_in_prefix = optional(bool, false)
   })
   default = {
     global_prefix = "SG_RUNNER"
@@ -95,8 +97,7 @@ variable "network" {
     Network configuration for the Private Runner instance.
 
     - vpc_id: Existing VPC ID for deployment
-    - subnet_id: Subnet ID for the instance (backwards compatible, use this OR private/public subnet combination)
-    - private_subnet_id: Private subnet ID (optional, for private deployments)
+    - private_subnet_id: Private subnet ID (for private deployments)
     - public_subnet_id: Public subnet ID (required when using NAT Gateway with create_network_infrastructure)
     - associate_public_ip: Whether to assign public IP to instance
     - create_network_infrastructure: Whether to create NAT Gateway and route tables for private subnet connectivity.
@@ -107,7 +108,6 @@ variable "network" {
   EOT
   type = object({
     vpc_id                        = string
-    subnet_id                     = optional(string, "")
     private_subnet_id             = optional(string, "")
     public_subnet_id              = optional(string, "")
     associate_public_ip           = optional(bool, false)
@@ -118,11 +118,10 @@ variable "network" {
 
   validation {
     condition = (
-      var.network.subnet_id != "" ||
       var.network.private_subnet_id != "" ||
       var.network.public_subnet_id != ""
     )
-    error_message = "At least one subnet must be provided (subnet_id, private_subnet_id, or public_subnet_id)."
+    error_message = "At least one subnet must be provided (private_subnet_id or public_subnet_id)."
   }
 
   validation {

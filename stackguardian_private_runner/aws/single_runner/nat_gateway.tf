@@ -7,7 +7,7 @@ resource "aws_eip" "nat" {
   domain = "vpc"
 
   tags = {
-    Name = "${var.override_names.global_prefix}-private-runner-nat-eip"
+    Name = "${local.effective_prefix}-private-runner-nat-eip"
   }
 }
 
@@ -18,7 +18,7 @@ resource "aws_nat_gateway" "this" {
   subnet_id     = var.network.public_subnet_id
 
   tags = {
-    Name = "${var.override_names.global_prefix}-private-runner-nat-gw"
+    Name = "${local.effective_prefix}-private-runner-nat-gw"
   }
 
   depends_on = [aws_eip.nat]
@@ -35,7 +35,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name = "${var.override_names.global_prefix}-private-runner-rt"
+    Name = "${local.effective_prefix}-private-runner-rt"
   }
 }
 

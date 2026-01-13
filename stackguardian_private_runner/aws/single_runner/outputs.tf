@@ -23,16 +23,19 @@ output "security_group_id" {
 
 output "iam_role_name" {
   description = "The name of the IAM role attached to the EC2 instance"
+  sensitive   = true
   value       = aws_iam_role.runner.name
 }
 
 output "iam_role_arn" {
   description = "The ARN of the IAM role attached to the EC2 instance"
+  sensitive   = true
   value       = aws_iam_role.runner.arn
 }
 
 output "iam_instance_profile_name" {
   description = "The name of the IAM instance profile"
+  sensitive   = true
   value       = aws_iam_instance_profile.this.name
 }
 

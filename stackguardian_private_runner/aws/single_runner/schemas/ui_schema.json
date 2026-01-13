@@ -1,15 +1,43 @@
 {
   "ui:title": "StackGuardian Private Runner for AWS",
   "ui:description": "Deploy a standalone StackGuardian Private Runner on AWS EC2. This module creates a single EC2 instance configured to register with your StackGuardian runner group.",
-  "instance_type": {
-    "ui:description": "The EC2 instance type for Private Runner (min 4 vCPU, 8GB RAM recommended)"
+  "ui:order": [
+    "stackguardian",
+    "aws_region",
+    "ami_id",
+    "runner_group_name",
+    "storage_backend_role_arn",
+    "instance_type",
+    "override_names",
+    "network",
+    "volume",
+    "firewall",
+    "runner_startup_timeout"
+  ],
+  "stackguardian": {
+    "ui:title": "StackGuardian Configuration",
+    "ui:description": "Configure your StackGuardian platform connection",
+    "ui:order": ["api_uri", "api_key", "org_name"],
+    "api_uri": {
+      "ui:widget": "select",
+      "ui:description": "Select your StackGuardian API region"
+    },
+    "api_key": {
+      "ui:placeholder": "sgu_***",
+      "ui:description": "Your organization's API key on the StackGuardian Platform"
+    },
+    "org_name": {
+      "ui:placeholder": "your-org-name (optional)",
+      "ui:description": "Your organization name on the StackGuardian Platform. If not provided, will be extracted from environment."
+    }
+  },
+  "aws_region": {
+    "ui:widget": "select",
+    "ui:description": "The target AWS Region for deployment"
   },
   "ami_id": {
     "ui:placeholder": "ami-***",
     "ui:description": "The AMI ID with pre-installed dependencies (docker, cron, jq, sg-runner). Required."
-  },
-  "aws_region": {
-    "ui:description": "The target AWS Region for deployment"
   },
   "runner_group_name": {
     "ui:placeholder": "my-runner-group",
@@ -19,28 +47,18 @@
     "ui:placeholder": "arn:aws:iam::***:role/***",
     "ui:description": "ARN of the IAM role for S3 storage backend access (from stackguardian_runner_group module)"
   },
-  "stackguardian": {
-    "ui:title": "StackGuardian Configuration",
-    "ui:description": "Configure your StackGuardian platform connection",
-    "api_key": {
-      "ui:placeholder": "sgu_***",
-      "ui:widget": "password",
-      "ui:description": "Your organization's API key on the StackGuardian Platform"
-    },
-    "org_name": {
-      "ui:placeholder": "your-org-name (optional)",
-      "ui:description": "Your organization name on the StackGuardian Platform. If not provided, will be extracted from environment."
-    },
-    "api_uri": {
-      "ui:widget": "select",
-      "ui:description": "Select your StackGuardian API region"
-    }
+  "instance_type": {
+    "ui:description": "The EC2 instance type for Private Runner (min 4 vCPU, 8GB RAM recommended)"
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",
     "ui:description": "Customize resource names (optional)",
     "global_prefix": {
       "ui:description": "Prefix for naming all AWS resources"
+    },
+    "include_org_in_prefix": {
+      "ui:widget": "checkbox",
+      "ui:description": "When enabled, appends organization name to the prefix (e.g., SG_RUNNER_my-org)"
     }
   },
   "network": {
@@ -50,16 +68,12 @@
       "ui:placeholder": "vpc-***",
       "ui:description": "Existing VPC ID for deployment"
     },
-    "subnet_id": {
-      "ui:placeholder": "subnet-***",
-      "ui:description": "Subnet ID for the runner instance (backwards compatible, use this OR private/public subnet combination)"
-    },
     "private_subnet_id": {
-      "ui:placeholder": "subnet-private-***",
-      "ui:description": "Private subnet ID for the runner instance (optional, for private deployments)"
+      "ui:placeholder": "subnet-***",
+      "ui:description": "Private subnet ID for the runner instance (for private deployments)"
     },
     "public_subnet_id": {
-      "ui:placeholder": "subnet-public-***",
+      "ui:placeholder": "subnet-***",
       "ui:description": "Public subnet ID (required when using NAT Gateway with create_network_infrastructure)"
     },
     "associate_public_ip": {

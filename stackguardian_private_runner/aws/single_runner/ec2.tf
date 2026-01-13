@@ -1,11 +1,11 @@
 # Create SSH key pair when custom public key is provided
 resource "aws_key_pair" "this" {
   count      = local.use_custom_key ? 1 : 0
-  key_name   = "${var.override_names.global_prefix}-private-runner-custom-key"
+  key_name   = "${local.effective_prefix}-private-runner-custom-key"
   public_key = var.firewall.ssh_public_key
 
   tags = {
-    Name = "${var.override_names.global_prefix}-private-runner-custom-key"
+    Name = "${local.effective_prefix}-private-runner-custom-key"
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_instance" "this" {
   )
 
   tags = {
-    Name = "${var.override_names.global_prefix}-private-runner"
+    Name = "${local.effective_prefix}-private-runner"
   }
 
   lifecycle {

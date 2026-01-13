@@ -4,7 +4,7 @@ Deploy a standalone StackGuardian Private Runner on AWS using the StackGuardian 
 
 ## Overview
 
-This template creates a single EC2 instance configured as a StackGuardian Private Runner. The runner automatically registers with your organization and executes workflows in your private AWS environment.
+This template creates a single EC2 instance configured as a StackGuardian Private Runner. The runner automatically registers with your organization and executes workflows in your private AWS environment, giving you full control over where your infrastructure code runs.
 
 ### What This Template Creates
 
@@ -16,7 +16,7 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 ## Prerequisites
 
 1. **StackGuardian API Key** - Generate from your organization settings (starts with `sgu_` or `sgo_`)
-2. **Custom AMI** - Build using the Packer template with required dependencies (docker, cron, jq, sg-runner)
+2. **Custom AMI** - Build using the Packer template with required dependencies
 3. **Runner Group** - Create using the Runner Group template to get the runner group name and storage backend role ARN
 4. **AWS VPC** - Existing VPC with at least one subnet
 
@@ -26,22 +26,22 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 
 | Parameter | Description | Type |
 |-----------|-------------|------|
+| API Key | Your StackGuardian API key | `string` |
 | AMI ID | The AMI with pre-installed dependencies (docker, cron, jq, sg-runner) | `string` |
 | Runner Group Name | Name of the runner group from the Runner Group template | `string` |
 | Storage Backend Role ARN | IAM role ARN for S3 storage access from the Runner Group template | `string` |
-| API Key | Your StackGuardian API key | `string` |
 | VPC ID | Existing VPC for deployment | `string` |
 
 ### Optional Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| Instance Type | EC2 instance type (min 4 vCPU, 8GB RAM recommended) | `t3.xlarge` |
-| AWS Region | Target AWS region for deployment | `eu-central-1` |
-| API Region | StackGuardian API endpoint (EU1 or US1) | EU1 - Europe |
+| API Region | StackGuardian API endpoint (EU1, US1, or DASH) | EU1 - Europe |
 | Organization Name | Your organization name (auto-detected if not provided) | - |
+| AWS Region | Target AWS region for deployment | `eu-central-1` |
+| Instance Type | EC2 instance type (min 4 vCPU, 8GB RAM recommended) | `t3.xlarge` |
 | Global Prefix | Prefix for naming all AWS resources | `SG_RUNNER` |
-| Subnet ID | Subnet for the runner instance | - |
+| Include Organization in Prefix | Append organization name to resource prefix | `false` |
 | Private Subnet ID | Private subnet for secure deployments | - |
 | Public Subnet ID | Public subnet (required for NAT Gateway) | - |
 | Associate Public IP | Assign a public IP to the instance | `false` |
@@ -65,6 +65,8 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 
 **Network Connectivity**: The runner needs outbound HTTPS (port 443) access to communicate with StackGuardian. For private subnet deployments, enable NAT Gateway creation or configure a proxy URL.
 
+**Subnet Priority**: When both private and public subnets are provided, the instance is deployed to the private subnet.
+
 **SSH Access**: SSH access is disabled by default. To enable, provide an SSH key and configure access rules with allowed CIDR blocks.
 
 ## Outputs
@@ -76,6 +78,8 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 | Public IP | External IP address (if assigned) |
 | Security Group ID | ID of the created security group |
 | IAM Role ARN | Role ARN for reference in other configurations |
+| NAT Gateway ID | NAT Gateway identifier (when created) |
+| NAT Gateway Public IP | NAT Gateway external IP (when created) |
 
 ## Security Features
 
@@ -84,6 +88,7 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 - Security group allows only outbound HTTPS by default
 - SSH access requires explicit configuration
 - API keys stored as sensitive values
+- SSM Session Manager enabled for secure access without SSH
 - Private subnet deployment supported with NAT Gateway or proxy
 
 ## Usage

@@ -1,9 +1,9 @@
-# Extract SG org name and API URI from environment if not provided
+# Extract SG org name from environment if not provided
 data "external" "env" {
   program = [
     "sh",
     "-c",
-    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\", \"sg_api_uri\": \"'$${SG_API_URI:-https://api.app.stackguardian.io}'\"}'"
+    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\"}'"
   ]
 }
 
@@ -14,16 +14,18 @@ locals {
     ? var.stackguardian.org_name
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = (
-    var.stackguardian.api_uri != ""
-    ? var.stackguardian.api_uri
-    : data.external.env.result.sg_api_uri
+  sg_api_uri = var.stackguardian.api_uri
+
+  # Effective prefix for resource naming (optionally includes org name)
+  effective_prefix = (
+    var.override_names.include_org_in_prefix && local.sg_org_name != ""
+    ? "${var.override_names.global_prefix}_${local.sg_org_name}"
+    : var.override_names.global_prefix
   )
 
   # Determine which subnet to use for EC2 instance
-  # Priority: subnet_id > private_subnet_id > public_subnet_id
+  # Priority: private_subnet_id > public_subnet_id
   subnet_id = coalesce(
-    var.network.subnet_id,
     var.network.private_subnet_id,
     var.network.public_subnet_id
   )

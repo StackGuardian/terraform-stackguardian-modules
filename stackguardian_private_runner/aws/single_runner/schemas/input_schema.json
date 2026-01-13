@@ -1,15 +1,36 @@
 {
   "type": "object",
   "properties": {
-    "instance_type": {
-      "title": "Instance Type",
-      "type": "string",
-      "default": "t3.xlarge"
-    },
-    "ami_id": {
-      "title": "AMI ID",
-      "type": "string",
-      "pattern": "^ami-.*$"
+    "stackguardian": {
+      "title": "StackGuardian Configuration",
+      "type": "object",
+      "properties": {
+        "api_uri": {
+          "title": "API Region",
+          "type": "string",
+          "enum": [
+            "https://api.app.stackguardian.io",
+            "https://api.us.stackguardian.io",
+            "https://testapi.qa.stackguardian.io"
+          ],
+          "enumNames": [
+            "EU1 - Europe",
+            "US1 - East",
+            "DASH - QA Environment"
+          ],
+          "default": "https://api.app.stackguardian.io"
+        },
+        "api_key": {
+          "title": "API Key",
+          "type": "string"
+        },
+        "org_name": {
+          "title": "Organization Name",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["api_key"]
     },
     "aws_region": {
       "title": "AWS Region",
@@ -47,6 +68,11 @@
       ],
       "default": "eu-central-1"
     },
+    "ami_id": {
+      "title": "AMI ID",
+      "type": "string",
+      "pattern": "^ami-.*$"
+    },
     "runner_group_name": {
       "title": "Runner Group Name",
       "type": "string"
@@ -56,34 +82,10 @@
       "type": "string",
       "pattern": "^arn:aws:iam::[0-9]+:role/.*$"
     },
-    "stackguardian": {
-      "title": "StackGuardian Configuration",
-      "type": "object",
-      "properties": {
-        "api_key": {
-          "title": "API Key",
-          "type": "string"
-        },
-        "api_uri": {
-          "title": "API Region",
-          "type": "string",
-          "enum": [
-            "https://api.app.stackguardian.io",
-            "https://api.us.stackguardian.io"
-          ],
-          "enumNames": [
-            "EU1 - Europe",
-            "US1 - East"
-          ],
-          "default": "https://api.app.stackguardian.io"
-        },
-        "org_name": {
-          "title": "Organization Name",
-          "type": "string",
-          "default": ""
-        }
-      },
-      "required": ["api_key"]
+    "instance_type": {
+      "title": "Instance Type",
+      "type": "string",
+      "default": "t3.xlarge"
     },
     "override_names": {
       "title": "Resource Naming",
@@ -93,6 +95,11 @@
           "title": "Global Prefix",
           "type": "string",
           "default": "SG_RUNNER"
+        },
+        "include_org_in_prefix": {
+          "title": "Include Organization in Prefix",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": ["global_prefix"],
@@ -106,12 +113,6 @@
           "title": "VPC ID",
           "type": "string",
           "pattern": "^vpc-.*$"
-        },
-        "subnet_id": {
-          "title": "Subnet ID (Legacy)",
-          "type": "string",
-          "pattern": "^(|subnet-.*)$",
-          "default": ""
         },
         "private_subnet_id": {
           "title": "Private Subnet ID",
