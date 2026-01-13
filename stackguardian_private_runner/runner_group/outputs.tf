@@ -3,11 +3,13 @@
  +---------------------------------*/
 output "runner_group_name" {
   description = "The name of the StackGuardian runner group"
+  sensitive   = true
   value       = stackguardian_runner_group.this.resource_name
 }
 
 output "runner_group_id" {
   description = "The ID of the StackGuardian runner group"
+  sensitive   = true
   value       = stackguardian_runner_group.this.resource_name
 }
 
@@ -28,11 +30,13 @@ output "runner_group_url" {
  +---------------------------------*/
 output "connector_name" {
   description = "The name of the StackGuardian connector"
+  sensitive   = true
   value       = stackguardian_connector.this.resource_name
 }
 
 output "connector_id" {
   description = "The ID of the StackGuardian connector"
+  sensitive   = true
   value       = stackguardian_connector.this.resource_name
 }
 
@@ -57,11 +61,13 @@ output "s3_bucket_arn" {
 
 output "storage_backend_role_arn" {
   description = "The ARN of the IAM role for storage backend access"
+  sensitive   = true
   value       = aws_iam_role.storage_backend.arn
 }
 
 output "storage_backend_role_name" {
   description = "The name of the IAM role for storage backend access"
+  sensitive   = true
   value       = aws_iam_role.storage_backend.name
 }
 
