@@ -1,8 +1,17 @@
 {
   "ui:title": "StackGuardian Private Runner - Packer AMI Builder",
   "ui:description": "Build a custom AMI for StackGuardian Private Runner with pre-installed dependencies including Docker, Terraform, OpenTofu, and StackGuardian runner components. This AMI can then be used with the AWS deployment template for optimal performance.",
+  "ui:order": [
+    "aws_region",
+    "network",
+    "os",
+    "instance_type",
+    "packer_config",
+    "terraform",
+    "opentofu"
+  ],
   "aws_region": {
-    "ui:placeholder": "eu-central-1",
+    "ui:widget": "select",
     "ui:description": "The AWS region where the AMI will be built"
   },
   "network": {
@@ -26,6 +35,7 @@
     }
   },
   "instance_type": {
+    "ui:placeholder": "t3.medium",
     "ui:description": "EC2 instance type for the Packer build process (minimum 2 vCPU, 4GB RAM recommended for faster builds)"
   },
   "os": {
@@ -40,7 +50,7 @@
     },
     "update_os_before_install": {
       "ui:widget": "checkbox",
-      "ui:description": "⚠️ Recommended for production: Update OS packages before installing StackGuardian components to include latest security patches. This will increase build time but improve security."
+      "ui:description": "Recommended for production: Update OS packages before installing StackGuardian components to include latest security patches. This will increase build time but improve security."
     },
     "ssh_username": {
       "ui:placeholder": "auto-detected based on OS family",
@@ -56,6 +66,7 @@
   "packer_config": {
     "ui:title": "Build Tool Configuration",
     "version": {
+      "ui:placeholder": "1.14.1",
       "ui:description": "Version of HashiCorp Packer to use for building the AMI"
     },
     "deregistration_protection": {
@@ -78,7 +89,7 @@
     "cleanup_amis_on_destroy": {
       "ui:widget": "checkbox",
       "ui:title": "Automatic AMI Cleanup",
-      "ui:description": "⚠️ When enabled, AMIs and associated EBS snapshots will be automatically deleted when running 'terraform destroy'. Disable this if you want to preserve AMIs for manual cleanup or if they're used by other resources."
+      "ui:description": "When enabled, AMIs and associated EBS snapshots will be automatically deleted when running 'terraform destroy'. Disable this if you want to preserve AMIs for manual cleanup or if they're used by other resources."
     }
   },
   "terraform": {

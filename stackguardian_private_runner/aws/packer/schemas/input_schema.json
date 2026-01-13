@@ -3,41 +3,78 @@
   "type": "object",
   "properties": {
     "aws_region": {
-      "type": "string"
+      "title": "AWS Region",
+      "type": "string",
+      "enum": [
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+        "eu-central-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-south-2",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-southeast-3",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-south-2",
+        "ap-east-1",
+        "sa-east-1",
+        "ca-central-1",
+        "me-south-1",
+        "me-central-1",
+        "af-south-1",
+        "il-central-1"
+      ],
+      "default": "eu-central-1"
     },
     "instance_type": {
+      "title": "Instance Type",
       "type": "string",
       "default": "t3.medium"
     },
     "network": {
+      "title": "Network Configuration",
       "type": "object",
       "properties": {
         "vpc_id": {
+          "title": "VPC ID",
           "type": "string",
           "pattern": "^vpc-.*$"
         },
         "public_subnet_id": {
+          "title": "Public Subnet ID",
           "type": "string",
-          "pattern": "^subnet-.*$"
+          "pattern": "^subnet-.*$",
+          "default": ""
         },
         "private_subnet_id": {
+          "title": "Private Subnet ID",
           "type": "string",
-          "pattern": "^subnet-.*$"
+          "pattern": "^subnet-.*$",
+          "default": ""
         },
         "proxy_url": {
+          "title": "Proxy URL",
           "type": "string",
           "default": ""
         }
       },
-      "required": [
-        "vpc_id"
-      ]
+      "required": ["vpc_id"],
+      "additionalProperties": false
     },
     "os": {
+      "title": "Operating System",
       "type": "object",
-      "required": [
-        "family"
-      ],
+      "required": ["family"],
+      "additionalProperties": false,
       "allOf": [
         {
           "if": {
@@ -50,23 +87,29 @@
           "then": {
             "properties": {
               "family": {
+                "title": "OS Family",
                 "type": "string",
-                "enum": [
-                  "amazon",
-                  "ubuntu",
-                  "rhel"
-                ],
+                "enum": ["amazon", "ubuntu", "rhel"],
+                "enumNames": ["Amazon Linux 2", "Ubuntu", "RHEL (Red Hat Enterprise Linux)"],
                 "default": "amazon"
               },
+              "version": {
+                "title": "OS Version",
+                "type": "string",
+                "default": ""
+              },
               "update_os_before_install": {
+                "title": "Update OS Before Install",
                 "type": "boolean",
                 "default": true
               },
               "ssh_username": {
+                "title": "SSH Username",
                 "type": "string",
                 "default": ""
               },
               "user_script": {
+                "title": "Custom User Script",
                 "type": "string",
                 "default": ""
               }
@@ -86,89 +129,94 @@
           "then": {
             "properties": {
               "family": {
+                "title": "OS Family",
                 "type": "string",
-                "enum": [
-                  "amazon",
-                  "ubuntu",
-                  "rhel"
-                ],
+                "enum": ["amazon", "ubuntu", "rhel"],
+                "enumNames": ["Amazon Linux 2", "Ubuntu", "RHEL (Red Hat Enterprise Linux)"],
                 "default": "amazon"
               },
               "version": {
+                "title": "OS Version",
                 "type": "string",
                 "minLength": 1
               },
               "update_os_before_install": {
+                "title": "Update OS Before Install",
                 "type": "boolean",
                 "default": true
               },
               "ssh_username": {
+                "title": "SSH Username",
                 "type": "string",
                 "default": ""
               },
               "user_script": {
+                "title": "Custom User Script",
                 "type": "string",
                 "default": ""
               }
             },
-            "required": [
-              "version"
-            ]
+            "required": ["version"]
           }
         }
       ]
     },
     "packer_config": {
+      "title": "Packer Configuration",
       "type": "object",
       "properties": {
         "version": {
+          "title": "Packer Version",
           "type": "string",
           "default": "1.14.1",
           "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         },
         "deregistration_protection": {
+          "title": "Deregistration Protection",
           "type": "object",
           "properties": {
             "enabled": {
+              "title": "Enable Protection",
               "type": "boolean",
               "default": true
             },
             "with_cooldown": {
+              "title": "With Cooldown",
               "type": "boolean",
               "default": false
             }
           },
-          "required": [
-            "enabled",
-            "with_cooldown"
-          ],
           "default": {
             "enabled": true,
             "with_cooldown": false
-          }
+          },
+          "additionalProperties": false
         },
         "delete_snapshots": {
+          "title": "Delete Snapshots",
           "type": "boolean",
           "default": true
         },
         "cleanup_amis_on_destroy": {
+          "title": "Cleanup AMIs on Destroy",
           "type": "boolean",
           "default": true
         }
       },
-      "required": [
-        "version"
-      ]
+      "additionalProperties": false
     },
     "terraform": {
+      "title": "Terraform Installation",
       "type": "object",
       "properties": {
         "primary_version": {
+          "title": "Primary Version",
           "type": "string",
           "default": "",
           "pattern": "^(|[0-9]+\\.[0-9]+\\.[0-9]+)$"
         },
         "additional_versions": {
+          "title": "Additional Versions",
           "type": "array",
           "items": {
             "type": "string",
@@ -177,17 +225,20 @@
           "default": []
         }
       },
-      "required": []
+      "additionalProperties": false
     },
     "opentofu": {
+      "title": "OpenTofu Installation",
       "type": "object",
       "properties": {
         "primary_version": {
+          "title": "Primary Version",
           "type": "string",
           "default": "",
           "pattern": "^(|[0-9]+\\.[0-9]+\\.[0-9]+)$"
         },
         "additional_versions": {
+          "title": "Additional Versions",
           "type": "array",
           "items": {
             "type": "string",
@@ -196,11 +247,8 @@
           "default": []
         }
       },
-      "required": []
+      "additionalProperties": false
     }
   },
-  "required": [
-    "aws_region",
-    "network"
-  ]
+  "required": ["aws_region", "network"]
 }
