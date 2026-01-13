@@ -17,18 +17,32 @@ locals {
   )
   sg_api_uri = data.external.env.result.sg_api_uri
 
+  # Computed prefix with optional org name
+  effective_prefix = (
+    var.override_names.include_org_in_prefix
+    ? "${var.override_names.global_prefix}_${local.sg_org_name}"
+    : var.override_names.global_prefix
+  )
+
   # Resource naming
   runner_group_name = (
     var.override_names.runner_group_name != ""
     ? var.override_names.runner_group_name
-    : "${var.override_names.global_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
+    : "${local.effective_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
   )
 
   connector_name = (
     var.override_names.connector_name != ""
     ? var.override_names.connector_name
-    : "${var.override_names.global_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
+    : "${local.effective_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
   )
+
+  # Default tags (not editable by user)
+  default_tags = [
+    "StackGuardian Private Runner",
+    local.runner_group_name,
+    local.sg_org_name
+  ]
 
   # S3 bucket name (created or existing)
   s3_bucket_name = (

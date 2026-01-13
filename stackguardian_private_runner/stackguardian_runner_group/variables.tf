@@ -57,13 +57,15 @@ variable "override_names" {
     Configuration for overriding default resource names.
 
     - global_prefix: Prefix used for naming all resources created by this module
-    - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {global_prefix}-runner-group-{account_id}
-    - connector_name: Override the default StackGuardian connector name. If not provided, uses {global_prefix}-private-runner-backend-{account_id}
+    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
+    - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {effective_prefix}-runner-group-{account_id}
+    - connector_name: Override the default StackGuardian connector name. If not provided, uses {effective_prefix}-private-runner-backend-{account_id}
   EOT
   type = object({
-    global_prefix     = string
-    runner_group_name = optional(string, "")
-    connector_name    = optional(string, "")
+    global_prefix         = string
+    include_org_in_prefix = optional(bool, false)
+    runner_group_name     = optional(string, "")
+    connector_name        = optional(string, "")
   })
   default = {
     global_prefix = "SG_RUNNER"
@@ -84,8 +86,3 @@ variable "max_runners" {
   }
 }
 
-variable "runner_group_tags" {
-  description = "Tags to apply to the runner group"
-  type        = list(string)
-  default     = ["private-runner"]
-}

@@ -52,37 +52,6 @@
         "me-central-1",
         "sa-east-1"
       ],
-      "enumNames": [
-        "US East (N. Virginia)",
-        "US East (Ohio)",
-        "US West (N. California)",
-        "US West (Oregon)",
-        "Africa (Cape Town)",
-        "Asia Pacific (Hong Kong)",
-        "Asia Pacific (Mumbai)",
-        "Asia Pacific (Hyderabad)",
-        "Asia Pacific (Singapore)",
-        "Asia Pacific (Sydney)",
-        "Asia Pacific (Jakarta)",
-        "Asia Pacific (Melbourne)",
-        "Asia Pacific (Tokyo)",
-        "Asia Pacific (Seoul)",
-        "Asia Pacific (Osaka)",
-        "Canada (Central)",
-        "Canada (Calgary)",
-        "Europe (Frankfurt)",
-        "Europe (Zurich)",
-        "Europe (Ireland)",
-        "Europe (London)",
-        "Europe (Paris)",
-        "Europe (Milan)",
-        "Europe (Spain)",
-        "Europe (Stockholm)",
-        "Israel (Tel Aviv)",
-        "Middle East (Bahrain)",
-        "Middle East (UAE)",
-        "South America (São Paulo)"
-      ],
       "default": "eu-central-1"
     },
     "create_storage_backend": {
@@ -98,6 +67,11 @@
           "title": "Global Prefix",
           "type": "string",
           "default": "SG_RUNNER"
+        },
+        "include_org_in_prefix": {
+          "title": "Include Organization Name in Prefix",
+          "type": "boolean",
+          "default": false
         },
         "runner_group_name": {
           "title": "Runner Group Name Override",
@@ -118,14 +92,6 @@
       "type": "integer",
       "default": 3,
       "minimum": 1
-    },
-    "runner_group_tags": {
-      "title": "Runner Group Tags",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": ["private-runner"]
     }
   },
   "dependencies": {

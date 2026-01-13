@@ -15,5 +15,5 @@ resource "stackguardian_runner_group" "this" {
     }
   }
 
-  tags = concat(var.runner_group_tags, [var.override_names.global_prefix])
+  tags = local.default_tags
 }
