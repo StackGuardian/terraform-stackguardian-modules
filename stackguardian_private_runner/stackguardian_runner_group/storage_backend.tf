@@ -1,7 +1,7 @@
-# S3 Bucket for Storage Backend (only created when create_storage_backend = true and mode = "create")
+# S3 Bucket for Storage Backend (only created when create_storage_backend = true)
 
 resource "random_string" "storage_backend_prefix" {
-  count = var.create_storage_backend && var.mode == "create" ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   length  = 8
   special = false
@@ -9,14 +9,14 @@ resource "random_string" "storage_backend_prefix" {
 }
 
 resource "aws_s3_bucket" "this" {
-  count = var.create_storage_backend && var.mode == "create" ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket        = "${random_string.storage_backend_prefix[0].result}-private-runner-storage-backend"
   force_destroy = var.force_destroy_storage_backend
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
-  count = var.create_storage_backend && var.mode == "create" ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
 
@@ -27,14 +27,13 @@ resource "aws_s3_bucket_public_access_block" "this" {
 }
 
 resource "aws_s3_bucket_cors_configuration" "this" {
-  count = var.create_storage_backend && var.mode == "create" ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
 
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD", "PUT"]
-    # allowed_origins = ["https://app.stackguardian.io"]
     allowed_origins = [
       "${replace(local.sg_api_uri, "api.", "")}"
     ]

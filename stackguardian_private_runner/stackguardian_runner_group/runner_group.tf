@@ -1,8 +1,6 @@
-# StackGuardian Runner Group (only created when mode = "create")
+# StackGuardian Runner Group
 
 resource "stackguardian_runner_group" "this" {
-  count = var.mode == "create" ? 1 : 0
-
   resource_name = local.runner_group_name
   description   = "Private Runner Group for AWS S3 storage backend"
 
@@ -13,7 +11,7 @@ resource "stackguardian_runner_group" "this" {
     aws_region     = var.aws_region
     s3_bucket_name = local.s3_bucket_name
     auth = {
-      integration_id = "/integrations/${stackguardian_connector.this[0].resource_name}"
+      integration_id = "/integrations/${stackguardian_connector.this.resource_name}"
     }
   }
 

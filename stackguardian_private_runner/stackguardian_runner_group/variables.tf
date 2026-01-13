@@ -1,27 +1,3 @@
-/*-------------------+
- | Mode Configuration |
- +-------------------*/
-variable "mode" {
-  description = <<EOT
-    Module operation mode:
-    - "create": Creates a new runner group with all associated resources
-    - "existing": Uses an existing runner group and fetches its configuration via data sources
-  EOT
-  type    = string
-  default = "create"
-
-  validation {
-    condition     = contains(["create", "existing"], var.mode)
-    error_message = "Mode must be either 'create' or 'existing'."
-  }
-}
-
-variable "existing_runner_group_name" {
-  description = "Name of an existing StackGuardian runner group (required when mode = 'existing')"
-  type        = string
-  default     = ""
-}
-
 /*---------------------------+
  | Storage Backend Options   |
  +---------------------------*/
@@ -30,8 +6,8 @@ variable "create_storage_backend" {
     Whether to create a new S3 bucket for storage backend.
     Set to false to use an existing S3 bucket.
   EOT
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 variable "existing_s3_bucket_name" {
@@ -46,8 +22,8 @@ variable "force_destroy_storage_backend" {
     This will delete all data in the bucket, so use with caution.
     Default is false, meaning the bucket will not be deleted if it contains objects.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 /*-----------------------------------+
