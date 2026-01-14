@@ -1,0 +1,130 @@
+{
+  "ui:title": "StackGuardian Runner Autoscaler",
+  "ui:description": "Deploy a Lambda-based autoscaler that monitors StackGuardian job queues and scales the Auto Scaling Group up or down based on workload demand.",
+  "ui:order": [
+    "stackguardian",
+    "runner_type",
+    "aws_region",
+    "asg_name",
+    "runner_group_name",
+    "s3_bucket_name",
+    "scaling",
+    "override_names",
+    "lambda_config",
+    "autoscaler_repo"
+  ],
+  "stackguardian": {
+    "ui:title": "StackGuardian Configuration",
+    "ui:description": "Configure your StackGuardian platform connection",
+    "ui:order": ["api_uri", "api_key", "org_name"],
+    "api_uri": {
+      "ui:widget": "select",
+      "ui:description": "Select your StackGuardian platform region"
+    },
+    "api_key": {
+      "ui:placeholder": "sgu_*** or ${secret::SECRET_NAME}",
+      "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})"
+    },
+    "org_name": {
+      "ui:placeholder": "your-org-name",
+      "ui:description": "Your organization name on the StackGuardian Platform"
+    }
+  },
+  "runner_type": {
+    "ui:widget": "select",
+    "ui:description": "Select the type of StackGuardian runner. 'External' for private runners, 'Shared External' for managed shared runners."
+  },
+  "aws_region": {
+    "ui:widget": "select",
+    "ui:placeholder": "Select AWS Region",
+    "ui:description": "The target AWS Region to deploy the autoscaler Lambda function"
+  },
+  "asg_name": {
+    "ui:placeholder": "my-asg-name",
+    "ui:description": "The name of the Auto Scaling Group to scale (output from autoscaling_group module)"
+  },
+  "runner_group_name": {
+    "ui:placeholder": "my-runner-group",
+    "ui:description": "The name of the StackGuardian runner group (output from runner_group module)"
+  },
+  "s3_bucket_name": {
+    "ui:placeholder": "my-s3-bucket",
+    "ui:description": "The name of the S3 bucket for storage backend (output from runner_group module)"
+  },
+  "scaling": {
+    "ui:title": "Scaling Configuration",
+    "ui:description": "Configure auto-scaling thresholds and behavior",
+    "ui:order": [
+      "min_size",
+      "scale_out_threshold",
+      "scale_in_threshold",
+      "scale_out_step",
+      "scale_in_step",
+      "scale_out_cooldown_duration",
+      "scale_in_cooldown_duration"
+    ],
+    "min_size": {
+      "ui:description": "Minimum number of runners to maintain"
+    },
+    "scale_out_threshold": {
+      "ui:description": "Number of queued jobs to trigger scale-out"
+    },
+    "scale_in_threshold": {
+      "ui:description": "Number of queued jobs below which to trigger scale-in"
+    },
+    "scale_out_step": {
+      "ui:description": "Number of instances to add when scaling out"
+    },
+    "scale_in_step": {
+      "ui:description": "Number of instances to remove when scaling in"
+    },
+    "scale_out_cooldown_duration": {
+      "ui:description": "Minutes to wait after scale-out before scaling again (minimum: 4)"
+    },
+    "scale_in_cooldown_duration": {
+      "ui:description": "Minutes to wait after scale-in before scaling again"
+    }
+  },
+  "override_names": {
+    "ui:title": "Resource Naming Configuration",
+    "ui:description": "Customize resource names (optional)",
+    "ui:order": ["global_prefix", "include_org_in_prefix"],
+    "global_prefix": {
+      "ui:placeholder": "SG_RUNNER",
+      "ui:description": "Prefix for naming all resources created by this module"
+    },
+    "include_org_in_prefix": {
+      "ui:widget": "checkbox",
+      "ui:description": "When enabled, appends organization name to the global prefix (e.g., SG_RUNNER_demo-org)"
+    }
+  },
+  "lambda_config": {
+    "ui:title": "Lambda Configuration",
+    "ui:description": "Configure the Lambda function settings (optional)",
+    "ui:order": ["runtime", "timeout", "memory_size"],
+    "runtime": {
+      "ui:widget": "select",
+      "ui:description": "Python runtime version for the Lambda function"
+    },
+    "timeout": {
+      "ui:description": "Timeout in seconds for the Lambda function"
+    },
+    "memory_size": {
+      "ui:widget": "select",
+      "ui:description": "Memory size in MB for the Lambda function"
+    }
+  },
+  "autoscaler_repo": {
+    "ui:title": "Autoscaler Repository",
+    "ui:description": "Configure the source repository for the autoscaler Lambda code (optional)",
+    "ui:order": ["url", "branch"],
+    "url": {
+      "ui:placeholder": "https://github.com/StackGuardian/sg-runner-autoscaler",
+      "ui:description": "Git repository URL containing the autoscaler Lambda source code"
+    },
+    "branch": {
+      "ui:placeholder": "main",
+      "ui:description": "Git branch to use for the autoscaler Lambda source code"
+    }
+  }
+}
