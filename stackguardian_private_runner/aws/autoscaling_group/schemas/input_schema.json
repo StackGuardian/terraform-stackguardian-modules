@@ -1,9 +1,11 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "stackguardian": {
       "title": "StackGuardian Configuration",
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "api_uri": {
           "title": "API Region",
@@ -23,8 +25,7 @@
         "api_key": {
           "title": "API Key",
           "type": "string",
-          "pattern": "^sg[uo]_.*",
-          "minLength": 1
+          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$"
         },
         "org_name": {
           "title": "Organization Name",
@@ -281,37 +282,6 @@
           "title": "Desired Capacity",
           "type": "integer",
           "default": 1
-        },
-        "scale_out_threshold": {
-          "title": "Scale Out Threshold",
-          "type": "integer",
-          "default": 3
-        },
-        "scale_in_threshold": {
-          "title": "Scale In Threshold",
-          "type": "integer",
-          "default": 1
-        },
-        "scale_out_step": {
-          "title": "Scale Out Step",
-          "type": "integer",
-          "default": 1
-        },
-        "scale_in_step": {
-          "title": "Scale In Step",
-          "type": "integer",
-          "default": 1
-        },
-        "scale_out_cooldown_duration": {
-          "title": "Scale Out Cooldown (minutes)",
-          "type": "integer",
-          "minimum": 4,
-          "default": 4
-        },
-        "scale_in_cooldown_duration": {
-          "title": "Scale In Cooldown (minutes)",
-          "type": "integer",
-          "default": 5
         }
       },
       "additionalProperties": false

@@ -23,8 +23,8 @@
       "ui:description": "Select your StackGuardian API region"
     },
     "api_key": {
-      "ui:placeholder": "sgu_***",
-      "ui:description": "Your organization's API key on the StackGuardian Platform"
+      "ui:placeholder": "sgu_*** or sgo_*** or ${secret::SECRET_NAME}",
+      "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})"
     },
     "org_name": {
       "ui:placeholder": "your-org-name (optional)",
@@ -53,6 +53,7 @@
   "override_names": {
     "ui:title": "Resource Naming Configuration",
     "ui:description": "Customize resource names (optional)",
+    "ui:order": ["global_prefix", "include_org_in_prefix"],
     "global_prefix": {
       "ui:description": "Prefix for naming all AWS resources"
     },

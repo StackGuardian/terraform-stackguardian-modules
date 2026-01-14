@@ -28,8 +28,8 @@
       "ui:description": "Select your StackGuardian API region"
     },
     "api_key": {
-      "ui:placeholder": "sgu_***",
-      "ui:description": "Your organization's API key on the StackGuardian Platform"
+      "ui:placeholder": "sgu_*** or sgo_*** or ${secret::SECRET_NAME}",
+      "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})"
     },
     "org_name": {
       "ui:placeholder": "your-org-name (optional)",
@@ -174,17 +174,11 @@
   },
   "scaling": {
     "ui:title": "Auto Scaling Configuration",
-    "ui:description": "Configure scaling behavior for the runner fleet",
+    "ui:description": "Configure capacity limits for the runner fleet",
     "ui:order": [
       "min_size",
       "max_size",
-      "desired_capacity",
-      "scale_out_threshold",
-      "scale_in_threshold",
-      "scale_out_step",
-      "scale_in_step",
-      "scale_out_cooldown_duration",
-      "scale_in_cooldown_duration"
+      "desired_capacity"
     ],
     "min_size": {
       "ui:description": "Minimum number of runner instances (must be at least 1)"
@@ -194,24 +188,6 @@
     },
     "desired_capacity": {
       "ui:description": "Initial desired number of runner instances"
-    },
-    "scale_out_threshold": {
-      "ui:description": "Number of queued jobs that triggers scale-out"
-    },
-    "scale_in_threshold": {
-      "ui:description": "Number of queued jobs that triggers scale-in"
-    },
-    "scale_out_step": {
-      "ui:description": "Number of instances to add per scale-out event"
-    },
-    "scale_in_step": {
-      "ui:description": "Number of instances to remove per scale-in event"
-    },
-    "scale_out_cooldown_duration": {
-      "ui:description": "Minutes to wait between scale-out events (minimum 4)"
-    },
-    "scale_in_cooldown_duration": {
-      "ui:description": "Minutes to wait between scale-in events"
     }
   },
   "runner_startup_timeout": {

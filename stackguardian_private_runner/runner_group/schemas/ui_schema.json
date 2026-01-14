@@ -19,8 +19,8 @@
       "ui:description": "Select your StackGuardian platform region"
     },
     "api_key": {
-      "ui:placeholder": "sg(u|o)_*** or Vault Secret Reference",
-      "ui:description": "Your organization's API key on the StackGuardian Platform"
+      "ui:placeholder": "sgu_*** or sgo_*** or ${secret::SECRET_NAME}",
+      "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})"
     },
     "org_name": {
       "ui:placeholder": "your-org-name (optional)",
@@ -29,7 +29,6 @@
   },
   "aws_region": {
     "ui:widget": "select",
-    "ui:placeholder": "Select AWS Region",
     "ui:description": "The target AWS Region for S3 bucket and IAM resources"
   },
   "create_storage_backend": {
@@ -47,6 +46,7 @@
   "override_names": {
     "ui:title": "Resource Naming Configuration",
     "ui:description": "Customize resource names (optional)",
+    "ui:order": ["global_prefix", "include_org_in_prefix", "runner_group_name", "connector_name"],
     "global_prefix": {
       "ui:placeholder": "SG_RUNNER",
       "ui:description": "Prefix for naming all resources"

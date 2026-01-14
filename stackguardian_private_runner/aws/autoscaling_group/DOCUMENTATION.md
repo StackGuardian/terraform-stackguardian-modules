@@ -66,12 +66,6 @@ This template creates an automatically scaling group of EC2 instances that run S
 | Minimum Size | Minimum number of runner instances (at least 1) | 1 |
 | Maximum Size | Maximum number of runner instances | 3 |
 | Desired Capacity | Initial number of instances | 1 |
-| Scale Out Threshold | Queue depth triggering scale-out | 3 |
-| Scale In Threshold | Queue depth triggering scale-in | 1 |
-| Scale Out Step | Instances to add per scale-out | 1 |
-| Scale In Step | Instances to remove per scale-in | 1 |
-| Scale Out Cooldown (minutes) | Wait time between scale-out events (minimum 4) | 4 |
-| Scale In Cooldown (minutes) | Wait time between scale-in events | 5 |
 | Runner Startup Timeout | Seconds to wait for Docker to start | 300 |
 
 ## Important Notes
@@ -84,7 +78,7 @@ This template creates an automatically scaling group of EC2 instances that run S
 
 **Proxy Support**: If your network requires HTTP proxy for outbound connections, configure the "Proxy URL" field with your proxy address (e.g., http://proxy.example.com:8080).
 
-**Scaling Behavior**: The auto-scaler monitors your job queue and adjusts capacity automatically. Scale-out happens when queued jobs reach the threshold (default: 3). Scale-in occurs when the queue is nearly empty (default: less than 1 job).
+**Scaling Behavior**: This template creates the ASG with static capacity limits. For dynamic queue-based scaling, deploy the companion `autoscaler` template which monitors your job queue and adjusts capacity automatically.
 
 **Instance Access**: Runners are configured with AWS Systems Manager Session Manager for secure shell access without needing SSH keys. You can optionally configure SSH access using key pairs and CIDR rules.
 

@@ -25,8 +25,7 @@
         "api_key": {
           "title": "API Key",
           "type": "string",
-          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$",
-          "minLength": 1
+          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$"
         },
         "org_name": {
           "title": "Organization Name",

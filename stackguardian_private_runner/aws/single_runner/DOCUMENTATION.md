@@ -9,9 +9,10 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 ### What This Template Creates
 
 - **EC2 Instance** running the StackGuardian runner with your custom AMI
-- **IAM Role** with permissions for S3 storage backend access
+- **IAM Role** with permissions for S3 storage backend access and SSM Session Manager
 - **Security Group** with configurable firewall rules
-- **NAT Gateway** (optional) for private subnet deployments
+- **NAT Gateway** (optional) for private subnet internet connectivity
+- **VPC Endpoint Rules** (optional) for private AWS service access
 
 ## Prerequisites
 
@@ -48,13 +49,14 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 | Create Network Infrastructure | Create NAT Gateway and route tables | `false` |
 | Proxy URL | HTTP proxy for private network deployments | - |
 | Additional Security Groups | Extra security groups to attach | `[]` |
+| VPC Endpoint Security Groups | Security groups of VPC endpoints (STS, SSM, ECR). Adds inbound 443 rule to allow runner access. | `[]` |
 | Volume Type | EBS volume type (gp2, gp3, io1, io2) | `gp3` |
 | Volume Size (GB) | Storage size in GB (minimum 8GB) | `100` |
 | Delete on Termination | Delete volume when instance terminates | `false` |
 | SSH Key Name | Existing AWS key pair name for SSH access | - |
 | SSH Public Key | Custom SSH public key content | - |
-| SSH Access Rules | CIDR blocks allowed for SSH access | `{}` |
-| Additional Ingress Rules | Custom firewall rules | `{}` |
+| SSH Access Rules | CIDR blocks allowed for SSH access (format: x.x.x.x/0-32) | `{}` |
+| Additional Ingress Rules | Custom firewall rules with port, protocol, and CIDR blocks | `{}` |
 | Runner Startup Timeout | Seconds to wait for Docker startup | `300` |
 
 ## Important Notes
@@ -63,7 +65,12 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 
 **Runner Group Dependency**: This template requires outputs from the Runner Group template. Deploy the Runner Group template first to obtain the `runner_group_name` and `storage_backend_role_arn` values.
 
-**Network Connectivity**: The runner needs outbound HTTPS (port 443) access to communicate with StackGuardian. For private subnet deployments, enable NAT Gateway creation or configure a proxy URL.
+**Network Connectivity**: The runner needs outbound HTTPS (port 443) access to communicate with StackGuardian. For private subnet deployments:
+- Enable NAT Gateway creation, or
+- Configure a proxy URL, or
+- Use VPC endpoints with `vpc_endpoint_security_group_ids`
+
+**VPC Endpoints**: For fully private deployments without internet access, create VPC endpoints for AWS services (STS, SSM, ECR, S3) and provide their security group IDs. The template automatically adds inbound rules to allow the runner to access these endpoints.
 
 **Subnet Priority**: When both private and public subnets are provided, the instance is deployed to the private subnet.
 
@@ -77,19 +84,21 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 | Private IP | Internal IP address of the runner |
 | Public IP | External IP address (if assigned) |
 | Security Group ID | ID of the created security group |
+| IAM Role Name | Name of the IAM role attached to the instance |
 | IAM Role ARN | Role ARN for reference in other configurations |
+| IAM Instance Profile Name | Name of the instance profile |
 | NAT Gateway ID | NAT Gateway identifier (when created) |
 | NAT Gateway Public IP | NAT Gateway external IP (when created) |
 
 ## Security Features
 
 - IMDSv2 required for instance metadata access
-- EBS volumes encrypted with AWS-managed keys
-- Security group allows only outbound HTTPS by default
-- SSH access requires explicit configuration
+- Security group allows only outbound traffic by default
+- SSH access requires explicit configuration with CIDR validation
 - API keys stored as sensitive values
 - SSM Session Manager enabled for secure access without SSH
-- Private subnet deployment supported with NAT Gateway or proxy
+- Private subnet deployment supported with NAT Gateway, proxy, or VPC endpoints
+- Automatic VPC endpoint security group rules for private connectivity
 
 ## Usage
 

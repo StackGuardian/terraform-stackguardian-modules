@@ -22,7 +22,7 @@
       "ui:description": "Select your StackGuardian platform region"
     },
     "api_key": {
-      "ui:placeholder": "sgu_*** or ${secret::SECRET_NAME}",
+      "ui:placeholder": "sgu_*** or sgo_*** or ${secret::SECRET_NAME}",
       "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})"
     },
     "org_name": {

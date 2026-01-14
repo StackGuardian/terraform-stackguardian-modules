@@ -1,9 +1,11 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "stackguardian": {
       "title": "StackGuardian Configuration",
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "api_uri": {
           "title": "API Region",
@@ -22,7 +24,8 @@
         },
         "api_key": {
           "title": "API Key",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$"
         },
         "org_name": {
           "title": "Organization Name",

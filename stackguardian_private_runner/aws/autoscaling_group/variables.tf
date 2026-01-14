@@ -221,17 +221,11 @@ variable "firewall" {
  | Auto Scaling Configuration       |
  +-----------------------------------*/
 variable "scaling" {
-  description = "Auto scaling configuration for the Private Runner"
+  description = "Auto scaling configuration for the Private Runner ASG capacity limits"
   type = object({
-    min_size                    = optional(number, 1)
-    max_size                    = optional(number, 3)
-    desired_capacity            = optional(number, 1)
-    scale_out_threshold         = optional(number, 3)
-    scale_in_threshold          = optional(number, 1)
-    scale_out_step              = optional(number, 1)
-    scale_in_step               = optional(number, 1)
-    scale_out_cooldown_duration = optional(number, 4)
-    scale_in_cooldown_duration  = optional(number, 5)
+    min_size         = optional(number, 1)
+    max_size         = optional(number, 3)
+    desired_capacity = optional(number, 1)
   })
   default = {}
 
@@ -243,11 +237,6 @@ variable "scaling" {
   validation {
     condition     = var.scaling.max_size >= var.scaling.min_size
     error_message = "max_size must be greater than or equal to min_size."
-  }
-
-  validation {
-    condition     = var.scaling.scale_out_cooldown_duration >= 4
-    error_message = "scale_out_cooldown_duration must be at least 4 minutes."
   }
 }
 

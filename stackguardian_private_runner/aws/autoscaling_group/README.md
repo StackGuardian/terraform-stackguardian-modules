@@ -1,10 +1,10 @@
 # StackGuardian Autoscaled Private Runner - AWS Module
 
-This Terraform module deploys an auto-scaling fleet of StackGuardian Private Runners on AWS EC2 with Lambda-based dynamic scaling. It creates an Auto Scaling Group that automatically adjusts capacity based on the job queue depth in your StackGuardian runner group.
+This Terraform module deploys an Auto Scaling Group of StackGuardian Private Runners on AWS EC2. It creates the infrastructure (ASG, Launch Template, networking) for running Private Runners. For dynamic queue-based scaling, deploy this module together with the `autoscaler` module.
 
 ## Overview
 
-The module provisions EC2 instances running the StackGuardian Private Runner agent within an Auto Scaling Group. A Lambda function monitors your runner group's job queue and triggers scaling actions to match demand. This ensures optimal resource utilization while maintaining job throughput.
+The module provisions EC2 instances running the StackGuardian Private Runner agent within an Auto Scaling Group. The ASG manages instance lifecycle with configurable capacity limits. For dynamic scaling based on job queue depth, deploy the companion `autoscaler` module which provides Lambda-based scaling logic.
 
 ### What Gets Created
 
@@ -111,12 +111,6 @@ module "autoscaling_runner" {
 | `scaling.min_size` | Minimum number of instances | `1` |
 | `scaling.max_size` | Maximum number of instances | `3` |
 | `scaling.desired_capacity` | Initial desired instance count | `1` |
-| `scaling.scale_out_threshold` | Queue depth triggering scale-out | `3` |
-| `scaling.scale_in_threshold` | Queue depth triggering scale-in | `1` |
-| `scaling.scale_out_step` | Instances to add per scale-out | `1` |
-| `scaling.scale_in_step` | Instances to remove per scale-in | `1` |
-| `scaling.scale_out_cooldown_duration` | Minutes between scale-out events | `4` |
-| `scaling.scale_in_cooldown_duration` | Minutes between scale-in events | `5` |
 | `runner_startup_timeout` | Seconds to wait for Docker startup | `300` |
 
 ### Configuration Examples
@@ -192,15 +186,9 @@ module "autoscaling_runner" {
   }
 
   scaling = {
-    min_size                    = 2
-    max_size                    = 10
-    desired_capacity            = 3
-    scale_out_threshold         = 5
-    scale_in_threshold          = 2
-    scale_out_step              = 2
-    scale_in_step               = 1
-    scale_out_cooldown_duration = 5
-    scale_in_cooldown_duration  = 10
+    min_size         = 2
+    max_size         = 10
+    desired_capacity = 3
   }
 
   runner_startup_timeout = 600
@@ -220,12 +208,14 @@ terraform apply tfplan
 
 ### Auto-scaling Behavior
 
-The module supports dynamic scaling based on runner group job queue depth:
+This module creates the ASG infrastructure with static capacity limits (`min_size`, `max_size`, `desired_capacity`).
 
-- **Scale-out**: Triggered when queued jobs reach the `scale_out_threshold` (default: 3 jobs)
-- **Scale-in**: Triggered when queued jobs drop below `scale_in_threshold` (default: 1 job)
-- **Cooldown**: Minimum 4 minutes between scale-out events, 5 minutes between scale-in events
-- **Instance Refresh**: Rolling updates with 50% minimum healthy instances
+For dynamic queue-based scaling, deploy the companion `autoscaler` module which:
+- Monitors your runner group's job queue via StackGuardian API
+- Adjusts the ASG's `desired_capacity` based on configurable thresholds
+- Provides cooldown periods between scaling events
+
+**Instance Refresh**: Rolling updates with 50% minimum healthy instances are enabled for configuration changes.
 
 ### Cleanup
 
