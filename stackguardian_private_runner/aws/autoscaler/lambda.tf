@@ -1,7 +1,7 @@
 # Lambda Function for Autoscaling
 resource "aws_lambda_function" "autoscaler" {
-  filename         = data.archive_file.lambda.output_path
-  source_code_hash = data.archive_file.lambda.output_base64sha256
+  filename         = local.lambda_zip_path
+  source_code_hash = fileexists(local.lambda_zip_path) ? filebase64sha256(local.lambda_zip_path) : null
 
   function_name = local.lambda_function_name
   role          = aws_iam_role.lambda.arn
@@ -35,9 +35,14 @@ resource "aws_lambda_function" "autoscaler" {
   }
 
   depends_on = [
+    terraform_data.build_lambda,
     aws_iam_role_policy_attachment.lambda,
     aws_cloudwatch_log_group.autoscaler
   ]
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.build_lambda]
+  }
 }
 
 # CloudWatch Log Group for Lambda

@@ -24,8 +24,9 @@ locals {
     : var.override_names.global_prefix
   )
 
-  # Lambda build directory
+  # Lambda build directory and zip path
   lambda_build_dir = "${path.module}/.lambda_build"
+  lambda_zip_path  = "${local.lambda_build_dir}/lambda.zip"
 
   # Lambda function name
   lambda_function_name = "${local.effective_prefix}-autoscale-private-runner"
