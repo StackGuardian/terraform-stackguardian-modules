@@ -1,0 +1,30 @@
+# AMI Cleanup Information - Thu Aug 28 13:59:59 CEST 2025
+# Generated before terraform destroy
+# Use this information to manually clean up AMIs if needed
+# Region: eu-central-1
+
+------------------------------------------------------------------------------------------------------------
+|                                              DescribeImages                                              |
++-----------------------+----------------------------------------+----------------------------+------------+
+|  ami-00967d6bd40d8ac24|  SG-RUNNER-ami-rhel9.4-1755940253      |  2025-08-23T09:15:05.000Z  |  available |
+|  ami-0c954b75beb1d9bc1|  SG-RUNNER-ami-amazon-1755782518       |  2025-08-21T13:23:58.000Z  |  available |
+|  ami-093ba2e506b8a51ba|  SG-RUNNER-ami-rhel9.4-1755873744      |  2025-08-22T15:00:58.000Z  |  available |
+|  ami-0dbb2ad6c6a2cb950|  SG-RUNNER-ami-rhel9.4-1756050439      |  2025-08-24T15:52:51.000Z  |  available |
+|  ami-0188d261cd4906f41|  SG-RUNNER-ami-ubuntu22.04-1755687374  |  2025-08-20T10:58:45.000Z  |  available |
+|  ami-06b122e706e2eb684|  SG-RUNNER-ami-amazon-1754924209       |  2025-08-11T14:58:16.000Z  |  available |
+|  ami-0d49fa3c8d935b563|  SG-RUNNER-ami-rhel9.4-1756049104      |  2025-08-24T15:29:13.000Z  |  available |
+|  ami-0dc5bf69279f5cf99|  SG-RUNNER-ami-amazon-1755011017       |  2025-08-12T15:05:19.000Z  |  available |
+|  ami-0895ce6d152d62f51|  SG-RUNNER-ami-rhel9.4-1755885098      |  2025-08-22T17:55:29.000Z  |  available |
+|  ami-024215e992ba1f5dd|  SG-RUNNER-ami-ubuntu22.04-1755690103  |  2025-08-20T11:43:34.000Z  |  available |
+|  ami-034b27dde32a080d4|  SG-RUNNER-ami-amazon-1756382002       |  2025-08-28T11:55:14.000Z  |  available |
+|  ami-0cdda754673c14c0e|  SG-RUNNER-ami-ubuntu22.04-1755527702  |  2025-08-18T14:36:57.000Z  |  available |
++-----------------------+----------------------------------------+----------------------------+------------+
+
+# Manual cleanup commands:
+# To deregister AMIs (replace AMI_ID with actual AMI ID):
+# aws ec2 deregister-image --region eu-central-1 --image-id AMI_ID
+
+# To delete associated snapshots (get snapshot IDs from AMI details):
+# aws ec2 delete-snapshot --region eu-central-1 --snapshot-id SNAPSHOT_ID
+
+# Bulk cleanup script is available in scripts/cleanup_amis.sh
