@@ -130,8 +130,7 @@ variable "network" {
     Network configuration for the Private Runner instances.
 
     - vpc_id: Existing VPC ID for deployment
-    - subnet_id: Subnet ID for the ASG instances (backwards compatible, use this OR private/public subnet combination)
-    - private_subnet_id: Private subnet ID (optional, for private deployments)
+    - private_subnet_id: Private subnet ID for runner instances
     - public_subnet_id: Public subnet ID (required when using NAT Gateway with create_network_infrastructure)
     - associate_public_ip: Whether to assign public IP to instances
     - create_network_infrastructure: Whether to create NAT Gateway and route tables for private subnet connectivity.
@@ -144,7 +143,6 @@ variable "network" {
   EOT
   type = object({
     vpc_id                          = string
-    subnet_id                       = optional(string, "")
     private_subnet_id               = optional(string, "")
     public_subnet_id                = optional(string, "")
     associate_public_ip             = optional(bool, false)
@@ -154,17 +152,15 @@ variable "network" {
     vpc_endpoint_security_group_ids = optional(list(string), [])
   })
   default = {
-    vpc_id    = ""
-    subnet_id = ""
+    vpc_id = ""
   }
 
   validation {
     condition = (
-      var.network.subnet_id != "" ||
       var.network.private_subnet_id != "" ||
       var.network.public_subnet_id != ""
     )
-    error_message = "At least one subnet must be provided (subnet_id, private_subnet_id, or public_subnet_id)."
+    error_message = "At least one subnet must be provided (private_subnet_id or public_subnet_id)."
   }
 
   validation {

@@ -75,11 +75,6 @@
       "type": "boolean",
       "default": true
     },
-    "existing_asg_name": {
-      "title": "Existing ASG Name",
-      "type": "string",
-      "default": ""
-    },
     "ami_id": {
       "title": "AMI ID",
       "type": "string",
@@ -140,12 +135,6 @@
           "type": "string",
           "pattern": "^vpc-.*$",
           "minLength": 1
-        },
-        "subnet_id": {
-          "title": "Subnet ID",
-          "type": "string",
-          "pattern": "^(|subnet-.*)$",
-          "default": ""
         },
         "private_subnet_id": {
           "title": "Private Subnet ID",
@@ -339,5 +328,26 @@
     "stackguardian",
     "network"
   ],
-  "additionalProperties": false
+  "dependencies": {
+    "create_asg": {
+      "oneOf": [
+        {
+          "properties": {
+            "create_asg": { "enum": [true] }
+          }
+        },
+        {
+          "properties": {
+            "create_asg": { "enum": [false] },
+            "existing_asg_name": {
+              "title": "Existing ASG Name",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["existing_asg_name"]
+        }
+      ]
+    }
+  }
 }

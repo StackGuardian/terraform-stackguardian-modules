@@ -64,8 +64,8 @@ module "autoscaling_runner" {
   }
 
   network = {
-    vpc_id    = "vpc-0123456789abcdef0"
-    subnet_id = "subnet-0123456789abcdef0"
+    vpc_id            = "vpc-0123456789abcdef0"
+    private_subnet_id = "subnet-0123456789abcdef0"
   }
 }
 ```
@@ -96,8 +96,7 @@ module "autoscaling_runner" {
 | `stackguardian.api_uri` | StackGuardian API URI | `""` |
 | `override_names.global_prefix` | Prefix for AWS resource names | `SG_RUNNER` |
 | `override_names.include_org_in_prefix` | Append org name to resource prefix | `false` |
-| `network.subnet_id` | Subnet ID for ASG instances | `""` |
-| `network.private_subnet_id` | Private subnet ID for private deployments | `""` |
+| `network.private_subnet_id` | Private subnet ID for runner instances | `""` |
 | `network.public_subnet_id` | Public subnet ID (required for NAT Gateway) | `""` |
 | `network.associate_public_ip` | Assign public IPs to instances | `false` |
 | `network.create_network_infrastructure` | Create NAT Gateway and route tables | `false` |
@@ -138,8 +137,8 @@ module "autoscaling_runner" {
   }
 
   network = {
-    vpc_id    = "vpc-abc123"
-    subnet_id = "subnet-def456"
+    vpc_id            = "vpc-abc123"
+    private_subnet_id = "subnet-def456"
   }
 }
 ```

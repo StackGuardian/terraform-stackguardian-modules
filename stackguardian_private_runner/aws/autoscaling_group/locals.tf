@@ -25,9 +25,8 @@ locals {
   )
 
   # Determine which subnet to use for ASG instances
-  # Priority: subnet_id > private_subnet_id > public_subnet_id
+  # Priority: private_subnet_id > public_subnet_id
   subnet_id = coalesce(
-    var.network.subnet_id,
     var.network.private_subnet_id,
     var.network.public_subnet_id
   )

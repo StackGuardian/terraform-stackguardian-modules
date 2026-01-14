@@ -46,7 +46,7 @@
   },
   "existing_asg_name": {
     "ui:placeholder": "my-existing-asg",
-    "ui:description": "Name of an existing Auto Scaling Group (only used when create_asg is disabled)"
+    "ui:description": "Name of an existing Auto Scaling Group to use with the Lambda autoscaler"
   },
   "ami_id": {
     "ui:placeholder": "ami-***",
@@ -90,7 +90,6 @@
       "vpc_id",
       "private_subnet_id",
       "public_subnet_id",
-      "subnet_id",
       "associate_public_ip",
       "create_network_infrastructure",
       "proxy_url",
@@ -100,10 +99,6 @@
     "vpc_id": {
       "ui:placeholder": "vpc-***",
       "ui:description": "Existing VPC ID for deployment"
-    },
-    "subnet_id": {
-      "ui:placeholder": "subnet-***",
-      "ui:description": "Subnet ID for runner instances (backwards compatible, use this OR private/public subnet combination)"
     },
     "private_subnet_id": {
       "ui:placeholder": "subnet-***",
