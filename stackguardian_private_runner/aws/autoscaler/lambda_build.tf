@@ -8,8 +8,7 @@ resource "null_resource" "build_lambda" {
   }
 
   provisioner "local-exec" {
-    command     = "bash ${path.module}/scripts/build_lambda.sh"
-    interpreter = ["bash", "-c"]
+    command     = "sh ${path.module}/scripts/build_lambda.sh"
     environment = {
       REPO_URL    = var.autoscaler_repo.url
       REPO_BRANCH = var.autoscaler_repo.branch
