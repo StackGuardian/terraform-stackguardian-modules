@@ -9,6 +9,8 @@ mkdir -p "$BUILD_DIR/package"
 
 echo "Cloning repository: $REPO_URL (branch: $REPO_BRANCH)"
 git clone --depth 1 --branch "$REPO_BRANCH" "$REPO_URL" "$BUILD_DIR/repo"
+CLONED_COMMIT=$(git -C "$BUILD_DIR/repo" rev-parse HEAD)
+echo "Cloned commit: $CLONED_COMMIT"
 
 # Copy all Python files from root to package directory
 echo "Copying Python files to package..."
