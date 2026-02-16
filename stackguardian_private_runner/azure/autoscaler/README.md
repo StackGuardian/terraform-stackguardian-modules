@@ -136,6 +136,8 @@ az functionapp create \
 
 ### Step 6: Configure App Settings
 
+The autoscaler uses **RBAC (managed identity)** to access blob storage instead of connection strings.
+
 ```bash
 az functionapp config appsettings set \
   --name $FUNCTION_APP \
@@ -144,7 +146,7 @@ az functionapp config appsettings set \
     AZURE_SUBSCRIPTION_ID="$SUBSCRIPTION_ID" \
     AZURE_RESOURCE_GROUP_NAME="$VMSS_RESOURCE_GROUP" \
     AZURE_VMSS_NAME="$VMSS_NAME" \
-    AZURE_BLOB_STORAGE_CONN_STRING="$STORAGE_CONN_STRING" \
+    AZURE_STORAGE_ACCOUNT_NAME="$STORAGE_ACCOUNT" \
     AZURE_BLOB_CONTAINER_NAME="autoscaler-state" \
     SCALE_IN_TIMESTAMP_BLOB_NAME="scale_in_timestamp" \
     SCALE_OUT_TIMESTAMP_BLOB_NAME="scale_out_timestamp" \
@@ -163,6 +165,8 @@ az functionapp config appsettings set \
     AzureWebJobsStorage="$STORAGE_CONN_STRING" \
     APPLICATIONINSIGHTS_CONNECTION_STRING="$APP_INSIGHTS_CONN"
 ```
+
+> **Note**: For private endpoints, also set `AZURE_STORAGE_ACCOUNT_URL` to the private endpoint URL (e.g., `https://mystorageaccount.privatelink.blob.core.windows.net`).
 
 ### Step 7: Assign Roles to Managed Identity
 
@@ -340,6 +344,31 @@ terraform apply
 5. **Cooldown**: Scaling operations respect cooldown periods to prevent thrashing
 6. **State**: Timestamps stored in Azure Blob Storage
 
+## Private Network Setup
+
+When using private endpoints for storage (VNet integration), you need to provide the explicit storage URL:
+
+### Terraform Configuration
+
+```hcl
+storage = {
+  account_url = "https://mystorageaccount.privatelink.blob.core.windows.net"
+}
+```
+
+### Manual Setup
+
+Set the `AZURE_STORAGE_ACCOUNT_URL` environment variable:
+
+```bash
+az functionapp config appsettings set \
+  --name $FUNCTION_APP \
+  --resource-group $RESOURCE_GROUP \
+  --settings AZURE_STORAGE_ACCOUNT_URL="https://mystorageaccount.privatelink.blob.core.windows.net"
+```
+
+> **Note**: The autoscaler uses RBAC (managed identity) for blob storage access. The `Storage Blob Data Contributor` role must be assigned to the Function App's managed identity on the storage account.
+
 ## Environment Variables Reference
 
 | Variable | Description | Default |
@@ -347,7 +376,8 @@ terraform apply
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID | Required |
 | `AZURE_RESOURCE_GROUP_NAME` | VMSS resource group | Required |
 | `AZURE_VMSS_NAME` | VM Scale Set name | Required |
-| `AZURE_BLOB_STORAGE_CONN_STRING` | Storage connection string | Required |
+| `AZURE_STORAGE_ACCOUNT_NAME` | Storage account name (for RBAC auth) | Required |
+| `AZURE_STORAGE_ACCOUNT_URL` | Explicit storage URL (for private endpoints) | Optional |
 | `AZURE_BLOB_CONTAINER_NAME` | Blob container name | Required |
 | `SG_BASE_URI` | StackGuardian API endpoint | Required |
 | `SG_API_KEY` | StackGuardian API key | Required |

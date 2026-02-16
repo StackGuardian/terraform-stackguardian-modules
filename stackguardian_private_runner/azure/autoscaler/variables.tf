@@ -134,14 +134,17 @@ variable "storage" {
 
     - account_tier: Performance tier of the storage account (Standard or Premium)
     - account_replication_type: Replication strategy (LRS, GRS, RAGRS, ZRS)
+    - account_url: Optional explicit storage account URL (for private endpoints)
   EOT
   type = object({
     account_tier             = optional(string, "Standard")
     account_replication_type = optional(string, "LRS")
+    account_url              = optional(string, "")
   })
   default = {
     account_tier             = "Standard"
     account_replication_type = "LRS"
+    account_url              = ""
   }
 
   validation {

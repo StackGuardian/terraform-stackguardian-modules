@@ -52,13 +52,14 @@ resource "azurerm_function_app_flex_consumption" "autoscaler" {
 
   app_settings = {
     # Azure configuration (matches azure_service.py expectations)
-    AZURE_SUBSCRIPTION_ID          = data.azurerm_client_config.current.subscription_id
-    AZURE_RESOURCE_GROUP_NAME      = local.vmss_resource_group
-    AZURE_VMSS_NAME                = var.vmss.name
-    AZURE_BLOB_STORAGE_CONN_STRING = azurerm_storage_account.autoscaler.primary_connection_string
-    AZURE_BLOB_CONTAINER_NAME      = azurerm_storage_container.autoscaler_state.name
-    SCALE_IN_TIMESTAMP_BLOB_NAME   = "scale_in_timestamp"
-    SCALE_OUT_TIMESTAMP_BLOB_NAME  = "scale_out_timestamp"
+    AZURE_SUBSCRIPTION_ID      = data.azurerm_client_config.current.subscription_id
+    AZURE_RESOURCE_GROUP_NAME  = local.vmss_resource_group
+    AZURE_VMSS_NAME            = var.vmss.name
+    AZURE_STORAGE_ACCOUNT_NAME = azurerm_storage_account.autoscaler.name
+    AZURE_STORAGE_ACCOUNT_URL  = local.storage_account_url
+    AZURE_BLOB_CONTAINER_NAME  = azurerm_storage_container.autoscaler_state.name
+    SCALE_IN_TIMESTAMP_BLOB_NAME  = "scale_in_timestamp"
+    SCALE_OUT_TIMESTAMP_BLOB_NAME = "scale_out_timestamp"
 
     # StackGuardian configuration (matches stackguardian_autoscaler.py expectations)
     SG_BASE_URI     = local.sg_api_uri

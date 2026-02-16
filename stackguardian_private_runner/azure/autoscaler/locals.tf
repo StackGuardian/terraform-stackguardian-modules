@@ -28,4 +28,11 @@ locals {
 
   # Storage account prefix (max 15 chars to leave room for 8-char random suffix + margin)
   storage_account_prefix = substr(replace(local.sanitized_prefix, "-", ""), 0, 15)
+
+  # Storage URL: use explicit URL if provided (for private endpoints)
+  storage_account_url = (
+    var.storage.account_url != ""
+    ? var.storage.account_url
+    : ""
+  )
 }
