@@ -1,15 +1,19 @@
-# Azure Private Runner Autoscaler
+# StackGuardian Runner Autoscaler - Azure Module
 
-Deploy an Azure Function-based autoscaler for managing StackGuardian Private Runners on an existing Azure VM Scale Set.
+Deploy an Azure Function-based autoscaler that monitors StackGuardian job queues and automatically scales a VM Scale Set up or down based on workload demand.
 
 ## Overview
 
-The autoscaler monitors StackGuardian's job queue and automatically scales your VM Scale Set:
-- **Scale OUT**: When pending jobs exceed threshold, add VM instances
-- **Scale IN**: When pending jobs fall below threshold, gracefully drain and remove instances
-- **Cooldown**: Respects configurable cooldown periods between scaling operations
+The autoscaler module provides intelligent scaling for StackGuardian Private Runners by monitoring job queue depth and adjusting the number of VM instances accordingly. It runs as a serverless Azure Function triggered every minute by a timer.
 
-## Architecture
+### What Gets Created
+
+- **Function App**: FlexConsumption plan with Python 3.11 runtime for autoscaling logic
+- **Storage Account**: Blob storage for autoscaler state (cooldown timestamps)
+- **Application Insights**: Monitoring, logging, and alerting
+- **Role Assignments**: Managed identity with VMSS, storage, and network access
+
+### Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -39,18 +43,224 @@ The autoscaler monitors StackGuardian's job queue and automatically scales your 
 
 ## Prerequisites
 
-- Azure CLI authenticated (`az login`)
-- Azure Functions Core Tools v4+ (`func --version`) - *optional, can use Azure CLI instead*
-- Git
-- Existing VM Scale Set with StackGuardian runner instances
-- StackGuardian API Key (starts with `sgu_`)
-- StackGuardian Runner Group name
+Before deploying this module, you need:
+
+1. **Existing VM Scale Set** - An Azure VMSS with StackGuardian runner instances
+2. **StackGuardian Runner Group** - Deploy the `runner_group` module first to get:
+   - `runner_group_name`
+3. **StackGuardian API Key** - Organization API key (`sgu_*` or `sgo_*`) from the StackGuardian platform
+4. **Azure Resource Group** - Existing resource group for autoscaler resources
+5. **Azure CLI** - Authenticated (`az login`)
+
+## Quick Start
+
+### Step 1: Deploy Prerequisites
+
+Ensure you have an existing VM Scale Set and StackGuardian runner group.
+
+### Step 2: Deploy Autoscaler
+
+```bash
+terraform init
+terraform apply
+```
+
+### Basic Configuration Example
+
+```hcl
+module "azure_autoscaler" {
+  source = "./azure/autoscaler"
+
+  resource_group_name = "my-resource-group"
+  azure_location      = "westeurope"
+
+  vmss = {
+    name                = "my-runner-vmss"
+    resource_group_name = "vmss-resource-group"
+  }
+
+  stackguardian = {
+    api_key  = "sgu_xxxxxxxxxxxx"
+    org_name = "my-org"
+  }
+
+  override_names = {
+    global_prefix     = "sg-runner"
+    runner_group_name = "my-runner-group"
+  }
+}
+```
+
+## Configuration
+
+### Required Parameters
+
+| Parameter | Description | Type |
+|-----------|-------------|------|
+| `resource_group_name` | Existing Azure Resource Group for autoscaler resources | `string` |
+| `stackguardian.api_key` | StackGuardian API key (`sgu_*` or `sgo_*`) | `string` |
+| `vmss.name` | Name of the existing VM Scale Set to manage | `string` |
+| `override_names.global_prefix` | Prefix for naming all resources | `string` |
+
+### Optional Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `azure_location` | Azure region for deployment | `westeurope` |
+| `stackguardian.org_name` | Organization name (extracted from environment if not provided) | `""` |
+| `vmss.resource_group_name` | VMSS resource group (defaults to `resource_group_name`) | `""` |
+| `override_names.runner_group_name` | Override the StackGuardian runner group name | `""` |
+| `scaling.scale_out_cooldown_duration` | Minutes after scale-out before scaling again (min: 4) | `4` |
+| `scaling.scale_in_cooldown_duration` | Minutes after scale-in before scaling again | `5` |
+| `scaling.scale_out_threshold` | Queued jobs to trigger scale-out | `3` |
+| `scaling.scale_in_threshold` | Queued jobs to trigger scale-in (min: 1) | `1` |
+| `scaling.scale_out_step` | Instances to add when scaling out | `1` |
+| `scaling.scale_in_step` | Instances to remove when scaling in | `1` |
+| `scaling.min_runners` | Minimum number of runners to maintain | `1` |
+| `storage.account_tier` | Storage account performance tier | `Standard` |
+| `storage.account_replication_type` | Storage replication strategy (LRS, GRS, RAGRS, ZRS) | `LRS` |
+| `storage.account_url` | Explicit storage URL (for private endpoints) | `""` |
+
+### Configuration Examples
+
+#### Basic Configuration
+
+```hcl
+module "azure_autoscaler" {
+  source = "./azure/autoscaler"
+
+  resource_group_name = "my-resource-group"
+
+  vmss = {
+    name = "my-runner-vmss"
+  }
+
+  stackguardian = {
+    api_key = "sgu_xxxxxxxxxxxx"
+  }
+
+  override_names = {
+    global_prefix     = "sg-runner"
+    runner_group_name = "my-runner-group"
+  }
+}
+```
+
+#### Advanced Configuration
+
+```hcl
+module "azure_autoscaler" {
+  source = "./azure/autoscaler"
+
+  resource_group_name = "my-resource-group"
+  azure_location      = "westeurope"
+
+  vmss = {
+    name                = "my-runner-vmss"
+    resource_group_name = "vmss-resource-group"
+  }
+
+  stackguardian = {
+    api_key  = "sgu_xxxxxxxxxxxx"
+    org_name = "my-org"
+  }
+
+  override_names = {
+    global_prefix     = "prod-runner"
+    runner_group_name = "prod-runner-group"
+  }
+
+  scaling = {
+    scale_out_cooldown_duration = 5
+    scale_in_cooldown_duration  = 10
+    scale_out_threshold         = 5
+    scale_in_threshold          = 2
+    scale_out_step              = 2
+    scale_in_step               = 1
+    min_runners                 = 2
+  }
+
+  storage = {
+    account_tier             = "Standard"
+    account_replication_type = "GRS"
+  }
+}
+```
+
+#### Private Network with Storage Endpoint
+
+```hcl
+module "azure_autoscaler" {
+  source = "./azure/autoscaler"
+
+  resource_group_name = "my-resource-group"
+  azure_location      = "westeurope"
+
+  vmss = {
+    name                = "my-runner-vmss"
+    resource_group_name = "vmss-resource-group"
+  }
+
+  stackguardian = {
+    api_key  = "sgu_xxxxxxxxxxxx"
+    org_name = "my-org"
+  }
+
+  override_names = {
+    global_prefix     = "sg-runner"
+    runner_group_name = "my-runner-group"
+  }
+
+  storage = {
+    account_url = "https://mystorageaccount.privatelink.blob.core.windows.net"
+  }
+}
+```
+
+## Usage
+
+### Terraform Deployment
+
+```bash
+# Initialize Terraform
+terraform init
+
+# Validate configuration
+terraform validate
+
+# Preview changes
+terraform plan
+
+# Apply configuration
+terraform apply
+```
+
+### Auto-scaling Behavior
+
+The autoscaler operates on a 1-minute cycle:
+
+1. **Scale-out**: When queued jobs >= `scale_out_threshold`, adds `scale_out_step` instances
+2. **Scale-in**: When queued jobs <= `scale_in_threshold`, marks runners as DRAINING, then removes idle ones
+3. **Cooldown**: After scaling, waits the configured cooldown duration before scaling again
+
+Default behavior:
+- Scales out when 3+ jobs are queued
+- Scales in when 1 or fewer jobs are queued
+- 4-minute cooldown after scale-out
+- 5-minute cooldown after scale-in
+
+### Cleanup
+
+```bash
+# Destroy the autoscaler
+terraform destroy
+```
 
 ---
 
-## Option 1: Manual Setup
+## Manual Deployment (Azure CLI)
 
-Step-by-step guide to deploy the autoscaler using Azure CLI.
+For deployments without Terraform, follow this step-by-step guide using Azure CLI.
 
 ### Step 1: Set Variables
 
@@ -260,86 +470,13 @@ az monitor app-insights query \
 
 ---
 
-## Option 2: Terraform Module (WIP)
-
-> **Note**: This Terraform module is a work in progress and automates the manual steps above.
-
-### Prerequisites
-
-- Terraform >= 1.0
-- Azure CLI authenticated (`az login`)
-- Git
-
-### Usage
-
-```hcl
-module "azure_autoscaler" {
-  source = "./stackguardian_private_runner/azure"
-
-  resource_group_name = "my-existing-resource-group"
-  azure_location      = "westeurope"
-
-  vmss = {
-    name                = "my-runner-vmss"
-    resource_group_name = "vmss-resource-group"
-  }
-
-  stackguardian = {
-    api_key  = "sgu_xxxxxxxxxxxx"
-    org_name = "my-org"
-  }
-
-  override_names = {
-    global_prefix     = "sg-runner"
-    runner_group_name = "my-runner-group"
-  }
-
-  scaling = {
-    scale_out_cooldown_duration = 4
-    scale_in_cooldown_duration  = 5
-    scale_out_threshold         = 3
-    scale_in_threshold          = 1
-    scale_in_step               = 1
-    scale_out_step              = 1
-    min_runners                 = 1
-  }
-}
-```
-
-```bash
-terraform init
-terraform apply
-```
-
-### Inputs
-
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| `azure_location` | Azure region | `string` | `"westeurope"` | no |
-| `resource_group_name` | Resource group name | `string` | n/a | yes |
-| `stackguardian` | SG platform config | `object` | n/a | yes |
-| `vmss` | VM Scale Set config | `object` | n/a | yes |
-| `override_names` | Naming overrides | `object` | See defaults | no |
-| `scaling` | Scaling parameters | `object` | See defaults | no |
-| `storage` | Storage config | `object` | See defaults | no |
-
-### Outputs
-
-| Name | Description |
-|------|-------------|
-| `function_app_name` | Name of the Azure Function App |
-| `function_app_default_hostname` | Default hostname |
-| `storage_account_name` | Name of the Storage Account |
-
----
-
 ## How It Works
 
 1. **Timer Trigger**: Azure Function runs every minute
 2. **Queue Check**: Queries StackGuardian API for pending jobs in the runner group
 3. **Scale Decision**:
-   - If `pending_jobs >= SCALE_OUT_THRESHOLD` → Scale OUT (add instances)
-   - If `pending_jobs <= SCALE_IN_THRESHOLD` → Scale IN (mark runners as DRAINING)
+   - If `pending_jobs >= SCALE_OUT_THRESHOLD` --> Scale OUT (add instances)
+   - If `pending_jobs <= SCALE_IN_THRESHOLD` --> Scale IN (mark runners as DRAINING)
 4. **Graceful Termination**: DRAINING runners with no active tasks are deregistered and removed
 5. **Cooldown**: Scaling operations respect cooldown periods to prevent thrashing
 6. **State**: Timestamps stored in Azure Blob Storage
@@ -392,48 +529,125 @@ az functionapp config appsettings set \
 | `SCALE_IN_COOLDOWN_DURATION` | Minutes between scale in | `5` |
 | `MIN_RUNNERS` | Minimum instances to keep | `1` |
 
+## Architecture
+
+### Resource Organization
+
+| File | Contents |
+|------|----------|
+| `provider.tf` | Azure, random, external, and null provider configuration |
+| `variables.tf` | Input variable definitions and validations |
+| `locals.tf` | Computed values, naming conventions, VMSS resource group resolution |
+| `function_autoscaler.tf` | Function App, App Service Plan, Application Insights, role assignments, code deployment |
+| `storage.tf` | Storage Account and blob containers |
+| `outputs.tf` | Module outputs |
+
+### Resource Naming Convention
+
+Resources are named using the pattern: `{sanitized_prefix}-{resource-type}`
+
+The `global_prefix` is lowercased with underscores replaced by hyphens.
+
+Examples with default prefix `sg-runner`:
+- Function App: `sg-runner-autoscaler`
+- App Service Plan: `sg-runner-autoscaler-plan`
+- Application Insights: `sg-runner-autoscaler-insights`
+- Storage Account: `sgrunner{random-suffix}` (alphanumeric only, max 24 chars)
+- Blob Container: `autoscaler-state`
+
 ## Troubleshooting
 
-### Common Errors
+### Common Issues
 
-#### 401 Unauthorized (StackGuardian API)
-**Symptoms**: Function executes but fails to communicate with StackGuardian API.
+1. **401 Unauthorized (StackGuardian API)**
+   - **Symptoms**: Function executes but fails to communicate with StackGuardian API
+   - **Cause**: Invalid or expired `SG_API_KEY`
+   - **Fix**: Update the app setting with a valid API key:
+   ```bash
+   az functionapp config appsettings set \
+     --name <function-app> \
+     --resource-group <rg> \
+     --settings SG_API_KEY="sgu_your_new_key"
+   ```
 
-**Cause**: Invalid or expired `SG_API_KEY`.
+2. **Function fails to scale VMSS**
+   - Verify the `vmss.name` matches the actual VM Scale Set name
+   - Check managed identity role assignments (Virtual Machine Contributor, Network Contributor)
 
-**Fix**: Update the app setting with a valid API key:
+3. **Storage access errors**
+   - Verify the Function App's managed identity has `Storage Blob Data Contributor` role
+   - For private endpoints, ensure `storage.account_url` is set correctly
+
+### Debugging Commands
+
 ```bash
-az functionapp config appsettings set \
-  --name <function-app> \
-  --resource-group <rg> \
-  --settings SG_API_KEY="sgu_your_new_key"
-```
-
-### Check Function App Logs
-```bash
+# Check Function App logs
 az monitor app-insights query \
   --app <app-insights-name> \
   --resource-group <rg> \
   --analytics-query "traces | order by timestamp desc | take 50"
-```
 
-### Check Exceptions in App Insights
-```bash
+# Check exceptions in App Insights
 az monitor app-insights query \
   --app <app-insights-name> \
   --resource-group <rg> \
   --analytics-query "exceptions | order by timestamp desc | take 10"
-```
 
-### Check Function Status
-```bash
+# Check Function status
 az functionapp function list --name <function-app> --resource-group <rg>
-```
 
-### Manually Trigger Function
-```bash
+# Manually trigger Function
 az functionapp function invoke \
   --name <function-app> \
   --resource-group <rg> \
   --function-name timer_trigger
 ```
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `function_app_name` | The name of the Azure Function App |
+| `function_app_id` | The ID of the Azure Function App |
+| `function_app_default_hostname` | The default hostname of the Function App |
+| `function_app_identity_principal_id` | The Principal ID of the Function App's managed identity |
+| `storage_account_name` | The name of the Storage Account |
+| `storage_account_id` | The ID of the Storage Account |
+| `storage_container_name` | The name of the blob container for state |
+| `application_insights_name` | The name of the Application Insights instance |
+| `application_insights_instrumentation_key` | The instrumentation key for Application Insights |
+| `application_insights_connection_string` | The connection string for Application Insights |
+| `vmss_name` | The name of the VM Scale Set being managed |
+| `vmss_resource_group` | The resource group of the VM Scale Set |
+
+## Security Considerations
+
+- **Managed Identity**: System-assigned managed identity with RBAC -- no credentials stored in app settings for Azure resource access
+- **TLS 1.2 Enforced**: Storage account requires minimum TLS 1.2
+- **Least Privilege**: Role assignments scoped to specific resources (VMSS, storage account, resource group)
+- **Private Endpoint Support**: Storage can be accessed via private endpoints for VNet-integrated deployments
+- **API Key Protection**: StackGuardian API key is stored as a Function App setting (encrypted at rest)
+- **Log Retention**: Application Insights provides centralized logging and monitoring
+
+## Requirements
+
+| Name | Version |
+|------|---------|
+| terraform | >= 1.0 |
+| azurerm | >= 3.0 |
+| random | >= 3.0 |
+| external | >= 2.0 |
+| null | >= 3.0 |
+
+## Next Steps
+
+After deployment:
+
+1. Monitor Function App logs for scaling events via Application Insights
+2. Adjust scaling thresholds based on workload patterns
+3. Review Application Insights metrics for function invocations and errors
+
+## Support
+
+- [StackGuardian Documentation](https://docs.stackguardian.io)
+- [GitHub Issues](https://github.com/StackGuardian/terraform-stackguardian-modules/issues)
