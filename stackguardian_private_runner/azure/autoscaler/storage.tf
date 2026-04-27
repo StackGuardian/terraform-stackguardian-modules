@@ -21,10 +21,9 @@ resource "azurerm_storage_account" "autoscaler" {
   allow_nested_items_to_be_public = false
   public_network_access_enabled   = true
 
-  tags = {
-    purpose = "stackguardian-private-runner"
-    prefix  = var.override_names.global_prefix
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.storage_account_prefix}${random_string.storage_suffix.result}"
+  })
 }
 
 # Container for autoscaler state

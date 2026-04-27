@@ -58,11 +58,9 @@ resource "azurerm_linux_virtual_machine" "this" {
     )
   )
 
-  tags = {
-    Name    = local.vm_name
-    purpose = "stackguardian-private-runner"
-    prefix  = var.override_names.global_prefix
-  }
+  tags = merge(local.common_tags, {
+    Name = local.vm_name
+  })
 
   lifecycle {
     create_before_destroy = true

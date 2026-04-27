@@ -75,18 +75,18 @@ variable "override_names" {
     Configuration for overriding default resource names.
 
     - global_prefix: Prefix used for naming all Azure resources created by this module
+    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
+    - org_name: Organization name to include in prefix (since this module doesn't resolve it from environment)
   EOT
   type = object({
-    global_prefix = string
+    global_prefix         = string
+    include_org_in_prefix = optional(bool, false)
+    org_name              = optional(string, "")
   })
   default = {
-    global_prefix = "sg-runner"
+    global_prefix = "SG_RUNNER"
   }
 
-  validation {
-    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9-_]*$", var.override_names.global_prefix))
-    error_message = "The global_prefix must start with a letter and contain only letters, numbers, hyphens, and underscores."
-  }
 }
 
 /*-----------------------+

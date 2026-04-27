@@ -39,8 +39,21 @@ locals {
     : var.firewall.ssh_public_key
   )
 
-  # Sanitized prefix for Azure naming
-  sanitized_prefix = replace(lower(var.override_names.global_prefix), "_", "-")
+  # Computed prefix with optional org name (matches AWS pattern)
+  effective_prefix = (
+    var.override_names.include_org_in_prefix && var.override_names.org_name != ""
+    ? "${var.override_names.global_prefix}_${var.override_names.org_name}"
+    : var.override_names.global_prefix
+  )
+
+  # Sanitized prefix for Azure naming (lowercase, hyphens)
+  sanitized_prefix = replace(lower(local.effective_prefix), "_", "-")
+
+  # Common tags for all taggable resources
+  common_tags = {
+    purpose = "stackguardian-private-runner"
+    prefix  = var.override_names.global_prefix
+  }
 
   # VM name
   vm_name = "${local.sanitized_prefix}-private-runner"

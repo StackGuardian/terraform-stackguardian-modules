@@ -9,10 +9,9 @@ resource "azurerm_virtual_network" "this" {
   location            = var.azure_location
   resource_group_name = var.resource_group_name
 
-  tags = {
-    Name    = "${local.sanitized_prefix}-vnet"
-    purpose = "stackguardian-private-runner"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-vnet"
+  })
 }
 
 resource "azurerm_subnet" "this" {
@@ -77,10 +76,9 @@ resource "azurerm_network_security_group" "this" {
     destination_address_prefix = "*"
   }
 
-  tags = {
-    Name    = "${local.sanitized_prefix}-nsg"
-    purpose = "stackguardian-private-runner"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-nsg"
+  })
 }
 
 /*-------------------------------------------+
@@ -95,10 +93,9 @@ resource "azurerm_public_ip" "this" {
   allocation_method   = "Static"
   sku                 = "Standard"
 
-  tags = {
-    Name    = "${local.sanitized_prefix}-pip"
-    purpose = "stackguardian-private-runner"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-pip"
+  })
 }
 
 /*-------------------------------------------+
@@ -116,10 +113,9 @@ resource "azurerm_network_interface" "this" {
     public_ip_address_id          = var.network.associate_public_ip ? azurerm_public_ip.this[0].id : null
   }
 
-  tags = {
-    Name    = "${local.sanitized_prefix}-nic"
-    purpose = "stackguardian-private-runner"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-nic"
+  })
 }
 
 # Associate NSG with NIC

@@ -10,10 +10,9 @@ resource "azurerm_service_plan" "autoscaler" {
   os_type             = "Linux"
   sku_name            = "FC1" # FlexConsumption plan
 
-  tags = {
-    purpose = "stackguardian-private-runner"
-    prefix  = var.override_names.global_prefix
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-autoscaler-plan"
+  })
 }
 
 # Application Insights for monitoring
@@ -23,10 +22,9 @@ resource "azurerm_application_insights" "autoscaler" {
   location            = var.azure_location
   application_type    = "other"
 
-  tags = {
-    purpose = "stackguardian-private-runner"
-    prefix  = var.override_names.global_prefix
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-autoscaler-insights"
+  })
 }
 
 # Function App with Flex Consumption plan
@@ -43,53 +41,22 @@ resource "azurerm_function_app_flex_consumption" "autoscaler" {
   # Storage configuration
   storage_container_type      = "blobContainer"
   storage_container_endpoint  = "${azurerm_storage_account.autoscaler.primary_blob_endpoint}deployments"
-  storage_authentication_type = "StorageAccountConnectionString"
-  storage_access_key          = azurerm_storage_account.autoscaler.primary_access_key
+  storage_authentication_type = var.storage.use_rbac ? "SystemAssignedIdentity" : "StorageAccountConnectionString"
+  storage_access_key          = var.storage.use_rbac ? null : azurerm_storage_account.autoscaler.primary_access_key
 
   site_config {
     application_insights_connection_string = azurerm_application_insights.autoscaler.connection_string
   }
 
-  app_settings = {
-    # Azure configuration (matches azure_service.py expectations)
-    AZURE_SUBSCRIPTION_ID      = data.azurerm_client_config.current.subscription_id
-    AZURE_RESOURCE_GROUP_NAME  = local.vmss_resource_group
-    AZURE_VMSS_NAME            = var.vmss.name
-    AZURE_STORAGE_ACCOUNT_NAME = azurerm_storage_account.autoscaler.name
-    AZURE_STORAGE_ACCOUNT_URL  = local.storage_account_url
-    AZURE_BLOB_CONTAINER_NAME  = azurerm_storage_container.autoscaler_state.name
-    SCALE_IN_TIMESTAMP_BLOB_NAME  = "scale_in_timestamp"
-    SCALE_OUT_TIMESTAMP_BLOB_NAME = "scale_out_timestamp"
-
-    # StackGuardian configuration (matches stackguardian_autoscaler.py expectations)
-    SG_BASE_URI     = local.sg_api_uri
-    SG_API_KEY      = var.stackguardian.api_key
-    SG_ORG          = local.sg_org_name
-    SG_RUNNER_GROUP = var.override_names.runner_group_name
-    SG_RUNNER_TYPE  = "external"
-
-    # Scaling configuration
-    SCALE_OUT_COOLDOWN_DURATION = tostring(var.scaling.scale_out_cooldown_duration)
-    SCALE_IN_COOLDOWN_DURATION  = tostring(var.scaling.scale_in_cooldown_duration)
-    SCALE_OUT_THRESHOLD         = tostring(var.scaling.scale_out_threshold)
-    SCALE_IN_THRESHOLD          = tostring(var.scaling.scale_in_threshold)
-    SCALE_IN_STEP               = tostring(var.scaling.scale_in_step)
-    SCALE_OUT_STEP              = tostring(var.scaling.scale_out_step)
-    MIN_RUNNERS                 = tostring(var.scaling.min_runners)
-
-    # Function runtime settings
-    AzureWebJobsStorage                   = azurerm_storage_account.autoscaler.primary_connection_string
-    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.autoscaler.connection_string
-  }
+  app_settings = local.app_settings
 
   identity {
     type = "SystemAssigned"
   }
 
-  tags = {
-    purpose = "stackguardian-private-runner"
-    prefix  = var.override_names.global_prefix
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-autoscaler"
+  })
 }
 
 /*-------------------------------------------+
@@ -107,7 +74,7 @@ resource "null_resource" "deploy_function_code" {
     command = <<-EOT
       set -e
       TEMP_DIR=$(mktemp -d)
-      git clone --depth 1 https://github.com/StackGuardian/sg-runner-autoscaler.git "$TEMP_DIR/repo"
+      git clone --depth 1 --branch SG-3410-shared-autoscaler https://github.com/StackGuardian/sg-runner-autoscaler.git "$TEMP_DIR/repo"
       cd "$TEMP_DIR/repo"
       cp azure_requirements.txt requirements.txt
 
@@ -115,11 +82,22 @@ resource "null_resource" "deploy_function_code" {
       zip -r "$TEMP_DIR/deploy.zip" . -x ".git/*"
 
       # Deploy using Azure CLI
+      # Exit codes 1/3 = health check or SyncTrigger timeout after successful
+      # upload (known issue with Flex Consumption plans). Tolerate them; fail
+      # on anything else.
+      set +e
       az functionapp deployment source config-zip \
         --resource-group ${var.resource_group_name} \
-        --name ${azurerm_function_app_flex_consumption.autoscaler.name} \
+        --name ${nonsensitive(azurerm_function_app_flex_consumption.autoscaler.name)} \
         --src "$TEMP_DIR/deploy.zip" \
-        --build-remote true
+        --build-remote true \
+        --timeout 300
+      AZ_EXIT=$?
+      set -e
+      if [ "$AZ_EXIT" -ne 0 ] && [ "$AZ_EXIT" -ne 1 ] && [ "$AZ_EXIT" -ne 3 ]; then
+        echo "ERROR: Deployment failed with exit code $AZ_EXIT"
+        exit $AZ_EXIT
+      fi
 
       rm -rf "$TEMP_DIR"
     EOT
@@ -145,9 +123,26 @@ resource "azurerm_role_assignment" "vmss_reader" {
 }
 
 # Allow Function App to access storage
+# RBAC mode requires Storage Blob Data Owner for runtime host coordination;
+# connection string mode only needs Storage Blob Data Contributor for app-level blob operations
 resource "azurerm_role_assignment" "storage_blob_contributor" {
   scope                = azurerm_storage_account.autoscaler.id
-  role_definition_name = "Storage Blob Data Contributor"
+  role_definition_name = var.storage.use_rbac ? "Storage Blob Data Owner" : "Storage Blob Data Contributor"
+  principal_id         = azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id
+}
+
+# Queue and Table roles required for Functions runtime in RBAC mode
+resource "azurerm_role_assignment" "storage_queue_data_contributor" {
+  count                = var.storage.use_rbac ? 1 : 0
+  scope                = azurerm_storage_account.autoscaler.id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "storage_table_data_contributor" {
+  count                = var.storage.use_rbac ? 1 : 0
+  scope                = azurerm_storage_account.autoscaler.id
+  role_definition_name = "Storage Table Data Contributor"
   principal_id         = azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id
 }
 
