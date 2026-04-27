@@ -52,12 +52,12 @@ locals {
   # Base app settings (always present regardless of auth mode)
   base_app_settings = {
     # Azure configuration
-    AZURE_SUBSCRIPTION_ID        = data.azurerm_client_config.current.subscription_id
-    AZURE_RESOURCE_GROUP_NAME    = local.vmss_resource_group
-    AZURE_VMSS_NAME              = var.vmss.name
-    AZURE_STORAGE_ACCOUNT_NAME   = azurerm_storage_account.autoscaler.name
-    AZURE_STORAGE_ACCOUNT_URL    = local.storage_account_url
-    AZURE_BLOB_CONTAINER_NAME    = azurerm_storage_container.autoscaler_state.name
+    AZURE_SUBSCRIPTION_ID         = data.azurerm_client_config.current.subscription_id
+    AZURE_RESOURCE_GROUP_NAME     = local.vmss_resource_group
+    AZURE_VMSS_NAME               = var.vmss.name
+    AZURE_STORAGE_ACCOUNT_NAME    = azurerm_storage_account.autoscaler.name
+    AZURE_STORAGE_ACCOUNT_URL     = local.storage_account_url
+    AZURE_BLOB_CONTAINER_NAME     = azurerm_storage_container.autoscaler_state.name
     SCALE_IN_TIMESTAMP_BLOB_NAME  = "scale_in_timestamp"
     SCALE_OUT_TIMESTAMP_BLOB_NAME = "scale_out_timestamp"
 
@@ -76,6 +76,9 @@ locals {
     SCALE_IN_STEP               = tostring(var.scaling.scale_in_step)
     SCALE_OUT_STEP              = tostring(var.scaling.scale_out_step)
     MIN_RUNNERS                 = tostring(var.scaling.min_runners)
+    MAX_RUNNERS                 = tostring(var.scaling.max_runners)
+    DESIRED_RUNNERS             = var.scaling.desired_runners == null ? "" : tostring(var.scaling.desired_runners)
+    SCHEDULE_CRON               = var.scaling.schedule_cron
 
     # Monitoring
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.autoscaler.connection_string
@@ -84,7 +87,7 @@ locals {
   # Storage auth app settings depend on RBAC mode
   storage_app_settings = var.storage.use_rbac ? {
     AzureWebJobsStorage__accountName = azurerm_storage_account.autoscaler.name
-  } : {
+    } : {
     AzureWebJobsStorage = azurerm_storage_account.autoscaler.primary_connection_string
   }
 

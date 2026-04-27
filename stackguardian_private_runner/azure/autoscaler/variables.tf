@@ -67,7 +67,19 @@ variable "vmss" {
  | Azure Function Autoscaling Vars  |
  +-----------------------------------*/
 variable "scaling" {
-  description = "Auto scaling configuration for the Private Runner"
+  description = <<EOT
+    Auto scaling configuration for the Private Runner.
+
+    - min_runners / max_runners: hard floor and ceiling on VMSS instance count.
+    - desired_runners: optional initial capacity. If null, the autoscaler picks
+      a value between min_runners and max_runners on first run.
+    - scale_*_threshold: pending-job count that triggers scale in/out.
+    - scale_*_step: number of instances to add/remove per decision.
+    - scale_*_cooldown_duration: minutes to wait before re-evaluating.
+    - schedule_cron: NCRONTAB expression that drives the Function App timer
+      trigger (every minute by default). Empty string keeps whatever cadence
+      is baked into the deployed function code.
+  EOT
   type = object({
     scale_out_cooldown_duration = optional(number, 4)
     scale_in_cooldown_duration  = optional(number, 5)
@@ -76,6 +88,9 @@ variable "scaling" {
     scale_in_step               = optional(number, 1)
     scale_out_step              = optional(number, 1)
     min_runners                 = optional(number, 1)
+    max_runners                 = optional(number, 3)
+    desired_runners             = optional(number, null)
+    schedule_cron               = optional(string, "0 */1 * * * *")
   })
   default = {
     scale_out_cooldown_duration = 4
@@ -85,6 +100,8 @@ variable "scaling" {
     scale_in_step               = 1
     scale_out_step              = 1
     min_runners                 = 1
+    max_runners                 = 3
+    schedule_cron               = "0 */1 * * * *"
   }
 
   validation {
@@ -120,6 +137,19 @@ variable "scaling" {
   validation {
     condition     = var.scaling.scale_in_threshold <= var.scaling.scale_out_threshold
     error_message = "The scale_in_threshold must be less than or equal to scale_out_threshold."
+  }
+
+  validation {
+    condition     = var.scaling.max_runners >= var.scaling.min_runners
+    error_message = "The max_runners must be greater than or equal to min_runners."
+  }
+
+  validation {
+    condition = (
+      var.scaling.desired_runners == null ||
+      (var.scaling.desired_runners >= var.scaling.min_runners && var.scaling.desired_runners <= var.scaling.max_runners)
+    )
+    error_message = "The desired_runners must be between min_runners and max_runners (inclusive)."
   }
 }
 
