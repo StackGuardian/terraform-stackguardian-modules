@@ -6,9 +6,26 @@ data "external" "env" {
   ]
 }
 
-data "aws_caller_identity" "current" {}
+data "aws_caller_identity" "current" {
+  count = var.cloud_provider == "aws" ? 1 : 0
+}
+
+data "azurerm_client_config" "current" {
+  count = var.cloud_provider == "azure" ? 1 : 0
+}
 
 locals {
+  # Cloud provider booleans
+  is_aws   = var.cloud_provider == "aws"
+  is_azure = var.cloud_provider == "azure"
+
+  # Account identifier for resource naming
+  account_identifier = (
+    local.is_aws
+    ? data.aws_caller_identity.current[0].account_id
+    : data.azurerm_client_config.current[0].subscription_id
+  )
+
   # StackGuardian configuration
   # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
   sg_org_name = (
@@ -38,13 +55,13 @@ locals {
   runner_group_name = (
     var.override_names.runner_group_name != ""
     ? var.override_names.runner_group_name
-    : "${local.effective_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
+    : "${local.effective_prefix}-runner-group-${local.account_identifier}"
   )
 
   connector_name = (
     var.override_names.connector_name != ""
     ? var.override_names.connector_name
-    : "${local.effective_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
+    : "${local.effective_prefix}-private-runner-backend-${local.account_identifier}"
   )
 
   # Default tags (not editable by user)
@@ -54,20 +71,44 @@ locals {
     local.sg_org_name
   ]
 
-  # S3 bucket name (created or existing)
+  # S3 bucket name / ARN (AWS only, empty for Azure)
   s3_bucket_name = (
-    var.create_storage_backend
-    ? aws_s3_bucket.this[0].bucket
-    : var.existing_s3_bucket_name
+    local.is_aws
+    ? (var.create_storage_backend ? aws_s3_bucket.this[0].bucket : var.existing_s3_bucket_name)
+    : ""
   )
 
   s3_bucket_arn = (
-    var.create_storage_backend
-    ? aws_s3_bucket.this[0].arn
-    : "arn:aws:s3:::${local.s3_bucket_name}"
+    local.is_aws
+    ? (var.create_storage_backend ? aws_s3_bucket.this[0].arn : "arn:aws:s3:::${local.s3_bucket_name}")
+    : ""
+  )
+
+  # Azure storage locals — derive from effective_prefix so org name flows into resource names
+  sanitized_prefix       = replace(lower(local.effective_prefix), "_", "-")
+  storage_account_prefix = substr("stgbackend${replace(local.sanitized_prefix, "-", "")}", 0, 16)
+
+  azure_storage_account_name = (
+    local.is_azure
+    ? (
+      var.create_storage_backend
+      ? azurerm_storage_account.this[0].name
+      : var.existing_azure_storage_account_name
+    )
+    : ""
+  )
+
+  azure_storage_access_key = (
+    local.is_azure
+    ? (
+      var.create_storage_backend
+      ? azurerm_storage_account.this[0].primary_access_key
+      : var.existing_azure_storage_account_access_key
+    )
+    : ""
   )
 
   # Runner group outputs
   final_runner_group_name = stackguardian_runner_group.this.resource_name
-  final_connector_name    = stackguardian_connector.this.resource_name
+  final_connector_name    = local.is_aws ? stackguardian_connector.aws[0].resource_name : (local.is_azure ? stackguardian_connector.azure[0].resource_name : "")
 }

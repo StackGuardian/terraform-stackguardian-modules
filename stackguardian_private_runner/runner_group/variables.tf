@@ -1,17 +1,31 @@
 /*---------------------------+
+ | Cloud Provider Toggle     |
+ +---------------------------*/
+variable "cloud_provider" {
+  description = "The cloud provider for the storage backend. Determines which resources are created (AWS S3 or Azure Blob Storage)."
+  type        = string
+  default     = "aws"
+
+  validation {
+    condition     = contains(["aws", "azure"], var.cloud_provider)
+    error_message = "The cloud_provider must be either 'aws' or 'azure'."
+  }
+}
+
+/*---------------------------+
  | Storage Backend Options   |
  +---------------------------*/
 variable "create_storage_backend" {
   description = <<EOT
-    Whether to create a new S3 bucket for storage backend.
-    Set to false to use an existing S3 bucket.
+    Whether to create a new storage backend (S3 bucket for AWS, Storage Account for Azure).
+    Set to false to use an existing storage backend.
   EOT
   type        = bool
   default     = true
 }
 
 variable "existing_s3_bucket_name" {
-  description = "Name of an existing S3 bucket to use as storage backend (required when create_storage_backend = false)"
+  description = "Name of an existing S3 bucket to use as storage backend (required when cloud_provider = 'aws' and create_storage_backend = false)"
   type        = string
   default     = ""
 }
@@ -24,6 +38,61 @@ variable "force_destroy_storage_backend" {
   EOT
   type        = bool
   default     = false
+}
+
+/*---------------------------+
+ | Azure Storage Variables   |
+ +---------------------------*/
+variable "azure_location" {
+  description = "The Azure region where resources will be deployed (required when cloud_provider = 'azure')"
+  type        = string
+  default     = "westeurope"
+}
+
+variable "azure_resource_group_name" {
+  description = "The name of the existing Azure Resource Group where the storage account will be created (required when cloud_provider = 'azure' and create_storage_backend = true)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_azure_storage_account_name" {
+  description = "Name of an existing Azure Storage Account to use as storage backend (required when cloud_provider = 'azure' and create_storage_backend = false)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_azure_storage_account_access_key" {
+  description = "Access key for the existing Azure Storage Account (required when cloud_provider = 'azure' and create_storage_backend = false)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "azure_storage" {
+  description = <<EOT
+    Azure Storage Account configuration (used when cloud_provider = 'azure' and create_storage_backend = true).
+
+    - account_tier: Performance tier of the storage account (Standard or Premium)
+    - account_replication_type: Replication strategy (LRS, GRS, RAGRS, ZRS)
+  EOT
+  type = object({
+    account_tier             = optional(string, "Standard")
+    account_replication_type = optional(string, "LRS")
+  })
+  default = {
+    account_tier             = "Standard"
+    account_replication_type = "LRS"
+  }
+
+  validation {
+    condition     = contains(["Standard", "Premium"], var.azure_storage.account_tier)
+    error_message = "The account_tier must be either 'Standard' or 'Premium'."
+  }
+
+  validation {
+    condition     = contains(["LRS", "GRS", "RAGRS", "ZRS"], var.azure_storage.account_replication_type)
+    error_message = "The account_replication_type must be one of: LRS, GRS, RAGRS, ZRS."
+  }
 }
 
 /*-----------------------------------+
@@ -57,7 +126,7 @@ variable "stackguardian" {
  | General Variables |
  +-------------------*/
 variable "aws_region" {
-  description = "The target AWS Region"
+  description = "The target AWS Region (used when cloud_provider = 'aws')"
   type        = string
   default     = "eu-central-1"
 }
@@ -69,7 +138,7 @@ variable "override_names" {
     - global_prefix: Prefix used for naming all resources created by this module
     - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
     - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {effective_prefix}-runner-group-{account_id}
-    - connector_name: Override the default StackGuardian connector name. If not provided, uses {effective_prefix}-private-runner-backend-{account_id}
+    - connector_name: Override the default StackGuardian connector name (AWS only). If not provided, uses {effective_prefix}-private-runner-backend-{account_id}
   EOT
   type = object({
     global_prefix         = string

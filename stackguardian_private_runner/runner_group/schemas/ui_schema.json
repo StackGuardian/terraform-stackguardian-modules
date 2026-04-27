@@ -1,12 +1,18 @@
 {
   "ui:title": "StackGuardian Runner Group",
-  "ui:description": "Create a new StackGuardian Runner Group with S3 storage backend and AWS connector. Default tags are automatically applied: 'StackGuardian Private Runner', runner group name, and organization name.",
+  "ui:description": "Create a new StackGuardian Runner Group with cloud storage backend (AWS S3 or Azure Blob Storage). Default tags are automatically applied: 'StackGuardian Private Runner', runner group name, and organization name.",
   "ui:order": [
     "stackguardian",
+    "cloud_provider",
     "aws_region",
+    "azure_location",
+    "azure_resource_group_name",
     "create_storage_backend",
     "existing_s3_bucket_name",
+    "existing_azure_storage_account_name",
+    "existing_azure_storage_account_access_key",
     "force_destroy_storage_backend",
+    "azure_storage",
     "override_names",
     "max_runners"
   ],
@@ -27,21 +33,54 @@
       "ui:description": "Your organization name. If not provided, will be extracted from environment."
     }
   },
+  "cloud_provider": {
+    "ui:widget": "select",
+    "ui:description": "Select the cloud provider for the storage backend"
+  },
   "aws_region": {
     "ui:widget": "select",
     "ui:description": "The target AWS Region for S3 bucket and IAM resources"
   },
+  "azure_location": {
+    "ui:placeholder": "westeurope",
+    "ui:description": "The Azure region where storage resources will be deployed"
+  },
+  "azure_resource_group_name": {
+    "ui:placeholder": "my-resource-group",
+    "ui:description": "The name of the existing Azure Resource Group for the storage account"
+  },
   "create_storage_backend": {
     "ui:widget": "checkbox",
-    "ui:description": "Whether to create a new S3 bucket for the storage backend"
+    "ui:description": "Whether to create a new storage backend (S3 bucket for AWS, Storage Account for Azure)"
   },
   "existing_s3_bucket_name": {
     "ui:placeholder": "my-existing-bucket",
-    "ui:description": "Name of an existing S3 bucket to use as storage backend"
+    "ui:description": "Name of an existing S3 bucket to use as storage backend (AWS only)"
+  },
+  "existing_azure_storage_account_name": {
+    "ui:placeholder": "myexistingstorageaccount",
+    "ui:description": "Name of an existing Azure Storage Account to use as storage backend (Azure only)"
+  },
+  "existing_azure_storage_account_access_key": {
+    "ui:widget": "password",
+    "ui:description": "Access key for the existing Azure Storage Account (Azure only)"
   },
   "force_destroy_storage_backend": {
     "ui:widget": "checkbox",
-    "ui:description": "⚠️ **Warning:** Force destroy the S3 bucket on module destruction (deletes all data)"
+    "ui:description": "Warning: Force destroy the S3 bucket on module destruction (deletes all data, AWS only)"
+  },
+  "azure_storage": {
+    "ui:title": "Azure Storage Configuration",
+    "ui:description": "Configure Azure Storage Account settings (Azure only)",
+    "ui:order": ["account_tier", "account_replication_type"],
+    "account_tier": {
+      "ui:widget": "select",
+      "ui:description": "Performance tier of the storage account"
+    },
+    "account_replication_type": {
+      "ui:widget": "select",
+      "ui:description": "Replication strategy for the storage account"
+    }
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",
@@ -61,7 +100,7 @@
     },
     "connector_name": {
       "ui:placeholder": "(auto-generated)",
-      "ui:description": "Override the connector name. If empty, uses {effective_prefix}-private-runner-backend-{account_id}"
+      "ui:description": "Override the connector name (AWS only). If empty, uses {effective_prefix}-private-runner-backend-{account_id}"
     }
   },
   "max_runners": {

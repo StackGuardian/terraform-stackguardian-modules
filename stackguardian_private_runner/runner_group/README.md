@@ -1,32 +1,45 @@
-# StackGuardian Runner Group - AWS Module
+# StackGuardian Runner Group Module
 
-This Terraform module creates a StackGuardian Runner Group with S3 storage backend and AWS connector integration for running private runners in your AWS environment.
+This Terraform module creates a StackGuardian Runner Group with cloud storage backend and connector integration for running private runners in AWS or Azure environments.
 
 ## Overview
 
-The module provisions all necessary StackGuardian platform resources and AWS infrastructure to enable private runner execution. It creates a runner group on the StackGuardian platform, an S3 bucket for artifact storage, and the IAM roles required for secure cross-account access.
+The module provisions all necessary StackGuardian platform resources and cloud infrastructure to enable private runner execution. It creates a runner group on the StackGuardian platform, cloud storage for artifacts (S3 in AWS or Azure Blob Storage), and the necessary authentication connectors for secure access.
 
 ### What Gets Created
 
+**StackGuardian Platform Resources:**
 - **StackGuardian Runner Group**: Platform resource for organizing and managing private runners
-- **StackGuardian Connector**: AWS RBAC connector for secure S3 access from the StackGuardian platform
-- **S3 Bucket**: Storage backend for runner artifacts (optional - can use existing bucket)
+- **StackGuardian Connector**: Cloud-specific connector for secure storage access from the StackGuardian platform
+  - **AWS**: RBAC connector using cross-account IAM role for S3 access
+  - **Azure**: Storage connector using account credentials for Blob Storage access
+- **Storage Backend**: Cloud-specific storage for runner artifacts (optional - can use existing storage)
+  - **AWS**: S3 bucket with CORS configuration
+  - **Azure**: Blob Storage account with container
+
+**Cloud Infrastructure (AWS only):**
 - **IAM Role**: Cross-account role for StackGuardian platform access to S3
 - **IAM Policy**: Scoped permissions for S3 bucket operations
 
 ## Prerequisites
 
 - StackGuardian API key (starts with `sgu_` for user keys or `sgo_` for organization keys)
-- AWS credentials with permissions to create S3 buckets and IAM roles
-- Terraform >= 1.0
+- Cloud credentials:
+  - **AWS**: AWS credentials with permissions to create S3 buckets and IAM roles
+  - **Azure**: Azure credentials with permissions to create storage accounts and containers
+- Terraform >= 1.0 or OpenTofu >= 1.7
 
 ## Quick Start
 
 ### Step 1: Configure Variables
 
+#### AWS Example
+
 Create a `terraform.tfvars` file:
 
 ```hcl
+cloud_provider = "aws"
+
 stackguardian = {
   api_key  = "sgu_your_api_key_here"
   api_uri  = "https://api.app.stackguardian.io"  # EU1 or use US1 endpoint
@@ -34,6 +47,23 @@ stackguardian = {
 }
 
 aws_region = "eu-central-1"
+```
+
+#### Azure Example
+
+Create a `terraform.tfvars` file:
+
+```hcl
+cloud_provider = "azure"
+
+stackguardian = {
+  api_key  = "sgu_your_api_key_here"
+  api_uri  = "https://api.app.stackguardian.io"
+  org_name = "your-org-name"
+}
+
+azure_location            = "germanywestcentral"
+azure_resource_group_name = "my-resource-group"
 ```
 
 ### Step 2: Deploy
@@ -46,15 +76,36 @@ terraform apply
 
 ### Basic Configuration Example
 
+#### AWS
+
 ```hcl
 module "runner_group" {
   source = "./stackguardian_runner_group"
+
+  cloud_provider = "aws"
 
   stackguardian = {
     api_key = "sgu_your_api_key"
   }
 
   aws_region = "eu-central-1"
+}
+```
+
+#### Azure
+
+```hcl
+module "runner_group" {
+  source = "./stackguardian_runner_group"
+
+  cloud_provider = "azure"
+
+  stackguardian = {
+    api_key = "sgu_your_api_key"
+  }
+
+  azure_location            = "germanywestcentral"
+  azure_resource_group_name = "my-resource-group"
 }
 ```
 

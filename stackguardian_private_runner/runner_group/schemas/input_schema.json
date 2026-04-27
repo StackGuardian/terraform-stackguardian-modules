@@ -35,6 +35,13 @@
       },
       "required": ["api_key"]
     },
+    "cloud_provider": {
+      "title": "Cloud Provider",
+      "type": "string",
+      "enum": ["aws", "azure"],
+      "enumNames": ["AWS", "Azure"],
+      "default": "aws"
+    },
     "aws_region": {
       "title": "AWS Region",
       "type": "string",
@@ -70,6 +77,16 @@
         "sa-east-1"
       ],
       "default": "eu-central-1"
+    },
+    "azure_location": {
+      "title": "Azure Region",
+      "type": "string",
+      "default": "westeurope"
+    },
+    "azure_resource_group_name": {
+      "title": "Azure Resource Group Name",
+      "type": "string",
+      "default": ""
     },
     "create_storage_backend": {
       "title": "Create Storage Backend",
@@ -112,6 +129,37 @@
     }
   },
   "dependencies": {
+    "cloud_provider": {
+      "oneOf": [
+        {
+          "properties": {
+            "cloud_provider": {
+              "enum": ["aws"]
+            },
+            "aws_region": {
+              "title": "AWS Region",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "properties": {
+            "cloud_provider": {
+              "enum": ["azure"]
+            },
+            "azure_location": {
+              "title": "Azure Region",
+              "type": "string"
+            },
+            "azure_resource_group_name": {
+              "title": "Azure Resource Group Name",
+              "type": "string"
+            }
+          },
+          "required": ["azure_resource_group_name"]
+        }
+      ]
+    },
     "create_storage_backend": {
       "oneOf": [
         {
@@ -123,6 +171,25 @@
               "title": "Force Destroy Storage Backend",
               "type": "boolean",
               "default": false
+            },
+            "azure_storage": {
+              "title": "Azure Storage Configuration",
+              "type": "object",
+              "properties": {
+                "account_tier": {
+                  "title": "Account Tier",
+                  "type": "string",
+                  "enum": ["Standard", "Premium"],
+                  "default": "Standard"
+                },
+                "account_replication_type": {
+                  "title": "Replication Type",
+                  "type": "string",
+                  "enum": ["LRS", "GRS", "RAGRS", "ZRS"],
+                  "default": "LRS"
+                }
+              },
+              "additionalProperties": false
             }
           }
         },
@@ -134,9 +201,16 @@
             "existing_s3_bucket_name": {
               "title": "Existing S3 Bucket Name",
               "type": "string"
+            },
+            "existing_azure_storage_account_name": {
+              "title": "Existing Azure Storage Account Name",
+              "type": "string"
+            },
+            "existing_azure_storage_account_access_key": {
+              "title": "Existing Azure Storage Account Access Key",
+              "type": "string"
             }
-          },
-          "required": ["existing_s3_bucket_name"]
+          }
         }
       ]
     }
