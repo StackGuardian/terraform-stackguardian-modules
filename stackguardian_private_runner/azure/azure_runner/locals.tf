@@ -24,6 +24,10 @@ locals {
   create_network       = var.network.create_network
   use_existing_network = !local.create_network
 
+  # NAT gateway is only meaningful when the module owns the subnet
+  # (an existing subnet may already have its own NAT/firewall/route).
+  create_nat_gateway = var.network.create_network_infrastructure && local.create_network
+
   # Subnet ID (created or existing)
   subnet_id = (
     local.create_network

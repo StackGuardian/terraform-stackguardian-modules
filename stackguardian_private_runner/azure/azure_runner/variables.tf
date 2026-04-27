@@ -13,7 +13,7 @@ variable "vm_image_id" {
     The image must have: docker, cron, jq, and sg-runner installed.
     Example: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Compute/images/{name}
   EOT
-  type = string
+  type        = string
 
   validation {
     condition     = can(regex("^/subscriptions/", var.vm_image_id))
@@ -61,10 +61,24 @@ variable "stackguardian" {
   description = "StackGuardian platform configuration for runner registration"
   type = object({
     api_key  = string
+    api_uri  = optional(string, "https://api.app.stackguardian.io")
     org_name = optional(string, "")
-    api_uri  = optional(string, "")
   })
   sensitive = true
+
+  validation {
+    condition     = can(regex("^sg[uo]_.*", var.stackguardian.api_key))
+    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_' (user) or 'sgo_' (organization)."
+  }
+
+  validation {
+    condition = contains([
+      "https://api.app.stackguardian.io",
+      "https://api.us.stackguardian.io",
+      "https://testapi.qa.stackguardian.io"
+    ], var.stackguardian.api_uri)
+    error_message = "The api_uri must be either 'https://api.app.stackguardian.io' (EU1), 'https://api.us.stackguardian.io' (US1) or 'https://testapi.qa.stackguardian.io' (DASH)."
+  }
 }
 
 /*-------------------+
@@ -105,16 +119,21 @@ variable "network" {
     - vnet_address_space: Address space for new VNet (when create_network = true)
     - subnet_address_prefix: Address prefix for new subnet (when create_network = true)
     - associate_public_ip: Whether to assign public IP to the VM
+    - create_network_infrastructure: Whether to create a NAT Gateway (with public IP) and associate it with the subnet for outbound internet access from a private subnet.
+      When disabled, ensure the subnet has its own route to the internet (NAT, firewall, ExpressRoute, etc.) for StackGuardian platform connectivity.
+    - proxy_url: HTTP proxy URL for private network deployments (e.g., http://proxy.example.com:8080)
     - additional_nsg_ids: Additional NSG IDs to associate with the NIC
   EOT
   type = object({
-    create_network        = optional(bool, false)
-    vnet_id               = optional(string, "")
-    subnet_id             = optional(string, "")
-    vnet_address_space    = optional(list(string), ["10.0.0.0/16"])
-    subnet_address_prefix = optional(string, "10.0.1.0/24")
-    associate_public_ip   = optional(bool, false)
-    additional_nsg_ids    = optional(list(string), [])
+    create_network                = optional(bool, false)
+    vnet_id                       = optional(string, "")
+    subnet_id                     = optional(string, "")
+    vnet_address_space            = optional(list(string), ["10.0.0.0/16"])
+    subnet_address_prefix         = optional(string, "10.0.1.0/24")
+    associate_public_ip           = optional(bool, false)
+    create_network_infrastructure = optional(bool, false)
+    proxy_url                     = optional(string, "")
+    additional_nsg_ids            = optional(list(string), [])
   })
 
   validation {
@@ -162,11 +181,20 @@ variable "os_disk" {
  | SSH Connection Variables     |
  +------------------------------*/
 variable "firewall" {
-  description = "Firewall and SSH configuration for the Private Runner instance"
+  description = <<EOT
+    Firewall and SSH configuration for the Private Runner instance.
+
+    - admin_username: Linux admin user on the VM
+    - ssh_public_key: SSH public key (preferred). Provide your own to avoid
+      Terraform generating + storing a private key in state.
+    - generate_ssh_key: When true and ssh_public_key is empty, generate an
+      RSA keypair and expose the private key as a (sensitive) module output.
+      Defaults to false; set explicitly when you accept the state risk.
+  EOT
   type = object({
     admin_username   = optional(string, "azureuser")
     ssh_public_key   = optional(string, "")
-    generate_ssh_key = optional(bool, true)
+    generate_ssh_key = optional(bool, false)
     ssh_access_rules = optional(map(string), {})
     additional_inbound_rules = optional(map(object({
       priority                   = number
@@ -181,7 +209,7 @@ variable "firewall" {
   })
   default = {
     admin_username   = "azureuser"
-    generate_ssh_key = true
+    generate_ssh_key = false
   }
 
   validation {

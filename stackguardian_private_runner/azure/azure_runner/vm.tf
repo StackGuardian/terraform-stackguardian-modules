@@ -54,6 +54,7 @@ resource "azurerm_linux_virtual_machine" "this" {
         sg_runner_group_name      = var.runner_group_name
         sg_runner_group_token     = var.runner_group_token
         sg_runner_startup_timeout = tostring(var.runner_startup_timeout)
+        proxy_url                 = var.network.proxy_url
       }
     )
   )

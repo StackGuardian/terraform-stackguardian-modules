@@ -82,6 +82,55 @@ resource "azurerm_network_security_group" "this" {
 }
 
 /*-------------------------------------------+
+ | NAT Gateway (optional)                    |
+ +-------------------------------------------*/
+# Provides outbound internet access for runners on a private (created) subnet.
+# Only created when network.create_network_infrastructure = true AND
+# the module is creating the subnet itself.
+resource "azurerm_public_ip" "nat" {
+  count = local.create_nat_gateway ? 1 : 0
+
+  name                = "${local.sanitized_prefix}-nat-pip"
+  location            = var.azure_location
+  resource_group_name = var.resource_group_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  zones               = ["1"]
+
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-nat-pip"
+  })
+}
+
+resource "azurerm_nat_gateway" "this" {
+  count = local.create_nat_gateway ? 1 : 0
+
+  name                    = "${local.sanitized_prefix}-natgw"
+  location                = var.azure_location
+  resource_group_name     = var.resource_group_name
+  sku_name                = "Standard"
+  idle_timeout_in_minutes = 10
+
+  tags = merge(local.common_tags, {
+    Name = "${local.sanitized_prefix}-natgw"
+  })
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "this" {
+  count = local.create_nat_gateway ? 1 : 0
+
+  nat_gateway_id       = azurerm_nat_gateway.this[0].id
+  public_ip_address_id = azurerm_public_ip.nat[0].id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "this" {
+  count = local.create_nat_gateway ? 1 : 0
+
+  subnet_id      = azurerm_subnet.this[0].id
+  nat_gateway_id = azurerm_nat_gateway.this[0].id
+}
+
+/*-------------------------------------------+
  | Public IP (optional)                      |
  +-------------------------------------------*/
 resource "azurerm_public_ip" "this" {
