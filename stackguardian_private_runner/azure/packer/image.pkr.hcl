@@ -17,6 +17,7 @@ variable "user_script" {}
 variable "vnet_name" { default = "" }
 variable "subnet_name" { default = "" }
 variable "vnet_resource_group_name" { default = "" }
+variable "proxy_url" { default = "" }
 
 packer {
   required_plugins {
@@ -74,7 +75,8 @@ build {
       "TERRAFORM_VERSIONS=${var.terraform_versions}",
       "OPENTOFU_VERSION=${var.opentofu_version}",
       "OPENTOFU_VERSIONS=${var.opentofu_versions}",
-      "USER_SCRIPT=${var.user_script}"
+      "USER_SCRIPT=${var.user_script}",
+      "PROXY_URL=${var.proxy_url}"
     ]
   }
 

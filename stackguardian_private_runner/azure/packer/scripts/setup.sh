@@ -10,6 +10,26 @@ OS_TYPE=""
 WORKING_DIR=""
 TEMP_DIRS=""
 
+# Configure proxy settings if provided.
+# Sets shell + wget proxy globally; package-manager proxy is configured
+# inside the per-OS dependency function so the file lands in the right place.
+_configure_proxy() { #{{{
+  if [ -n "$PROXY_URL" ]; then
+    echo ">> Configuring proxy: $PROXY_URL"
+    export http_proxy="$PROXY_URL"
+    export https_proxy="$PROXY_URL"
+    export HTTP_PROXY="$PROXY_URL"
+    export HTTPS_PROXY="$PROXY_URL"
+
+    {
+      echo "http_proxy = $PROXY_URL"
+      echo "https_proxy = $PROXY_URL"
+      echo "use_proxy = on"
+    } >> ~/.wgetrc
+  fi
+}
+#}}}: _configure_proxy
+
 _cleanup() { #{{{
   echo "## ----------"
   echo ">> Cleaning up image setup.."
@@ -51,6 +71,10 @@ _apt_dependencies() { #{{{
   done
 
   if [ "$UPDATE_OS" = "true" ]; then
+    if [ -n "$PROXY_URL" ]; then
+      echo "Acquire::http::Proxy \"$PROXY_URL\";" | sudo tee /etc/apt/apt.conf.d/01proxy
+      echo "Acquire::https::Proxy \"$PROXY_URL\";" | sudo tee -a /etc/apt/apt.conf.d/01proxy
+    fi
     sudo apt-get update
   fi
   sudo apt-get install -y \
@@ -63,6 +87,9 @@ _apt_dependencies() { #{{{
 
 _dnf_dependencies() { #{{{
   if [ "$UPDATE_OS" = "true" ]; then
+    if [ -n "$PROXY_URL" ]; then
+      echo "proxy=$PROXY_URL" | sudo tee -a /etc/dnf/dnf.conf
+    fi
     sudo dnf update -y
   fi
   sudo dnf install -y \
@@ -266,11 +293,28 @@ _install_opentofu_versions() { #{{{
 #}}}: _install_opentofu_versions
 
 _install_sg_runner() { #{{{
-  url="$(wget -qO- "https://api.github.com/repos/stackguardian/sg-runner/releases/latest" | jq -r '.tarball_url')"
   runner_archive="runner.tar.gz"
+  github_api_base="https://api.github.com/repos/stackguardian/sg-runner"
 
   echo "## ----------"
   echo ">> Installing sg-runner.."
+
+  if [ "$SG_RUNNER_PRE_RELEASE" = "true" ]; then
+    echo ">> Fetching latest pre-release.."
+    url="$(wget -qO- "${github_api_base}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tarball_url // empty')"
+    if [ -z "$url" ]; then
+      echo ">> No pre-release found, falling back to latest stable.."
+      url="$(wget -qO- "${github_api_base}/releases/latest" | jq -r '.tarball_url')"
+    fi
+  else
+    echo ">> Fetching latest stable release.."
+    url="$(wget -qO- "${github_api_base}/releases/latest" | jq -r '.tarball_url')"
+  fi
+
+  if [ -z "$url" ]; then
+    echo "ERROR: Failed to fetch sg-runner release URL"
+    exit 1
+  fi
 
   _mktemp_directory && cd "$WORKING_DIR"
 
@@ -283,8 +327,70 @@ _install_sg_runner() { #{{{
     echo "ERROR: Failed to download from: $url"
     exit 1
   fi
+
+  # Persist runtime config consumed by /usr/bin/sg-runner-update
+  echo "# StackGuardian Runner configuration" | sudo tee /etc/sg-runner.conf > /dev/null
+  echo "SG_RUNNER_PRE_RELEASE=${SG_RUNNER_PRE_RELEASE:-false}" | sudo tee -a /etc/sg-runner.conf > /dev/null
+  echo ">> Saved config to /etc/sg-runner.conf"
 }
 #}}}: _install_sg_runner
+
+_install_sg_runner_update() { #{{{
+  echo "## ----------"
+  echo ">> Installing sg-runner-update script.."
+
+  sudo tee /usr/bin/sg-runner-update > /dev/null << 'SCRIPT_EOF'
+#!/bin/sh
+set -e
+
+GITHUB_API_BASE="https://api.github.com/repos/stackguardian/sg-runner"
+CONFIG_FILE="/etc/sg-runner.conf"
+
+SG_RUNNER_PRE_RELEASE="false"
+if [ -f "$CONFIG_FILE" ]; then
+  . "$CONFIG_FILE"
+fi
+
+if [ -n "$1" ]; then
+  echo ">> Downloading sg-runner ref: $1"
+  url="${GITHUB_API_BASE}/tarball/$1"
+else
+  if [ "$SG_RUNNER_PRE_RELEASE" = "true" ]; then
+    echo ">> Fetching latest pre-release.."
+    url="$(wget -qO- "${GITHUB_API_BASE}/releases" | jq -r '[.[] | select(.prerelease == true)][0].tarball_url // empty')"
+    if [ -z "$url" ]; then
+      echo ">> No pre-release found, falling back to latest stable.."
+      url="$(wget -qO- "${GITHUB_API_BASE}/releases/latest" | jq -r '.tarball_url')"
+    fi
+  else
+    echo ">> Fetching latest stable release.."
+    url="$(wget -qO- "${GITHUB_API_BASE}/releases/latest" | jq -r '.tarball_url')"
+  fi
+fi
+
+if [ -z "$url" ]; then
+  echo "ERROR: Failed to determine download URL"
+  exit 1
+fi
+
+TEMP_DIR="$(mktemp -d)"
+trap "rm -rf '$TEMP_DIR'" EXIT
+
+cd "$TEMP_DIR"
+echo ">> Downloading from: $url"
+wget -q "$url" -O runner.tar.gz
+
+tar -xf runner.tar.gz
+sudo cp -rf StackGuardian-sg-runner*/main.sh /usr/bin/sg-runner
+
+echo ">> sg-runner updated successfully!"
+echo ">> Installed to: $(which sg-runner)"
+SCRIPT_EOF
+
+  sudo chmod +x /usr/bin/sg-runner-update
+  echo ">> Installed sg-runner-update to /usr/bin/sg-runner-update"
+}
+#}}}: _install_sg_runner_update
 
 _user_script_wrapper() { #{{{
   script="$USER_SCRIPT"
@@ -324,6 +430,8 @@ main() { #{{{
   OS_ARCH="$(_detect_arch)"
   OS_TYPE="$(_detect_os)"
 
+  _configure_proxy
+
   _handle_os_package_installation
 
   _install_jq
@@ -335,6 +443,7 @@ main() { #{{{
   _install_opentofu_versions
 
   _install_sg_runner
+  _install_sg_runner_update
 
   _user_script_wrapper
 }

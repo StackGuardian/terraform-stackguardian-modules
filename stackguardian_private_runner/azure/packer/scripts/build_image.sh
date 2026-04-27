@@ -120,6 +120,7 @@ main() { #{{{
     -var "vnet_name=$VNET_NAME" \
     -var "subnet_name=$SUBNET_NAME" \
     -var "vnet_resource_group_name=$VNET_RESOURCE_GROUP_NAME" \
+    -var "proxy_url=$PROXY_URL" \
     -machine-readable \
     ./image.pkr.hcl | tee packer_manifest.log
 }

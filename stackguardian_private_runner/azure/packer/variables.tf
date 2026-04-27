@@ -28,11 +28,17 @@ variable "vm_size" {
  | Image Build Network Settings |
  +----------------------------*/
 variable "network" {
-  description = "Network configuration for the Packer build instance. Leave empty to let Packer create temporary networking."
+  description = <<EOT
+    Network configuration for the Packer build instance.
+    Leave vnet/subnet empty to let Packer create temporary networking.
+
+    - proxy_url: HTTP proxy URL forwarded to the build VM (e.g. http://proxy.example.com:8080)
+  EOT
   type = object({
     vnet_name           = optional(string, "")
     subnet_name         = optional(string, "")
     resource_group_name = optional(string, "")
+    proxy_url           = optional(string, "")
   })
   default = {}
 }
@@ -70,11 +76,11 @@ variable "os" {
 variable "packer_config" {
   description = "Packer build configuration"
   type = object({
-    version                  = optional(string, "1.14.1")
+    version                   = optional(string, "1.14.1")
     cleanup_images_on_destroy = optional(bool, true)
   })
   default = {
-    version                  = "1.14.1"
+    version                   = "1.14.1"
     cleanup_images_on_destroy = true
   }
 }

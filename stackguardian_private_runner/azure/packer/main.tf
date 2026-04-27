@@ -20,26 +20,27 @@ resource "null_resource" "packer_build" {
     working_dir = path.module
     command     = "sh scripts/build_image.sh"
     environment = {
-      PACKER_VERSION          = var.packer_config.version
-      AZURE_LOCATION          = var.azure_location
-      RESOURCE_GROUP_NAME     = local.resource_group_name
-      VM_SIZE                 = var.vm_size
-      IMAGE_PUBLISHER         = var.os.publisher
-      IMAGE_OFFER             = var.os.offer
-      IMAGE_SKU               = var.os.sku
-      IMAGE_VERSION           = var.os.version
-      IMAGE_NAME_PREFIX       = var.image_name_prefix
-      OS_FAMILY               = local.os_family
-      SSH_USERNAME            = local.ssh_username
-      UPDATE_OS               = var.os.update_os_before_install
-      USER_SCRIPT             = var.os.user_script
-      TERRAFORM_VERSION       = var.terraform.primary_version
-      TERRAFORM_VERSIONS      = join(" ", var.terraform.additional_versions)
-      OPENTOFU_VERSION        = var.opentofu.primary_version
-      OPENTOFU_VERSIONS       = join(" ", var.opentofu.additional_versions)
-      VNET_NAME               = var.network.vnet_name
-      SUBNET_NAME             = var.network.subnet_name
+      PACKER_VERSION           = var.packer_config.version
+      AZURE_LOCATION           = var.azure_location
+      RESOURCE_GROUP_NAME      = local.resource_group_name
+      VM_SIZE                  = var.vm_size
+      IMAGE_PUBLISHER          = var.os.publisher
+      IMAGE_OFFER              = var.os.offer
+      IMAGE_SKU                = var.os.sku
+      IMAGE_VERSION            = var.os.version
+      IMAGE_NAME_PREFIX        = var.image_name_prefix
+      OS_FAMILY                = local.os_family
+      SSH_USERNAME             = local.ssh_username
+      UPDATE_OS                = var.os.update_os_before_install
+      USER_SCRIPT              = var.os.user_script
+      TERRAFORM_VERSION        = var.terraform.primary_version
+      TERRAFORM_VERSIONS       = join(" ", var.terraform.additional_versions)
+      OPENTOFU_VERSION         = var.opentofu.primary_version
+      OPENTOFU_VERSIONS        = join(" ", var.opentofu.additional_versions)
+      VNET_NAME                = var.network.vnet_name
+      SUBNET_NAME              = var.network.subnet_name
       VNET_RESOURCE_GROUP_NAME = var.network.resource_group_name
+      PROXY_URL                = var.network.proxy_url
     }
   }
 
@@ -79,10 +80,10 @@ resource "null_resource" "image_cleanup" {
 
   provisioner "local-exec" {
     when    = destroy
-    command = <<-EOT
-      echo "Deleting Azure managed image: ${self.triggers.image_id}"
-      az image delete --ids "${self.triggers.image_id}" || true
-    EOT
+    command = "sh ${self.triggers.script_path}"
+    environment = {
+      TARGET_IMAGE_ID = self.triggers.image_id
+    }
   }
 
   depends_on = [null_resource.packer_build]
