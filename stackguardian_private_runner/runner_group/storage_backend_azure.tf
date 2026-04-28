@@ -1,3 +1,23 @@
+# Azure Resource Group (Azure only, created when create_azure_resource_group = true)
+resource "azurerm_resource_group" "this" {
+  count = local.is_azure && var.create_azure_resource_group ? 1 : 0
+
+  name     = local.desired_azure_rg_name
+  location = var.azure_location
+
+  tags = {
+    purpose = "stackguardian-private-runner"
+    prefix  = var.override_names.global_prefix
+  }
+
+  lifecycle {
+    precondition {
+      condition     = local.desired_azure_rg_name != ""
+      error_message = "Could not derive an Azure Resource Group name. Set var.azure_resource_group_name or var.override_names.global_prefix."
+    }
+  }
+}
+
 # Azure Blob Storage for Storage Backend (Azure only, created when create_storage_backend = true)
 
 resource "random_string" "azure_storage_suffix" {
@@ -13,7 +33,7 @@ resource "azurerm_storage_account" "this" {
   count = local.is_azure && var.create_storage_backend ? 1 : 0
 
   name                     = "${local.storage_account_prefix}${random_string.azure_storage_suffix[0].result}"
-  resource_group_name      = var.azure_resource_group_name
+  resource_group_name      = local.azure_resource_group_name
   location                 = var.azure_location
   account_tier             = var.azure_storage.account_tier
   account_replication_type = var.azure_storage.account_replication_type
@@ -22,6 +42,13 @@ resource "azurerm_storage_account" "this" {
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
   public_network_access_enabled   = true
+
+  lifecycle {
+    precondition {
+      condition     = local.azure_resource_group_name != ""
+      error_message = "azure_resource_group_name resolved to empty. When create_azure_resource_group = false, you must pass an existing resource group via var.azure_resource_group_name."
+    }
+  }
 
   blob_properties {
     cors_rule {

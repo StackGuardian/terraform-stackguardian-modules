@@ -88,6 +88,26 @@ locals {
   sanitized_prefix       = replace(lower(local.effective_prefix), "_", "-")
   storage_account_prefix = substr("stgbackend${replace(local.sanitized_prefix, "-", "")}", 0, 16)
 
+  # Desired RG name — used both for naming a newly created RG and as a fallback. When the user
+  # passes an explicit azure_resource_group_name we honor it; otherwise derive from the prefix.
+  desired_azure_rg_name = (
+    var.azure_resource_group_name != ""
+    ? var.azure_resource_group_name
+    : "${local.sanitized_prefix}-rg-${local.account_identifier}"
+  )
+
+  # Effective RG name used by the module. References the resource when creating to establish
+  # an implicit dependency; falls back to the user-supplied existing RG name otherwise.
+  azure_resource_group_name = (
+    local.is_azure
+    ? (
+      var.create_azure_resource_group
+      ? azurerm_resource_group.this[0].name
+      : var.azure_resource_group_name
+    )
+    : ""
+  )
+
   azure_storage_account_name = (
     local.is_azure
     ? (

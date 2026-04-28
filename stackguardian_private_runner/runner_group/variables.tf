@@ -49,8 +49,22 @@ variable "azure_location" {
   default     = "westeurope"
 }
 
+variable "create_azure_resource_group" {
+  description = <<EOT
+    Whether to create a new Azure Resource Group to host the storage account (and to be reused by downstream azure/* modules via the azure_resource_group_name output).
+    Set to false to deploy the storage account into an existing resource group passed via azure_resource_group_name.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "azure_resource_group_name" {
-  description = "The name of the existing Azure Resource Group where the storage account will be created (required when cloud_provider = 'azure' and create_storage_backend = true)"
+  description = <<EOT
+    Name of the Azure Resource Group used by the module.
+
+    - When create_azure_resource_group = true (default), this is an optional override for the new resource group's name. If left empty, the name is derived from the module's effective_prefix and account identifier.
+    - When create_azure_resource_group = false, this must be the name of an existing resource group to deploy the storage account into.
+  EOT
   type        = string
   default     = ""
 }
