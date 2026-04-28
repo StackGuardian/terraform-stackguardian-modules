@@ -102,7 +102,7 @@ resource "azuread_application_federated_identity_credential" "connector" {
 
 # Grant the SP "Storage Blob Data Reader" on the storage account
 resource "azurerm_role_assignment" "connector_blob_reader" {
-  count                = local.is_azure && var.create_storage_backend ? 1 : 0
+  count                = local.is_azure && var.create_storage_backend && var.create_blob_reader_role_assignment ? 1 : 0
   scope                = azurerm_storage_account.this[0].id
   role_definition_name = "Storage Blob Data Reader"
   principal_id         = azuread_service_principal.connector[0].object_id

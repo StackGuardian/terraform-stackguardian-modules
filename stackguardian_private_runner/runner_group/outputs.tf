@@ -76,6 +76,11 @@ output "azure_resource_group_location" {
   value       = local.is_azure ? var.azure_location : null
 }
 
+output "azure_connector_service_principal_object_id" {
+  description = "Object ID of the OIDC connector service principal (Azure only). Use this to create the 'Storage Blob Data Reader' role assignment out of band when create_blob_reader_role_assignment = false."
+  value       = local.is_azure ? azuread_service_principal.connector[0].object_id : null
+}
+
 output "azure_storage_account_name" {
   description = "The name of the Azure Storage Account used for storage backend (Azure only)"
   value       = local.is_azure ? local.azure_storage_account_name : null

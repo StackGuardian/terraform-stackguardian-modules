@@ -49,6 +49,15 @@ variable "azure_location" {
   default     = "westeurope"
 }
 
+variable "create_blob_reader_role_assignment" {
+  description = <<EOT
+    Whether to create the 'Storage Blob Data Reader' role assignment that grants the OIDC connector service principal read access to the storage account.
+    Set to false when the identity running Terraform lacks Microsoft.Authorization/roleAssignments/write (e.g. Contributor without User Access Administrator). When false, you must create the role assignment out of band before runners can read from the storage account.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "create_azure_resource_group" {
   description = <<EOT
     Whether to create a new Azure Resource Group to host the storage account (and to be reused by downstream azure/* modules via the azure_resource_group_name output).
