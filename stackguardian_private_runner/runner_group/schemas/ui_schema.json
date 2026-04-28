@@ -62,7 +62,7 @@
     "ui:description": "Name of an existing Azure Storage Account to use as storage backend (Azure only)"
   },
   "existing_azure_storage_account_access_key": {
-    "ui:widget": "password",
+    "ui:placeholder": "primary or secondary access key",
     "ui:description": "Access key for the existing Azure Storage Account (Azure only)"
   },
   "force_destroy_storage_backend": {
