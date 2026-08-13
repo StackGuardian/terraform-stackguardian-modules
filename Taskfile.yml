@@ -152,7 +152,7 @@ tasks:
         if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$oidc_provider_arn" >/dev/null 2>&1 && ! terraform state list | grep -Fqx "$oidc_provider_address"; then
           terraform import -input=false -var-file="{{.ONBOARD_VARS_FILE}}" "$oidc_provider_address" "$oidc_provider_arn"
         fi
-        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -target="module.aws_oidc[\"$connector_name\"]" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
+        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
         terraform apply -input=false "$plan_file"
   onboard:azure:
     desc: Creates Azure OIDC resources and registers the connector with StackGuardian
@@ -195,7 +195,7 @@ tasks:
           exit 1
         fi
         terraform init
-        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -target="module.azure_oidc[\"$connector_name\"]" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
+        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -out="$plan_file"
         terraform apply -input=false "$plan_file"
   destroy:aws:
     desc: Destroys an AWS OIDC role and StackGuardian connector, retaining any shared OIDC provider
@@ -229,7 +229,7 @@ tasks:
         fi
         plan_file="{{.ONBOARD_PLAN_FILE}}"
         terraform init
-        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -target="module.aws_oidc[\"$connector_name\"].aws_iam_role_policy_attachment.sg_role_policy" -target="module.aws_oidc[\"$connector_name\"].aws_iam_role.oidc_role" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
         terraform apply -input=false "$plan_file"
   destroy:azure:
     desc: Destroys an Azure OIDC identity and StackGuardian connector
@@ -269,7 +269,7 @@ tasks:
         fi
         plan_file="{{.ONBOARD_PLAN_FILE}}"
         terraform init
-        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -target="module.azure_oidc[\"$connector_name\"]" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -out="$plan_file"
         terraform apply -input=false "$plan_file"
   validate:
     desc: Initializes and validates isolated copies of in-scope configurations
