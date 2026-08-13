@@ -14,4 +14,4 @@ module "role" {
 }
 ```
 
-Output: `role`.
+Outputs: `role`, `allowed_permissions`.
