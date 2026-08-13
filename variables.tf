@@ -1,166 +1,149 @@
-############ StackGuardian credentials ############ 
-
-variable "api_key" {
+variable "stackguardian_api_key" {
   type        = string
-  description = "Your organization's API key on the StackGuardian Platform"
+  description = "StackGuardian API key used by the root provider configuration."
   sensitive   = true
 
   validation {
-    condition     = can(regex("^sgu_[a-zA-Z0-9]+$", var.api_key))
-    error_message = "API key must start with 'sgu_' followed by alphanumeric characters."
+    condition     = can(regex("^sgu_[A-Za-z0-9]+$", var.stackguardian_api_key))
+    error_message = "stackguardian_api_key must start with sgu_ followed by alphanumeric characters."
   }
 }
 
-variable "org_name" {
+variable "stackguardian_org_name" {
   type        = string
-  description = "Your organization name on StackGuardian Platform"
+  description = "StackGuardian organization name."
 
   validation {
-    condition     = length(var.org_name) > 0 && length(var.org_name) <= 50
-    error_message = "Organization name must be between 1 and 50 characters."
+    condition     = can(regex("^[A-Za-z0-9][A-Za-z0-9_-]{0,49}$", var.stackguardian_org_name))
+    error_message = "stackguardian_org_name must be 1-50 letters, numbers, underscores, or hyphens."
   }
 }
 
-########## StackGuardian Workflow Groups ##########
+variable "stackguardian_api_uri" {
+  type        = string
+  description = "StackGuardian API endpoint."
+  default     = "https://api.app.stackguardian.io"
+
+  validation {
+    condition     = can(regex("^https://[^/]+(?:/.*)?$", var.stackguardian_api_uri))
+    error_message = "stackguardian_api_uri must be an HTTPS URL."
+  }
+}
 
 variable "workflow_groups" {
   type        = list(string)
-  description = "List of StackGuardian workflow groups"
+  description = "Workflow groups created and granted to the role."
+
+  validation {
+    condition     = length(var.workflow_groups) > 0 && alltrue([for name in var.workflow_groups : length(trimspace(name)) > 0])
+    error_message = "workflow_groups must contain at least one non-empty name."
+  }
 }
-########## StackGuardian AWS Cloud Connector (here with RBAC) ##########
 
 variable "cloud_connectors" {
+  description = "Cloud connectors managed by the root stack. Static credentials are stored in Terraform state."
   type = list(object({
-    name                 = string
-    connector_type       = string
-    role_arn             = string
-    aws_role_external_id = string
+    name                    = string
+    kind                    = string
+    aws_access_key_id       = optional(string)
+    aws_secret_access_key   = optional(string)
+    aws_region              = optional(string)
+    azure_tenant_id         = optional(string)
+    azure_subscription_id   = optional(string)
+    azure_client_id         = optional(string)
+    azure_client_secret     = optional(string)
+    aws_role_arn            = optional(string)
+    aws_external_id         = optional(string)
+    gcp_config_file_content = optional(string)
   }))
-  description = "List of cloud connectors to be created"
+  sensitive = true
 
-  default = [
-    {
-      name                 = "aws-connector-1"
-      connector_type       = "AWS_RBAC"
-      role_arn             = "arn:aws:iam::123456789012:role/StackGuardianRole"
-      aws_role_external_id = "test-org:1234567"
-    }
-  ]
+  validation {
+    condition     = alltrue([for connector in var.cloud_connectors : contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC", "AZURE_STATIC", "AZURE_OIDC", "GCP_OIDC"], connector.kind)])
+    error_message = "cloud_connectors[*].kind must be AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, or GCP_OIDC."
+  }
+
+  validation {
+    condition = alltrue([for connector in var.cloud_connectors :
+      (connector.kind != "AWS_STATIC" || (try(length(trimspace(connector.aws_access_key_id)) > 0, false) && try(length(trimspace(connector.aws_secret_access_key)) > 0, false) && try(can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region)), false))) &&
+      (connector.kind != "AWS_RBAC" || (try(can(regex("^arn:aws[a-z-]*:iam::\\d{12}:role/.+$", connector.aws_role_arn)), false) && try(length(trimspace(connector.aws_external_id)) > 0, false))) &&
+      (connector.kind != "AWS_OIDC" || try(can(regex("^arn:aws[a-z-]*:iam::\\d{12}:role/.+$", connector.aws_role_arn)), false)) &&
+      (connector.kind != "AZURE_STATIC" || (try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_client_id)), false) && try(length(trimspace(connector.azure_client_secret)) > 0, false))) &&
+      (connector.kind != "AZURE_OIDC" || (try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_client_id)), false))) &&
+      (connector.kind != "GCP_OIDC" || try(length(trimspace(connector.gcp_config_file_content)) > 0, false))
+    ])
+    error_message = "Each cloud connector must supply valid credentials required by its kind."
+  }
 }
 
-########## StackGuardian Role ##########
+variable "vcs_connectors" {
+  description = "VCS connector configuration. Credentials are sensitive and persist in Terraform state."
+  sensitive   = true
+  type = map(object({
+    kind = string
+    name = string
+    github = optional(object({
+      githubCreds     = string
+      github_com_url  = optional(string, "https://api.github.com")
+      github_http_url = optional(string, "https://github.com")
+    }))
+    gitlab = optional(object({
+      gitlabCreds   = string
+      gitlabHttpUrl = optional(string, "https://gitlab.com")
+      gitlabApiUrl  = optional(string, "https://gitlab.com/api/v4")
+    }))
+    bitbucket = optional(object({
+      bitbucket_creds = string
+    }))
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([for connector in values(var.vcs_connectors) :
+      (connector.kind == "GITHUB_COM" && connector.github != null && connector.gitlab == null && connector.bitbucket == null) ||
+      (connector.kind == "GITLAB_COM" && connector.gitlab != null && connector.github == null && connector.bitbucket == null) ||
+      (connector.kind == "BITBUCKET_ORG" && connector.bitbucket != null && connector.github == null && connector.gitlab == null)
+    ])
+    error_message = "Each VCS connector must have exactly one matching GitHub, GitLab, or Bitbucket credential object."
+  }
+}
 
 variable "role_name" {
   type        = string
-  description = "name of the aws role thats getting created"
+  description = "StackGuardian role name."
+
+  validation {
+    condition     = length(trimspace(var.role_name)) > 0
+    error_message = "role_name must not be empty."
+  }
 }
 
 variable "template_list" {
   type        = list(string)
-  description = "The list of templates on StackGuardian platform that you want to work with"
+  description = "Templates granted to the StackGuardian role."
 
   validation {
-    condition     = length(var.template_list) > 0
-    error_message = "At least one template must be specified."
+    condition     = length(var.template_list) > 0 && alltrue([for name in var.template_list : length(trimspace(name)) > 0])
+    error_message = "template_list must contain at least one non-empty template name."
   }
 }
 
-variable "user_or_group" {
+variable "subject" {
   type        = string
-  description = "Group or User that should be onboarded"
-  #Format: sso-auth/email (email in SSO), sso-auth/group-id (Group in SSO), email (Email via local login)
-  #Example: "test-org-1/user@stackguardian.com" or "test-org-1/9djhd38cniwje9jde" or "user@stackguardian.com"
+  description = "Local email or qualified SSO email/group subject receiving the role."
+
+  validation {
+    condition     = can(regex("^([^/@\\s]+/[^/\\s]+|[^@\\s]+@[^@\\s]+\\.[^@\\s]+)$", var.subject))
+    error_message = "subject must be a local email or a qualified SSO subject in provider/value format."
+  }
 }
 
 variable "entity_type" {
   type        = string
-  description = "Type of entity that should be onboarded. Valid values: EMAIL or GROUP"
-}
+  description = "Type of StackGuardian assignment subject: EMAIL or GROUP."
 
-###########################################
-# StackGuardian Connector - AWS Static key
-###########################################
-
-variable "aws_access_key_id" {
-  type        = string
-  description = "your AWS acoount access key"
-  default     = null
-}
-
-variable "aws_secret_access_key" {
-  type        = string
-  description = "your AWS account secret access key"
-  default     = null
-}
-
-variable "aws_default_region" {
-  type        = string
-  description = "any default region you want to set, for all your deployments"
-  default     = null
-}
-
-###########################################
-# StackGuardian Connector - Azure Service Principal with Secret
-###########################################
-
-variable "armTenantId" {
-  type        = string
-  description = "your azure account tenant id"
-  default     = null
-}
-
-variable "armSubscriptionId" {
-  type        = string
-  description = "your azure subscription id"
-  default     = null
-}
-
-variable "armClientId" {
-  type        = string
-  description = "your azure client id"
-  default     = null
-}
-
-variable "armClientSecret" {
-  type        = string
-  description = "your azure client secret"
-  default     = null
-}
-
-###########################################
-# StackGuardian Connector - VCS Connectors
-###########################################
-
-variable "vcs_connectors" {
-  type        = map(any)
-  description = "List of version control systems"
-  default = {
-    vcs_bitbucket = {
-      kind = "BITBUCKET_ORG"
-      name = "bitbucket-connector"
-      config = [{
-        bitbucket_creds = {
-          bitbucket_creds = ""
-        }
-      }]
-    }
+  validation {
+    condition     = contains(["EMAIL", "GROUP"], var.entity_type)
+    error_message = "entity_type must be EMAIL or GROUP."
   }
 }
-
-/*
-########### AWS OIDC ############
-# Create a OIDC in AWS IAM and a connected Role for StackGuardian #
-
-variable "account_number" {
-  type = number
-  description = "AWS account number"
-}
-variable "region" {
-  type = string
-  description = "aws region on which you want to create the role"
-}
-variable "aws_policy" {
-  type = string
-  description = "ARN of aws policy"
-}
-*/

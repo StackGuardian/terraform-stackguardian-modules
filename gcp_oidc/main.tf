@@ -1,64 +1,71 @@
-#StackGuardian OIDC Connector
 locals {
-  sg-org-id = var.sg-org-id
+  oidc_subject = coalesce(var.oidc_subject, "/orgs/${var.stackguardian_org_id}")
 }
 
-# Create Service Account
-resource "google_service_account" "sg-service-account" {
+moved {
+  from = google_service_account.sg-service-account
+  to   = google_service_account.stackguardian
+}
+
+moved {
+  from = google_iam_workload_identity_pool.sg-pool
+  to   = google_iam_workload_identity_pool.stackguardian
+}
+
+moved {
+  from = google_iam_workload_identity_pool_provider.sg-oidc-connector-provider-x
+  to   = google_iam_workload_identity_pool_provider.stackguardian
+}
+
+moved {
+  from = google_service_account_iam_member.allow_federation_impersonation
+  to   = google_service_account_iam_member.federation_impersonation
+}
+
+moved {
+  from = google_project_iam_member.sg-service-account-iam
+  to   = google_project_iam_member.stackguardian
+}
+
+resource "google_service_account" "stackguardian" {
   account_id   = var.service_account_id
   display_name = "StackGuardian Service Account"
+  description  = "Service account used by StackGuardian workload identity federation."
 }
 
-
-resource "google_iam_workload_identity_pool" "sg-pool" {
+resource "google_iam_workload_identity_pool" "stackguardian" {
   workload_identity_pool_id = var.workload_identity_pool_id
 }
 
-resource "google_iam_workload_identity_pool_provider" "sg-oidc-connector-provider-x" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.sg-pool.workload_identity_pool_id
+resource "google_iam_workload_identity_pool_provider" "stackguardian" {
+  workload_identity_pool_id          = google_iam_workload_identity_pool.stackguardian.workload_identity_pool_id
   workload_identity_pool_provider_id = var.workload_identity_pool_provider_id
   display_name                       = var.workload_identity_pool_display_name
-  description                        = "OIDC identity pool provider for StackGuardian Connector"
-  disabled                           = false
+  description                        = "OIDC identity pool provider for StackGuardian."
   attribute_mapping = {
     "google.subject" = "assertion.sub"
   }
   oidc {
-    allowed_audiences = ["https://testapi.qa.stackguardian.io"] # https://api.app.stackguardian.io
-    issuer_uri        = "https://testapi.qa.stackguardian.io"
+    allowed_audiences = var.oidc_allowed_audiences
+    issuer_uri        = var.oidc_issuer_uri
   }
 }
 
-
-# Allow Service Account Impersonation via Federation
-resource "google_service_account_iam_member" "allow_federation_impersonation" {
-  service_account_id = google_service_account.sg-service-account.id
+resource "google_service_account_iam_member" "federation_impersonation" {
+  service_account_id = google_service_account.stackguardian.id
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principal://iam.googleapis.com/projects/${google_iam_workload_identity_pool.sg-pool.project}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.sg-pool.workload_identity_pool_id}/subject//orgs/${local.sg-org-id}"
+  member             = "principal://iam.googleapis.com/projects/${google_iam_workload_identity_pool.stackguardian.project}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.stackguardian.workload_identity_pool_id}/subject/${local.oidc_subject}"
 }
 
-# Assign Policy for Federated Identity
-resource "google_service_account_iam_policy" "federated_identity" {
-  service_account_id = google_service_account.sg-service-account.name
-
-  policy_data = <<EOF
-{
-  "bindings": [
-    {
-      "role": "roles/iam.workloadIdentityUser",
-      "members": [
-        "serviceAccount:${google_service_account.sg-service-account.email}"
-      ]
-    }
-  ]
-}
-EOF
+# Import the pre-existing self-member binding before removing the former authoritative policy state.
+resource "google_service_account_iam_member" "self_workload_identity" {
+  service_account_id = google_service_account.stackguardian.id
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${google_service_account.stackguardian.email}"
 }
 
-# Grant the Service Account the necessary permissions
-resource "google_project_iam_member" "sg-service-account-iam" {
-  project = google_iam_workload_identity_pool.sg-pool.project
-  role    = "roles/owner"
-  member  = "serviceAccount:${google_service_account.sg-service-account.email}"
+resource "google_project_iam_member" "stackguardian" {
+  project = var.project_id
+  role    = var.project_role
+  member  = "serviceAccount:${google_service_account.stackguardian.email}"
 }
-# Download the Client Library Configuration File, use token path /mnt/sg_workspace/user/stackguardian.oidc

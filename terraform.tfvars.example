@@ -1,94 +1,76 @@
-# StackGuardian Platform Credentials
-# Get these from your StackGuardian organization settings
-api_key  = "sgu_your-api-key-here"
-org_name = "your-org-name"
+# Set TF_VAR_stackguardian_api_key through a secret manager or environment variable.
+# Do not place it in this file.
+stackguardian_org_name = "example-org"
 
-# Workflow Groups (environments)
-# These represent different deployment environments
-workflow_groups = [
-  "team-dev",
-  "team-test",
-  "team-staging",
-  "team-prod"
+workflow_groups = ["engineering"]
+
+# Static credentials and generated connector configuration are retained in state.
+cloud_connectors = [
+  {
+    name              = "aws-static"
+    kind              = "AWS_STATIC"
+    aws_access_key_id = "<aws-access-key-id>"
+    aws_secret_access_key = "<aws-secret-access-key>"
+    aws_region = "eu-central-1"
+  },
+  {
+    name            = "aws-rbac"
+    kind            = "AWS_RBAC"
+    aws_role_arn    = "arn:aws:iam::123456789012:role/StackGuardianRole"
+    aws_external_id = "example-org:replace-with-external-id"
+  },
+  {
+    name         = "aws-oidc"
+    kind         = "AWS_OIDC"
+    aws_role_arn = "arn:aws:iam::123456789012:role/StackGuardianOidcRole"
+  },
+  {
+    name                  = "azure-static"
+    kind                  = "AZURE_STATIC"
+    azure_tenant_id       = "00000000-0000-0000-0000-000000000000"
+    azure_subscription_id = "00000000-0000-0000-0000-000000000000"
+    azure_client_id       = "00000000-0000-0000-0000-000000000000"
+    azure_client_secret   = "<azure-client-secret>"
+  },
+  {
+    name                  = "azure-oidc"
+    kind                  = "AZURE_OIDC"
+    azure_tenant_id       = "00000000-0000-0000-0000-000000000000"
+    azure_subscription_id = "00000000-0000-0000-0000-000000000000"
+    azure_client_id       = "00000000-0000-0000-0000-000000000000"
+  },
+  {
+    name                    = "gcp-oidc"
+    kind                    = "GCP_OIDC"
+    gcp_config_file_content = "<gcp-external-account-configuration-json>"
+  },
 ]
 
-# Cloud Connectors Configuration
-# Configure connections to your cloud providers
-cloud_connectors = [{
-  name                 = "aws-connector-1"
-  connector_type       = "AWS_RBAC" # Options: AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC
-  role_arn             = "arn:aws:iam::123456789012:role/StackGuardianRole"
-  aws_role_external_id = "your-org-name:random-string-12345"
-}]
-
-# VCS Connectors Configuration
-# Configure connections to your version control systems
 vcs_connectors = {
-
-  # GitLab Example (uncomment to use)
-  # To get GitLab credentials:
-  # 1. Go to GitLab Settings > Access Tokens
-  # 2. Create a personal access token with 'api' scope
-  # 3. Format: "username:personal_access_token"
-  vcs_gitlab = {
-    kind = "GITLAB_COM"
-    name = "gitlab-connector"
-    config = [{
-      gitlab_creds = {
-        gitlabCreds   = "your-username:glpat-your_personal_access_token"
-        gitlabHttpUrl = "https://gitlab.com"
-        gitlabApiUrl  = "https://gitlab.com/api/v4"
-      }
-    }]
+  github = {
+    name = "github"
+    kind = "GITHUB_COM"
+    github = {
+      githubCreds = "<github-credential>"
+    }
   }
-
-  # Bitbucket Example (uncomment to use)
-  # To get Bitbucket credentials:
-  # 1. Go to Bitbucket Settings > App passwords
-  # 2. Create an app password with 'Repositories: Read' permission
-  # 3. Format: "username:app_password"
-  # vcs_bitbucket = {
-  #   kind = "BITBUCKET_ORG"
-  #   name = "bitbucket-connector"
-  #   config = [{
-  #     bitbucket_creds = {
-  #       bitbucket_creds = "your-username:your_app_password"
-  #     }
-  #   }]
-  # }
+  gitlab = {
+    name = "gitlab"
+    kind = "GITLAB_COM"
+    gitlab = {
+      gitlabCreds = "<gitlab-credential>"
+    }
+  }
+  bitbucket = {
+    name = "bitbucket"
+    kind = "BITBUCKET_ORG"
+    bitbucket = {
+      bitbucket_creds = "<bitbucket-credential>"
+    }
+  }
 }
 
-# Role Configuration
-role_name = "team-developer-role"
-
-# Templates that this role can access
-# Add the templates available in your StackGuardian organization
-template_list = [
-  "terraform-aws-vpc",
-  "terraform-aws-ec2",
-  "opentofu-aws-vpc"
-]
-
-# User/Group Assignment
-# Format options:
-# - Email: "user@example.com"
-# - SSO Email: "sso-provider/user@example.com" 
-# - SSO Group: "sso-provider/group-id"
-user_or_group = "user@example.com"
-entity_type   = "EMAIL" # Valid values: "EMAIL" or "GROUP"
-
-# Optional: AWS Static Credentials (not recommended for production)
-# aws_access_key_id     = "AKIA..."
-# aws_secret_access_key = "..."
-# aws_default_region    = "us-east-1"
-
-# Optional: Azure Service Principal Credentials
-# armTenantId       = "your-tenant-id"
-# armSubscriptionId = "your-subscription-id"
-# armClientId       = "your-client-id"
-# armClientSecret   = "your-client-secret"
-
-# Optional: AWS OIDC Setup (uncomment to create AWS OIDC provider)
-# account_number = 123456789012
-# region         = "us-east-1"
-# aws_policy     = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+role_name     = "engineering-developer"
+template_list = ["terraform-aws-vpc"]
+subject       = "developer@example.invalid"
+entity_type   = "EMAIL"

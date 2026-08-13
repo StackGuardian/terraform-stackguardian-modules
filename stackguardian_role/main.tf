@@ -1,5 +1,4 @@
-resource "stackguardian_role" "role" {
-
+resource "stackguardian_rolev4" "role" {
   resource_name = var.role_name
   description   = "Onboarding example of terraform-provider-stackguardian for Role Developer"
   tags = [

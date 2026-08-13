@@ -7,10 +7,12 @@ resource "aws_iam_access_key" "my_access_key" {
 }
 
 output "access_key_id" {
-  value = aws_iam_access_key.my_access_key.id
+  description = "Generated IAM access key ID."
+  value       = aws_iam_access_key.my_access_key.id
 }
 
 output "secret_access_key" {
-  value     = aws_iam_access_key.my_access_key.secret
-  sensitive = true # This will hide the secret in Terraform outputs
+  description = "Generated IAM secret access key. It is retained in Terraform state."
+  value       = aws_iam_access_key.my_access_key.secret
+  sensitive   = true # This will hide the secret in Terraform outputs
 }

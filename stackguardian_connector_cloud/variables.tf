@@ -1,109 +1,94 @@
-variable "api_key" {
+variable "connector_name" {
   type        = string
-  description = "Your organization's API key on the StackGuardian Platform"
-  sensitive   = true
-}
+  description = "Name of the cloud connector."
 
-variable "org_name" {
-  type        = string
-  description = "Your organization name on StackGuardian Platform"
-}
-
-variable "connector_type" {
-  type        = string
-  description = "type of connector. You can select anyone of the following AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC"
   validation {
-    condition = contains([
-      "AWS_STATIC",
-      "AWS_OIDC",
-      "AWS_RBAC",
-      "AZURE_STATIC",
-      "AZURE_OIDC",
-      "GCP_OIDC",
-    ], var.connector_type)
-    error_message = "Variable connector_type must be one of AWS_STATIC, AWS_OIDC, AWS_RBAC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC."
+    condition     = can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", var.connector_name))
+    error_message = "connector_name must be 1-100 characters and start with a letter or number."
   }
 }
 
-variable "cloud_connector_name" {
+variable "connector_kind" {
   type        = string
-  description = "Name of the Cloud connector"
+  description = "Cloud connector kind."
+
+  validation {
+    condition     = contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC", "AZURE_STATIC", "AZURE_OIDC", "GCP_OIDC"], var.connector_kind)
+    error_message = "connector_kind must be AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, or GCP_OIDC."
+  }
 }
-
-
-################
-# AWS_STATIC Credentials
-################
 
 variable "aws_access_key_id" {
   type        = string
-  description = "your AWS acoount access key"
-  default     = null # optional
+  description = "AWS access key ID for an AWS_STATIC connector."
+  default     = null
+  sensitive   = true
 }
 
 variable "aws_secret_access_key" {
   type        = string
-  description = "your AWS account secret access key"
-  default     = null # optional
+  description = "AWS secret access key for an AWS_STATIC connector."
+  default     = null
   sensitive   = true
 }
 
-variable "aws_default_region" {
+variable "aws_region" {
   type        = string
-  description = "any default region you want to set, for all your deployments"
-  default     = null # optional
+  description = "AWS region for an AWS_STATIC connector."
+  default     = null
+
+  validation {
+    condition     = var.aws_region == null || can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", var.aws_region))
+    error_message = "aws_region must be a valid AWS region."
+  }
 }
 
-################
-# AZURE_STATIC Credentials
-################
-
-variable "armTenantId" {
+variable "azure_tenant_id" {
   type        = string
-  description = "your azure account tenant id"
-  default     = null # optional
+  description = "Azure tenant ID for an Azure connector."
+  default     = null
 }
 
-variable "armSubscriptionId" {
+variable "azure_subscription_id" {
   type        = string
-  description = "your azure subscription id"
-  default     = null # optional
+  description = "Azure subscription ID for an Azure connector."
+  default     = null
 }
 
-variable "armClientId" {
+variable "azure_client_id" {
   type        = string
-  description = "your azure client id"
-  default     = null # optional
+  description = "Azure application client ID for an Azure connector."
+  default     = null
 }
 
-variable "armClientSecret" {
+variable "azure_client_secret" {
   type        = string
-  description = "your azure client secret"
-  default     = null # optional
+  description = "Azure application secret for an AZURE_STATIC connector."
+  default     = null
   sensitive   = true
 }
 
-################
-# AWS_OIDC Credentials + AWS_RBAC Credentials
-################
-variable "role_arn" {
+variable "aws_role_arn" {
   type        = string
-  description = "arn of the aws oidc role"
-  default     = null # optional
+  description = "AWS role ARN for AWS_RBAC or AWS_OIDC connectors."
+  default     = null
+
+  validation {
+    condition     = var.aws_role_arn == null || can(regex("^arn:aws[a-z-]*:iam::\\d{12}:role/.+$", var.aws_role_arn))
+    error_message = "aws_role_arn must be a valid IAM role ARN."
+  }
 }
 
-###### for AWS_RBAC the externalID is also needed
-variable "role_external_id" {
+variable "aws_external_id" {
   type        = string
-  description = "external id of the aws rbac role"
-  default     = null # optional; "<org_name>:<random_string>" is recommended
+  description = "External ID for an AWS_RBAC connector."
+  default     = null
+  sensitive   = true
 }
 
-################
-# GCP_OIDC Credentials + GCP_STATIC Credentials
-################
 variable "gcp_config_file_content" {
   type        = string
-  description = "the gco config content gor the connector"
-  default     = null # optional
+  description = "Google external-account configuration content for a GCP_OIDC connector."
+  default     = null
+  sensitive   = true
 }

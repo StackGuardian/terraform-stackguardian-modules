@@ -3,7 +3,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/" : {
       "name" : "GetWorkflowRunFact",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wfRun>" : [
           ".*"
         ],
@@ -18,7 +18,7 @@ locals {
     "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/resume/" : {
       "name" : "ResumeStackWorkflowRun",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -33,13 +33,13 @@ locals {
     "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/" : {
       "name" : "UpdateWorkflowGroup",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
       }
     },
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/listall_artifacts/" : {
       "name" : "ListStackWorkflowArtifacts",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -51,13 +51,13 @@ locals {
     "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfgrps/" : {
       "name" : "CreateNestedWorkflowGroup",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
       }
     },
     "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/" : {
       "name" : "CreateWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
       }
     },
     "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/<wfRun>/" : {
@@ -66,7 +66,7 @@ locals {
         "<wfRun>" : [
           ".*"
         ],
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<wf>" : [
           ".*"
         ]
@@ -75,7 +75,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/" : {
       "name" : "GetStackWorkflowRun",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -90,7 +90,7 @@ locals {
     "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/" : {
       "name" : "DeleteStack",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ]
@@ -99,7 +99,7 @@ locals {
     "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/" : {
       "name" : "UpdateWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<wf>" : [
           ".*"
         ]
@@ -108,7 +108,7 @@ locals {
     "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/stackruns/" : {
       "name" : "CreateStackRun",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ]
@@ -117,7 +117,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/listall_artifacts/" : {
       "name" : "ListWorkflowArtifacts",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<wf>" : [
           ".*"
         ]
@@ -126,7 +126,7 @@ locals {
     "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/" : {
       "name" : "UpdateStackWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -138,7 +138,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/wfrunfacts/<wfRunFacts>/" : {
       "name" : "GetStackWorkflowRunFact",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -156,7 +156,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/outputs/" : {
       "name" : "GetStackWorkflowOutputs",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -168,7 +168,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/wfruns/<wfRun>/logs/" : {
       "name" : "GetStackWorkflowRunLogs",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups,
+        "<wfGrp>" : [join("|", var.workflow_groups)],
         "<stack>" : [
           ".*"
         ],
@@ -186,7 +186,7 @@ locals {
         "<wfRun>" : [
           ".*"
         ],
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -195,7 +195,7 @@ locals {
     "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/wfruns/" : {
       "name" : "CreateWorkflowRun",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -204,7 +204,7 @@ locals {
     "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/" : {
       "name" : "DeleteStackWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<stack>" : [
           ".*"
         ],
@@ -216,7 +216,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/wfs/<wf>/" : {
       "name" : "GetStackWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<stack>" : [
           ".*"
         ],
@@ -228,7 +228,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/<stack>/" : {
       "name" : "GetStack",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<stack>" : [
           ".*"
         ]
@@ -237,7 +237,7 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/" : {
       "name" : "GetWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -246,19 +246,19 @@ locals {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/" : {
       "name" : "GetWorkflowGroup",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
       }
     },
     "POST/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/stacks/" : {
       "name" : "CreateStack",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
       }
     },
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/outputs/" : {
       "name" : "GetWorkflowOutputs",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -267,7 +267,7 @@ locals {
     "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/wfs/<wf>/" : {
       "name" : "DeleteWorkflow",
       "paths" : {
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -279,7 +279,7 @@ locals {
         "<wfRun>" : [
           ".*"
         ],
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -291,7 +291,7 @@ locals {
         "<wfRun>" : [
           ".*"
         ],
-        "<wfGrp>" : var.workflow_groups
+        "<wfGrp>" : [join("|", var.workflow_groups)]
         "<wf>" : [
           ".*"
         ]
@@ -309,7 +309,7 @@ locals {
         "<templateType>" : [
           ".*"
         ],
-        "<template>" : var.template_list,
+        "<template>" : [join("|", var.template_list)],
         "<org>" : [
           ".*"
         ]
