@@ -12,3 +12,8 @@ variable "org_name" {
   type        = string
   description = "Your organization name on StackGuardian Platform"
 }
+
+variable "sg_api_uri" {
+  type        = string
+  description = "Your organization name on StackGuardian Platform"
+}

@@ -7,6 +7,10 @@ variable "org_name" {
   type        = string
   description = "name of the organization on StackGuardian that you want to work with"
 }
+variable "sg_api_uri" {
+  type        = string
+  description = "Your organization name on StackGuardian Platform"
+}
 variable "workflow_groups" {
   type        = list(string)
   description = "The list of workflow groups"

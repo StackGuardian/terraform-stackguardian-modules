@@ -73,10 +73,10 @@ resource "stackguardian_connector" "sg_azure_static_connector" {
   settings = {
     kind = var.connector_type,
     config = [{
-      armTenantId       = var.armTenantId,
-      armSubscriptionId = var.armSubscriptionId,
-      armClientId       = var.armClientId,
-      armClientSecret   = var.armClientSecret
+      arm_tenant_id       = var.armTenantId,
+      arm_subscription_id = var.armSubscriptionId,
+      arm_client_id       = var.armClientId,
+      arm_client_secret   = var.armClientSecret
     }]
   }
 }
@@ -95,9 +95,9 @@ resource "stackguardian_connector" "sg_azure_oidc_connector" {
   settings = {
     kind = var.connector_type,
     config = [{
-      armTenantId       = var.armTenantId,
-      armSubscriptionId = var.armSubscriptionId,
-      armClientId       = var.armClientId,
+      arm_tenant_id       = var.armTenantId,
+      arm_subscription_id = var.armSubscriptionId,
+      arm_client_id       = var.armClientId,
     }]
   }
 }
