@@ -70,10 +70,8 @@ variable "cloud_connectors" {
 
   validation {
     condition = alltrue([for connector in var.cloud_connectors :
-      (connector.kind != "AWS_STATIC" || connector.allow_static_credentials) &&
       (connector.kind != "AWS_RBAC" || try(length(trimspace(connector.iam_role_name)) > 0, false) && try(length(trimspace(connector.aws_external_id)) > 0, false)) &&
       (connector.kind != "AWS_OIDC" || try(length(trimspace(connector.iam_role_name)) > 0, false)) &&
-      (connector.kind != "AZURE_STATIC" || connector.allow_static_credentials) &&
       (connector.kind != "GCP_OIDC" || (try(length(trimspace(connector.gcp_service_account_id)) > 0, false) && try(length(trimspace(connector.gcp_workload_pool_id)) > 0, false) && try(length(trimspace(connector.gcp_provider_id)) > 0, false)))
     ])
     error_message = "Each connector must provide the identity names required by its kind; OIDC connector IDs are created by Terraform."
