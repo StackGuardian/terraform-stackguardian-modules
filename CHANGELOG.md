@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Rebuild the scoped role-v4 permission document from the observed v4 positional path shape, including exact and nested workflow-group paths and matching wildcard arrays.
+- Deprecate static AWS and Azure authentication. Static identity modules and static cloud connector kinds now require explicit `allow_static_credentials = true` acknowledgement and emit an apply-time warning.
+- Replace the unsafe Taskfile example-copy initialization workflow with non-mutating formatting, source-contract, and isolated validation tasks compatible with Terraform 1.5.7.
+
+### Added
+- Add pinned OpenTofu 1.12.5 native tests for role-v4 permission construction and static cloud connector acknowledgement behavior, using isolated mocked plan runs.
+
 ## [2.0.0] - 2026-08-12
 
 ### Breaking

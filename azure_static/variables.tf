@@ -60,3 +60,9 @@ variable "service_principal_password_end_date_relative" {
     error_message = "service_principal_password_end_date_relative must be a positive number of hours."
   }
 }
+
+variable "allow_static_credentials" {
+  type        = bool
+  default     = false
+  description = "Acknowledges deprecated static Azure credentials. Prefer azure_oidc."
+}

@@ -45,4 +45,20 @@ resource "stackguardian_connector" "cloud" {
       var.connector_kind == "GCP_OIDC" ? { gcp_config_file_content = var.gcp_config_file_content } : {}
     )]
   }
+
+  lifecycle {
+    precondition {
+      condition     = !contains(["AWS_STATIC", "AZURE_STATIC"], var.connector_kind) || var.allow_static_credentials
+      error_message = "Static cloud connector credentials are deprecated. Set allow_static_credentials = true only when required; prefer AWS_RBAC, AWS_OIDC, AZURE_OIDC, or another non-static connector kind."
+    }
+  }
+}
+
+resource "terraform_data" "static_credentials_deprecation" {
+  count = contains(["AWS_STATIC", "AZURE_STATIC"], var.connector_kind) && var.allow_static_credentials ? 1 : 0
+  input = "Static cloud connector credentials are deprecated; migrate to a non-static connector kind."
+
+  provisioner "local-exec" {
+    command = "printf '%s\\n' 'WARNING: Static cloud connector credentials are deprecated; migrate to a non-static connector kind.'"
+  }
 }

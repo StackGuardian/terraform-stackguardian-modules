@@ -18,6 +18,12 @@ variable "connector_kind" {
   }
 }
 
+variable "allow_static_credentials" {
+  type        = bool
+  default     = false
+  description = "Acknowledges deprecated AWS_STATIC or AZURE_STATIC connector credentials. Prefer a non-static connector kind."
+}
+
 variable "aws_access_key_id" {
   type        = string
   description = "AWS access key ID for an AWS_STATIC connector."

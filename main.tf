@@ -8,19 +8,20 @@ module "stackguardian_connector_cloud" {
   for_each = {
     for connector in var.cloud_connectors : nonsensitive(connector.name) => connector
   }
-  source                  = "./stackguardian_connector_cloud"
-  connector_name          = each.value.name
-  connector_kind          = each.value.kind
-  aws_access_key_id       = try(each.value.aws_access_key_id, null)
-  aws_secret_access_key   = try(each.value.aws_secret_access_key, null)
-  aws_region              = try(each.value.aws_region, null)
-  azure_tenant_id         = try(each.value.azure_tenant_id, null)
-  azure_subscription_id   = try(each.value.azure_subscription_id, null)
-  azure_client_id         = try(each.value.azure_client_id, null)
-  azure_client_secret     = try(each.value.azure_client_secret, null)
-  aws_role_arn            = try(each.value.aws_role_arn, null)
-  aws_external_id         = try(each.value.aws_external_id, null)
-  gcp_config_file_content = try(each.value.gcp_config_file_content, null)
+  source                   = "./stackguardian_connector_cloud"
+  connector_name           = each.value.name
+  connector_kind           = each.value.kind
+  allow_static_credentials = try(each.value.allow_static_credentials, false)
+  aws_access_key_id        = try(each.value.aws_access_key_id, null)
+  aws_secret_access_key    = try(each.value.aws_secret_access_key, null)
+  aws_region               = try(each.value.aws_region, null)
+  azure_tenant_id          = try(each.value.azure_tenant_id, null)
+  azure_subscription_id    = try(each.value.azure_subscription_id, null)
+  azure_client_id          = try(each.value.azure_client_id, null)
+  azure_client_secret      = try(each.value.azure_client_secret, null)
+  aws_role_arn             = try(each.value.aws_role_arn, null)
+  aws_external_id          = try(each.value.aws_external_id, null)
+  gcp_config_file_content  = try(each.value.gcp_config_file_content, null)
 }
 
 module "stackguardian_connector_vcs" {

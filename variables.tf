@@ -43,24 +43,30 @@ variable "workflow_groups" {
 variable "cloud_connectors" {
   description = "Cloud connectors managed by the root stack. Static credentials are stored in Terraform state."
   type = list(object({
-    name                    = string
-    kind                    = string
-    aws_access_key_id       = optional(string)
-    aws_secret_access_key   = optional(string)
-    aws_region              = optional(string)
-    azure_tenant_id         = optional(string)
-    azure_subscription_id   = optional(string)
-    azure_client_id         = optional(string)
-    azure_client_secret     = optional(string)
-    aws_role_arn            = optional(string)
-    aws_external_id         = optional(string)
-    gcp_config_file_content = optional(string)
+    name                     = string
+    kind                     = string
+    allow_static_credentials = optional(bool, false)
+    aws_access_key_id        = optional(string)
+    aws_secret_access_key    = optional(string)
+    aws_region               = optional(string)
+    azure_tenant_id          = optional(string)
+    azure_subscription_id    = optional(string)
+    azure_client_id          = optional(string)
+    azure_client_secret      = optional(string)
+    aws_role_arn             = optional(string)
+    aws_external_id          = optional(string)
+    gcp_config_file_content  = optional(string)
   }))
   sensitive = true
 
   validation {
     condition     = alltrue([for connector in var.cloud_connectors : contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC", "AZURE_STATIC", "AZURE_OIDC", "GCP_OIDC"], connector.kind)])
     error_message = "cloud_connectors[*].kind must be AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, or GCP_OIDC."
+  }
+
+  validation {
+    condition     = alltrue([for connector in var.cloud_connectors : !contains(["AWS_STATIC", "AZURE_STATIC"], connector.kind) || connector.allow_static_credentials])
+    error_message = "AWS_STATIC and AZURE_STATIC connectors require allow_static_credentials = true. Use AWS_RBAC, AWS_OIDC, AZURE_OIDC, or another non-static connector kind instead."
   }
 
   validation {

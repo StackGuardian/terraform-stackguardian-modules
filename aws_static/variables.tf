@@ -14,3 +14,9 @@ variable "iam_user" {
   default     = "example"
   description = "Name of the IAM user created. Its generated static secret is retained in Terraform state."
 }
+
+variable "allow_static_credentials" {
+  type        = bool
+  default     = false
+  description = "Acknowledges deprecated static AWS credentials. Prefer aws_rbac or aws_oidc."
+}

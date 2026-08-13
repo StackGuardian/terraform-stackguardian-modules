@@ -9,7 +9,26 @@ Terraform modules for StackGuardian onboarding and cloud identity configuration.
 - AWS provider `>= 6.58.0, < 7.0.0`, AzureRM `>= 5.0.1, < 6.0.0`, AzureAD `>= 3.9.0, < 4.0.0`, and Google `>= 7.44.0, < 8.0.0` in their applicable modules.
 - Credentials authorized to create the selected cloud identities. Azure management needs Microsoft Graph application-management and subscription role-assignment privileges.
 
-Use `terraform.tfvars.example` as a schema reference. Put secret values in `TF_VAR_*` variables or a secret manager, not version control. Static cloud credentials, generated AWS keys, and generated Azure secrets remain in Terraform state and plan artifacts, so secure both accordingly.
+Use `terraform.tfvars.example` as a schema reference. Put secret values in `TF_VAR_*` variables or a secret manager, not version control.
+
+## Static Credential Deprecation
+
+`aws_static`, `azure_static`, and `AWS_STATIC` or `AZURE_STATIC` cloud connectors are deprecated. Static secrets are retained in Terraform state and may appear in plan artifacts, so protect both as sensitive data. Prefer `aws_rbac`, `aws_oidc`, `azure_oidc`, or the corresponding non-static connector kind.
+
+Static authentication requires an explicit acknowledgement. The root acknowledgement is per connector and cannot enable another connector:
+
+```hcl
+cloud_connectors = [{
+  name                     = "legacy-aws"
+  kind                     = "AWS_STATIC"
+  allow_static_credentials = true
+  aws_access_key_id        = var.legacy_aws_access_key_id
+  aws_secret_access_key    = var.legacy_aws_secret_access_key
+  aws_region               = "eu-central-1"
+}]
+```
+
+Standalone `aws_static` and `azure_static` modules also require `allow_static_credentials = true`. Terraform emits a deprecation warning during apply after acknowledgement.
 
 ## V2 Inputs
 
@@ -33,9 +52,9 @@ Legacy aliases are intentionally unavailable. The root configures StackGuardian 
 
 ## Permissions And Defaults
 
-- `aws_static` needs IAM user/key permissions and stores a generated static key in state.
+- `aws_static` is deprecated, needs IAM user/key permissions, and stores a generated static key in state. Use `aws_rbac` or `aws_oidc` when possible.
 - `aws_rbac` and `aws_oidc` need IAM role/policy/OIDC permissions. `policy_arn` defaults to `ReadOnlyAccess`; override it for least privilege. RBAC keeps the two historical trusted StackGuardian accounts by default.
-- `azure_static` and `azure_oidc` create an Entra application and assign `Contributor` at subscription scope by default. This is high privilege; use `role_definition_name` to reduce it. Static passwords expire after `8760h` by default.
+- `azure_static` is deprecated. It and `azure_oidc` create an Entra application and assign `Contributor` at subscription scope by default. This is high privilege; use `role_definition_name` to reduce it. Static passwords expire after `8760h` by default; prefer `azure_oidc`.
 - `gcp_oidc` needs service-account, workload-identity, and project IAM permissions. `project_role` defaults to high-privilege `roles/owner`; override it for production. Validate the configured issuer, audience, and exact `/orgs/<id>` subject against a real StackGuardian token before applying.
 - Cloud and VCS connector modules require access to create StackGuardian connectors. They reject missing, mismatched, or conflicting credentials.
 - Role, assignment, and workflow-group modules require StackGuardian role-management permission.
@@ -57,3 +76,9 @@ Before replacing the former authoritative GCP IAM policy, add and import `google
 ## Module Usage
 
 Each module has a short usage and outputs reference in its directory README. Run `terraform init -upgrade`, `terraform validate`, and a reviewed plan from the specific module directory. Lock files are deliberately not committed because callers initialize independently.
+
+## Local Checks
+
+Run `task check` for formatting. Run `task validate` for isolated `terraform init -backend=false` and `terraform validate` checks; it copies configurations to a temporary directory and requires network access for provider downloads.
+
+Run `task test` for native OpenTofu tests. The checked-in `.opentofu-version` pins OpenTofu 1.12.5; the task uses `tofuenv`, copies the tested modules to a temporary directory, relaxes only the copied Terraform 1.5.7 version constraint, and resolves the StackGuardian provider from the Terraform Registry because it is not mirrored by the OpenTofu Registry. Tests use mocked StackGuardian providers and plan-only runs, so they do not apply cloud infrastructure or call the StackGuardian API. Cloud applies and remote API behavior remain integration tests.

@@ -5,10 +5,12 @@ stackguardian_org_name = "example-org"
 workflow_groups = ["engineering"]
 
 # Static credentials and generated connector configuration are retained in state.
+# Prefer RBAC or OIDC. Static connector examples require explicit acknowledgement.
 cloud_connectors = [
   {
     name              = "aws-static"
     kind              = "AWS_STATIC"
+    allow_static_credentials = true # Required for deprecated static credentials.
     aws_access_key_id = "<aws-access-key-id>"
     aws_secret_access_key = "<aws-secret-access-key>"
     aws_region = "eu-central-1"
@@ -27,6 +29,7 @@ cloud_connectors = [
   {
     name                  = "azure-static"
     kind                  = "AZURE_STATIC"
+    allow_static_credentials = true # Required for deprecated static credentials.
     azure_tenant_id       = "00000000-0000-0000-0000-000000000000"
     azure_subscription_id = "00000000-0000-0000-0000-000000000000"
     azure_client_id       = "00000000-0000-0000-0000-000000000000"
