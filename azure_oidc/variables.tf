@@ -8,22 +8,6 @@ variable "subscription_id" {
   }
 }
 
-variable "client_id" {
-  type        = string
-  description = "Client ID Terraform uses to manage Azure resources."
-}
-
-variable "client_secret" {
-  type        = string
-  description = "Client secret Terraform uses to manage Azure resources."
-  sensitive   = true
-
-  validation {
-    condition     = length(trimspace(var.client_secret)) > 0
-    error_message = "client_secret must not be empty."
-  }
-}
-
 variable "tenant_id" {
   type        = string
   description = "Azure tenant ID."

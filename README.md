@@ -30,6 +30,18 @@ cloud_connectors = [{
 
 Standalone `aws_static` and `azure_static` modules also require `allow_static_credentials = true`. Terraform emits a deprecation warning during apply after acknowledgement.
 
+## Cloud Onboarding
+
+The root creates the selected cloud identity and registers the generated identifiers with StackGuardian. It does not require you to manually supply an AWS role ARN, an Azure application client ID, or a GCP external-account configuration for OIDC connectors.
+
+- AWS uses the standard AWS provider credential chain. Authenticate first with your normal profile or `aws sso login`, then customize `examples/aws-oidc.tfvars.example` and run `task onboard:aws`. The task creates the `api.app.stackguardian.io` IAM OIDC provider when it is absent, or imports an existing unmanaged provider instead of attempting to recreate it.
+- Azure uses the active Azure CLI identity. Authenticate with `az login`, customize `examples/azure-oidc.tfvars.example`, and run `task onboard:azure`. The task obtains the active subscription and tenant from Azure CLI.
+- GCP uses gcloud application-default credentials. Run `gcloud auth application-default login`, configure a `GCP_OIDC` connector with the project and workload identity names, and apply a reviewed plan.
+
+Both onboarding tasks use `TF_VAR_stackguardian_api_key` when it is set. Otherwise they prompt for the StackGuardian API token without saving it to a file. Each task writes a targeted plan to a temporary file, applies that exact plan, and removes the file afterward. These targeted tasks create only the selected cloud identity and its StackGuardian connector; they intentionally do not create workflow groups, roles, or assignments. Override `ONBOARD_VARS_FILE` or `ONBOARD_CONNECTOR_NAME` when using a differently named connector fixture.
+
+Use `task destroy:aws` or `task destroy:azure` to remove a connector trial. Each asks you to type the connector name before it destroys resources. AWS teardown retains any account-level `api.app.stackguardian.io` OIDC provider because it may be shared by multiple StackGuardian roles.
+
 ## V2 Inputs
 
 | v1 input | v2 input |

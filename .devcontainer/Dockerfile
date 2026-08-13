@@ -6,7 +6,7 @@ COPY .terraform-version .opentofu-version .task-version /tmp/versions/
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl git gnupg perl unzip; \
+    apt-get install -y --no-install-recommends ca-certificates curl git gnupg jq perl unzip; \
     rm -rf /var/lib/apt/lists/*; \
     case "${TARGETARCH}" in \
       amd64) architecture="amd64" ;; \

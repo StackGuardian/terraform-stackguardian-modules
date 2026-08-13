@@ -12,7 +12,7 @@ resource "aws_iam_role" "sg_role" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = var.role_external_id # Replace with your external ID
+            "sts:ExternalId" = var.role_external_id
           }
         }
       }

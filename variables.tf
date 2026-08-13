@@ -41,24 +41,23 @@ variable "workflow_groups" {
 }
 
 variable "cloud_connectors" {
-  description = "Cloud connectors managed by the root stack. Static credentials are stored in Terraform state."
+  description = "Cloud connectors managed by the root stack. Terraform creates and registers the selected cloud identity; static kinds are legacy-only."
   type = list(object({
     name                     = string
     kind                     = string
-    allow_static_credentials = optional(bool, false)
-    aws_access_key_id        = optional(string)
-    aws_secret_access_key    = optional(string)
-    aws_region               = optional(string)
-    azure_tenant_id          = optional(string)
-    azure_subscription_id    = optional(string)
-    azure_client_id          = optional(string)
-    azure_client_secret      = optional(string)
-    aws_role_arn             = optional(string)
+    iam_role_name            = optional(string)
+    iam_user_name            = optional(string)
+    policy_arn               = optional(string, "arn:aws:iam::aws:policy/ReadOnlyAccess")
     aws_external_id          = optional(string)
-    gcp_config_file_content  = optional(string)
+    trusted_account_ids      = optional(list(string))
+    role_definition_name     = optional(string, "Contributor")
+    application_display_name = optional(string)
+    gcp_service_account_id   = optional(string)
+    gcp_workload_pool_id     = optional(string)
+    gcp_provider_id          = optional(string)
+    gcp_project_role         = optional(string, "roles/owner")
+    allow_static_credentials = optional(bool, false)
   }))
-  sensitive = true
-
   validation {
     condition     = alltrue([for connector in var.cloud_connectors : contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC", "AZURE_STATIC", "AZURE_OIDC", "GCP_OIDC"], connector.kind)])
     error_message = "cloud_connectors[*].kind must be AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, or GCP_OIDC."
@@ -71,15 +70,50 @@ variable "cloud_connectors" {
 
   validation {
     condition = alltrue([for connector in var.cloud_connectors :
-      (connector.kind != "AWS_STATIC" || (try(length(trimspace(connector.aws_access_key_id)) > 0, false) && try(length(trimspace(connector.aws_secret_access_key)) > 0, false) && try(can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region)), false))) &&
-      (connector.kind != "AWS_RBAC" || (try(can(regex("^arn:aws[a-z-]*:iam::\\d{12}:role/.+$", connector.aws_role_arn)), false) && try(length(trimspace(connector.aws_external_id)) > 0, false))) &&
-      (connector.kind != "AWS_OIDC" || try(can(regex("^arn:aws[a-z-]*:iam::\\d{12}:role/.+$", connector.aws_role_arn)), false)) &&
-      (connector.kind != "AZURE_STATIC" || (try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_client_id)), false) && try(length(trimspace(connector.azure_client_secret)) > 0, false))) &&
-      (connector.kind != "AZURE_OIDC" || (try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_client_id)), false))) &&
-      (connector.kind != "GCP_OIDC" || try(length(trimspace(connector.gcp_config_file_content)) > 0, false))
+      (connector.kind != "AWS_STATIC" || connector.allow_static_credentials) &&
+      (connector.kind != "AWS_RBAC" || try(length(trimspace(connector.iam_role_name)) > 0, false) && try(length(trimspace(connector.aws_external_id)) > 0, false)) &&
+      (connector.kind != "AWS_OIDC" || try(length(trimspace(connector.iam_role_name)) > 0, false)) &&
+      (connector.kind != "AZURE_STATIC" || connector.allow_static_credentials) &&
+      (connector.kind != "GCP_OIDC" || (try(length(trimspace(connector.gcp_service_account_id)) > 0, false) && try(length(trimspace(connector.gcp_workload_pool_id)) > 0, false) && try(length(trimspace(connector.gcp_provider_id)) > 0, false)))
     ])
-    error_message = "Each cloud connector must supply valid credentials required by its kind."
+    error_message = "Each connector must provide the identity names required by its kind; OIDC connector IDs are created by Terraform."
   }
+}
+
+variable "aws_region" {
+  type        = string
+  description = "AWS region used to create AWS identities. Authentication uses the standard AWS credential chain, including AWS CLI login."
+  default     = "eu-central-1"
+}
+
+variable "azure_subscription_id" {
+  type        = string
+  description = "Azure subscription used to create Azure identities. Authentication uses the Azure CLI login."
+  default     = null
+}
+
+variable "azure_tenant_id" {
+  type        = string
+  description = "Azure tenant used to create Entra identities. Authentication uses the Azure CLI login."
+  default     = null
+}
+
+variable "gcp_project_id" {
+  type        = string
+  description = "Google Cloud project used to create workload identity resources. Authentication uses gcloud application-default credentials."
+  default     = null
+}
+
+variable "stackguardian_org_id" {
+  type        = string
+  description = "StackGuardian organization ID used by the GCP OIDC subject. Required only for GCP_OIDC when it differs from stackguardian_org_name."
+  default     = null
+}
+
+variable "gcp_region" {
+  type        = string
+  description = "Google Cloud region used by the Google provider."
+  default     = "europe-west3"
 }
 
 variable "vcs_connectors" {

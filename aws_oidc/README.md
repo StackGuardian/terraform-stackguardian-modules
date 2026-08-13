@@ -6,7 +6,6 @@ Creates an AWS IAM OIDC provider, IAM role, and role-policy attachment. The call
 module "aws_oidc" {
   source                 = "./aws_oidc"
   aws_region             = "eu-central-1"
-  aws_account_id         = "123456789012"
   iam_role_name          = "StackGuardianOidcRole"
   stackguardian_org_name = "example-org"
 }

@@ -1,11 +1,9 @@
-# Step 1: Create an OpenID Connect provider in AWS IAM
 resource "aws_iam_openid_connect_provider" "oidc_provider" {
   url             = var.oidc_issuer_url
   client_id_list  = [var.oidc_audience]
-  thumbprint_list = []
+  thumbprint_list = var.oidc_thumbprint_list
 }
 
-# Step 2: Create an IAM role that can be assumed by users authenticated through the OIDC provider
 resource "aws_iam_role" "oidc_role" {
   name = var.iam_role_name
   assume_role_policy = jsonencode({

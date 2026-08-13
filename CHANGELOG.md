@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add root-level AWS, Azure, and GCP identity wiring so Terraform creates the selected cloud identity and registers its generated identifiers with StackGuardian.
+- Add CLI-authenticated AWS and Azure onboarding and guarded destroy tasks with temporary targeted plans and StackGuardian token prompting.
+
 ### Changed
 - Rebuild the scoped role-v4 permission document from the observed v4 positional path shape, including exact and nested workflow-group paths and matching wildcard arrays.
 - Deprecate static AWS and Azure authentication. Static identity modules and static cloud connector kinds now require explicit `allow_static_credentials = true` acknowledgement and emit an apply-time warning.
