@@ -1,8 +1,75 @@
 version: '3'
 
 tasks:
+  preflight:terraform:
+    internal: true
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        expected="$(tr -d '[:space:]' < .terraform-version)"
+        if command -v tfenv >/dev/null 2>&1; then
+          if ! tfenv install "$expected"; then
+            printf '%s\n' "WARNING: tfenv could not install Terraform $expected; checking the Terraform binary already on PATH." >&2
+          elif ! tfenv use "$expected"; then
+            printf '%s\n' "WARNING: tfenv could not select Terraform $expected; checking the Terraform binary already on PATH." >&2
+          fi
+        fi
+        if ! command -v terraform >/dev/null 2>&1; then
+          printf '%s\n' "Terraform $expected is required but was not found on PATH." >&2
+          if command -v tfenv >/dev/null 2>&1; then
+            printf '%s\n' "Install it with: tfenv install $expected && tfenv use $expected" >&2
+          else
+            printf '%s\n' "Install tfenv, or install Terraform $expected and add it to PATH." >&2
+          fi
+          exit 1
+        fi
+        actual="$(terraform version | while IFS= read -r line; do case "$line" in 'Terraform v'*) printf '%s\n' "${line#Terraform v}"; break ;; esac; done)"
+        if [ "$actual" != "$expected" ]; then
+          printf '%s\n' "Terraform version $actual is active; this repository requires $expected." >&2
+          if command -v tfenv >/dev/null 2>&1; then
+            printf '%s\n' "Run: tfenv install $expected && tfenv use $expected" >&2
+          else
+            printf '%s\n' "Install Terraform $expected or install tfenv, then run: tfenv install $expected && tfenv use $expected" >&2
+          fi
+          exit 1
+        fi
+  preflight:tofu:
+    internal: true
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        expected="$(tr -d '[:space:]' < .opentofu-version)"
+        if command -v tofuenv >/dev/null 2>&1; then
+          if ! tofuenv install "$expected"; then
+            printf '%s\n' "WARNING: tofuenv could not install OpenTofu $expected; checking the OpenTofu binary already on PATH." >&2
+          elif ! tofuenv use "$expected"; then
+            printf '%s\n' "WARNING: tofuenv could not select OpenTofu $expected; checking the OpenTofu binary already on PATH." >&2
+          fi
+        fi
+        if ! command -v tofu >/dev/null 2>&1; then
+          printf '%s\n' "OpenTofu $expected is required but was not found on PATH." >&2
+          if command -v tofuenv >/dev/null 2>&1; then
+            printf '%s\n' "Install it with: tofuenv install $expected && tofuenv use $expected" >&2
+          else
+            printf '%s\n' "Install tofuenv, or install OpenTofu $expected and add it to PATH." >&2
+          fi
+          exit 1
+        fi
+        actual="$(tofu version | while IFS= read -r line; do case "$line" in 'OpenTofu v'*) printf '%s\n' "${line#OpenTofu v}"; break ;; esac; done)"
+        if [ "$actual" != "$expected" ]; then
+          printf '%s\n' "OpenTofu version $actual is active; this repository requires $expected." >&2
+          if command -v tofuenv >/dev/null 2>&1; then
+            printf '%s\n' "Run: tofuenv install $expected && tofuenv use $expected" >&2
+          else
+            printf '%s\n' "Install OpenTofu $expected or install tofuenv, then run: tofuenv install $expected && tofuenv use $expected" >&2
+          fi
+          exit 1
+        fi
   fmt:
     desc: Formats root and in-scope Terraform modules
+    deps: [preflight:terraform]
     cmds:
       - |
         #!/bin/bash
@@ -12,6 +79,7 @@ tasks:
         done
   check:
     desc: Checks Terraform formatting
+    deps: [preflight:terraform]
     cmds:
       - |
         #!/bin/bash
@@ -22,14 +90,11 @@ tasks:
         done
   test:
     desc: Runs isolated OpenTofu native tests with mocked providers
+    deps: [preflight:tofu]
     cmds:
       - |
         #!/bin/bash
         set -euo pipefail
-        version="$(tr -d '[:space:]' < .opentofu-version)"
-        tofuenv install "$version"
-        tofuenv use "$version"
-        test "$(tofuenv version-name)" = "$version"
         root="$(pwd)"
         temp="$(mktemp -d)"
         trap 'rm -rf "$temp"' EXIT
@@ -43,6 +108,7 @@ tasks:
         done
   validate:
     desc: Initializes and validates isolated copies of in-scope configurations
+    deps: [preflight:terraform]
     cmds:
       - |
         #!/bin/bash

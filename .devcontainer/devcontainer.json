@@ -1,0 +1,19 @@
+{
+  "name": "Terraform StackGuardian Modules",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "TF_PLUGIN_CACHE_DIR": "/home/vscode/.cache/terraform/providers"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "opentofu.vscode-opentofu"
+      ]
+    }
+  }
+}

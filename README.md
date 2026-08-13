@@ -79,6 +79,10 @@ Each module has a short usage and outputs reference in its directory README. Run
 
 ## Local Checks
 
-Run `task check` for formatting. Run `task validate` for isolated `terraform init -backend=false` and `terraform validate` checks; it copies configurations to a temporary directory and requires network access for provider downloads.
+Run `task check` for formatting. Run `task validate` for isolated `terraform init -backend=false` and `terraform validate` checks; it copies configurations to a temporary directory and requires network access for provider downloads. Terraform is pinned to `1.5.7` in `.terraform-version`; tasks use `tfenv` when available, otherwise they check the installed `terraform` binary and print installation guidance when it does not match.
 
-Run `task test` for native OpenTofu tests. The checked-in `.opentofu-version` pins OpenTofu 1.12.5; the task uses `tofuenv`, copies the tested modules to a temporary directory, relaxes only the copied Terraform 1.5.7 version constraint, and resolves the StackGuardian provider from the Terraform Registry because it is not mirrored by the OpenTofu Registry. Tests use mocked StackGuardian providers and plan-only runs, so they do not apply cloud infrastructure or call the StackGuardian API. Cloud applies and remote API behavior remain integration tests.
+Run `task test` for native OpenTofu tests. The checked-in `.opentofu-version` pins OpenTofu 1.12.5; tasks use `tofuenv` when available, otherwise they check the installed `tofu` binary and print installation guidance when it does not match. The task copies tested modules to a temporary directory, relaxes only the copied Terraform 1.5.7 version constraint, and resolves the StackGuardian provider from the Terraform Registry because it is not mirrored by the OpenTofu Registry. Tests use mocked StackGuardian providers and plan-only runs, so they do not apply cloud infrastructure or call the StackGuardian API. Cloud applies and remote API behavior remain integration tests.
+
+## Dev Container And CI
+
+The `.devcontainer` image installs the versions pinned in `.terraform-version`, `.opentofu-version`, and `.task-version`, and is supported on Linux `amd64` and `arm64`. Open the repository in a Dev Container to use the same checks environment as CI. GitHub Actions runs `task check`, `task validate`, and `task test` through this devcontainer for pull requests and pushes to `main`.
