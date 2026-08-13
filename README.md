@@ -38,7 +38,7 @@ The root creates the selected cloud identity and registers the generated identif
 - Azure uses the active Azure CLI identity. Authenticate with `az login`, customize `examples/azure-oidc.tfvars.example`, and run `task onboard:azure`. The task obtains the active subscription and tenant from Azure CLI.
 - GCP uses gcloud application-default credentials. Run `gcloud auth application-default login`, configure a `GCP_OIDC` connector with the project and workload identity names, and apply a reviewed plan.
 
-Both onboarding tasks use `TF_VAR_stackguardian_api_key` when it is set. Otherwise they prompt for the StackGuardian API token without saving it to a file. Each task writes a targeted plan to a temporary file, applies that exact plan, and removes the file afterward. These targeted tasks create only the selected cloud identity and its StackGuardian connector; they intentionally do not create workflow groups, roles, or assignments. Override `ONBOARD_VARS_FILE` or `ONBOARD_CONNECTOR_NAME` when using a differently named connector fixture.
+Both onboarding tasks use `TF_VAR_stackguardian_api_key` when it is set. Otherwise they prompt for the StackGuardian API token without saving it to a file. Tasks write their targeted plans to the working directory, apply that exact plan, and retain it for inspection: `onboard-aws.tfplan`, `onboard-azure.tfplan`, `destroy-aws.tfplan`, or `destroy-azure.tfplan`. These ignored files can be overridden with `ONBOARD_PLAN_FILE`. Targeted tasks create only the selected cloud identity and its StackGuardian connector; they intentionally do not create workflow groups, roles, or assignments. Override `ONBOARD_VARS_FILE` or `ONBOARD_CONNECTOR_NAME` when using a differently named connector fixture.
 
 Use `task destroy:aws` or `task destroy:azure` to remove a connector trial. Each asks you to type the connector name before it destroys resources. AWS teardown retains any account-level `api.app.stackguardian.io` OIDC provider because it may be shared by multiple StackGuardian roles.
 
@@ -58,7 +58,7 @@ Use `task destroy:aws` or `task destroy:azure` to remove a connector trial. Each
 | `aws_rbac.aws_role_name`, `aws_policy` | `iam_role_name`, `policy_arn` |
 | `azure_static.AD_name` | `application_display_name` |
 | `azure_oidc.sg_org_name` | `stackguardian_org_name` |
-| `gcp_oidc.project`, `sg-org-id` | `project_id`, `stackguardian_org_id` |
+| `gcp_oidc.project`, `sg-org-id` | `project_id`, `stackguardian_org_name` |
 
 Legacy aliases are intentionally unavailable. The root configures StackGuardian once; standalone StackGuardian leaf modules inherit provider configuration from their caller and do not accept API credentials.
 
@@ -67,7 +67,7 @@ Legacy aliases are intentionally unavailable. The root configures StackGuardian 
 - `aws_static` is deprecated, needs IAM user/key permissions, and stores a generated static key in state. Use `aws_rbac` or `aws_oidc` when possible.
 - `aws_rbac` and `aws_oidc` need IAM role/policy/OIDC permissions. `policy_arn` defaults to `ReadOnlyAccess`; override it for least privilege. RBAC keeps the two historical trusted StackGuardian accounts by default.
 - `azure_static` is deprecated. It and `azure_oidc` create an Entra application and assign `Contributor` at subscription scope by default. This is high privilege; use `role_definition_name` to reduce it. Static passwords expire after `8760h` by default; prefer `azure_oidc`.
-- `gcp_oidc` needs service-account, workload-identity, and project IAM permissions. `project_role` defaults to high-privilege `roles/owner`; override it for production. Validate the configured issuer, audience, and exact `/orgs/<id>` subject against a real StackGuardian token before applying.
+- `gcp_oidc` needs service-account, workload-identity, and project IAM permissions. `project_role` defaults to high-privilege `roles/owner`; override it for production. Validate the configured issuer, audience, and exact `/orgs/<stackguardian_org_name>` subject against a real StackGuardian token before applying.
 - Cloud and VCS connector modules require access to create StackGuardian connectors. They reject missing, mismatched, or conflicting credentials.
 - Role, assignment, and workflow-group modules require StackGuardian role-management permission.
 

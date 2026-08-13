@@ -104,12 +104,6 @@ variable "gcp_project_id" {
   default     = null
 }
 
-variable "stackguardian_org_id" {
-  type        = string
-  description = "StackGuardian organization ID used by the GCP OIDC subject. Required only for GCP_OIDC when it differs from stackguardian_org_name."
-  default     = null
-}
-
 variable "gcp_region" {
   type        = string
   description = "Google Cloud region used by the Google provider."

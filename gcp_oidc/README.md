@@ -7,7 +7,7 @@ module "gcp_oidc" {
   source                                  = "./gcp_oidc"
   project_id                              = "example-project"
   region                                  = "europe-west3"
-  stackguardian_org_id                    = "example-org-id"
+  stackguardian_org_name                   = "example-org"
   service_account_id                      = "stackguardian"
   workload_identity_pool_id               = "stackguardian"
   workload_identity_pool_provider_id      = "stackguardian-oidc"

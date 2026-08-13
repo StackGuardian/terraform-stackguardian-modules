@@ -1,5 +1,5 @@
 locals {
-  oidc_subject = coalesce(var.oidc_subject, "/orgs/${var.stackguardian_org_id}")
+  oidc_subject = coalesce(var.oidc_subject, "/orgs/${var.stackguardian_org_name}")
 }
 
 moved {

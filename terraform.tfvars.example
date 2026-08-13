@@ -1,8 +1,6 @@
 # Set TF_VAR_stackguardian_api_key through a secret manager or environment variable.
 # Do not place it in this file.
 stackguardian_org_name = "example-org"
-# Required for GCP_OIDC when the StackGuardian organization ID differs from its name.
-stackguardian_org_id = "example-org-id"
 
 workflow_groups = ["engineering"]
 

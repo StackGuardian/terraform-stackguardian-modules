@@ -89,7 +89,7 @@ module "gcp_oidc" {
 
   project_id                          = var.gcp_project_id
   region                              = var.gcp_region
-  stackguardian_org_id                = coalesce(var.stackguardian_org_id, var.stackguardian_org_name)
+  stackguardian_org_name              = var.stackguardian_org_name
   service_account_id                  = each.value.gcp_service_account_id
   workload_identity_pool_id           = each.value.gcp_workload_pool_id
   workload_identity_pool_provider_id  = each.value.gcp_provider_id

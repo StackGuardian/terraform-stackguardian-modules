@@ -1,5 +1,7 @@
 version: '3'
 
+silent: true
+
 tasks:
   preflight:terraform:
     internal: true
@@ -112,6 +114,8 @@ tasks:
     vars:
       ONBOARD_VARS_FILE: '{{default "examples/aws-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
       ONBOARD_CONNECTOR_NAME: '{{default "aws-oidc" .ONBOARD_CONNECTOR_NAME}}'
+      ONBOARD_PLAN_FILE: '{{default "onboard-aws.tfplan" .ONBOARD_PLAN_FILE}}'
+      ONBOARD_CONFIRM: '{{default "" .ONBOARD_CONFIRM}}'
     cmds:
       - |
         #!/bin/bash
@@ -130,10 +134,20 @@ tasks:
           export TF_VAR_stackguardian_api_key="$stackguardian_api_key"
         fi
         connector_name="{{.ONBOARD_CONNECTOR_NAME}}"
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
+        confirmation="{{.ONBOARD_CONFIRM}}"
+        printf '%s\n' "AWS onboarding will create or reuse the account-level StackGuardian OIDC provider, create the IAM role and policy attachment for $connector_name, and register the StackGuardian connector."
+        printf '%s\n' "Variables file: {{.ONBOARD_VARS_FILE}}"
+        printf '%s\n' "Plan file: $plan_file"
+        if [ "$confirmation" != "$connector_name" ]; then
+          read -r -p "Type $connector_name to continue: " confirmation
+        fi
+        if [ "$confirmation" != "$connector_name" ]; then
+          printf '%s\n' "Confirmation did not match; no resources were created." >&2
+          exit 1
+        fi
         oidc_provider_arn="arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):oidc-provider/api.app.stackguardian.io"
         oidc_provider_address="module.aws_oidc[\"$connector_name\"].aws_iam_openid_connect_provider.oidc_provider"
-        plan_file="$(mktemp "${TMPDIR:-/tmp}/stackguardian-aws-onboarding.XXXXXX.tfplan")"
-        trap 'rm -f "$plan_file"' EXIT
         terraform init
         if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$oidc_provider_arn" >/dev/null 2>&1 && ! terraform state list | grep -Fqx "$oidc_provider_address"; then
           terraform import -input=false -var-file="{{.ONBOARD_VARS_FILE}}" "$oidc_provider_address" "$oidc_provider_arn"
@@ -146,6 +160,8 @@ tasks:
     vars:
       ONBOARD_VARS_FILE: '{{default "examples/azure-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
       ONBOARD_CONNECTOR_NAME: '{{default "azure-oidc" .ONBOARD_CONNECTOR_NAME}}'
+      ONBOARD_PLAN_FILE: '{{default "onboard-azure.tfplan" .ONBOARD_PLAN_FILE}}'
+      ONBOARD_CONFIRM: '{{default "" .ONBOARD_CONFIRM}}'
     cmds:
       - |
         #!/bin/bash
@@ -166,8 +182,18 @@ tasks:
           export TF_VAR_stackguardian_api_key="$stackguardian_api_key"
         fi
         connector_name="{{.ONBOARD_CONNECTOR_NAME}}"
-        plan_file="$(mktemp "${TMPDIR:-/tmp}/stackguardian-azure-onboarding.XXXXXX.tfplan")"
-        trap 'rm -f "$plan_file"' EXIT
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
+        confirmation="{{.ONBOARD_CONFIRM}}"
+        printf '%s\n' "Azure onboarding will create the Entra application, service principal, federated credential, subscription role assignment, and StackGuardian connector for $connector_name."
+        printf '%s\n' "Variables file: {{.ONBOARD_VARS_FILE}}"
+        printf '%s\n' "Plan file: $plan_file"
+        if [ "$confirmation" != "$connector_name" ]; then
+          read -r -p "Type $connector_name to continue: " confirmation
+        fi
+        if [ "$confirmation" != "$connector_name" ]; then
+          printf '%s\n' "Confirmation did not match; no resources were created." >&2
+          exit 1
+        fi
         terraform init
         terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -target="module.azure_oidc[\"$connector_name\"]" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
         terraform apply -input=false "$plan_file"
@@ -178,6 +204,7 @@ tasks:
       ONBOARD_VARS_FILE: '{{default "examples/aws-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
       ONBOARD_CONNECTOR_NAME: '{{default "aws-oidc" .ONBOARD_CONNECTOR_NAME}}'
       ONBOARD_DESTROY_CONFIRM: '{{default "" .ONBOARD_DESTROY_CONFIRM}}'
+      ONBOARD_PLAN_FILE: '{{default "destroy-aws.tfplan" .ONBOARD_PLAN_FILE}}'
     cmds:
       - |
         #!/bin/bash
@@ -200,8 +227,10 @@ tasks:
           printf '%s\n' "Confirmation did not match; no resources were destroyed." >&2
           exit 1
         fi
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
         terraform init
-        terraform destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -target="module.aws_oidc[\"$connector_name\"].aws_iam_role_policy_attachment.sg_role_policy" -target="module.aws_oidc[\"$connector_name\"].aws_iam_role.oidc_role" -target="module.stackguardian_connector_cloud[\"$connector_name\"]"
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -target="module.aws_oidc[\"$connector_name\"].aws_iam_role_policy_attachment.sg_role_policy" -target="module.aws_oidc[\"$connector_name\"].aws_iam_role.oidc_role" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
+        terraform apply -input=false "$plan_file"
   destroy:azure:
     desc: Destroys an Azure OIDC identity and StackGuardian connector
     deps: [preflight:terraform]
@@ -209,6 +238,7 @@ tasks:
       ONBOARD_VARS_FILE: '{{default "examples/azure-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
       ONBOARD_CONNECTOR_NAME: '{{default "azure-oidc" .ONBOARD_CONNECTOR_NAME}}'
       ONBOARD_DESTROY_CONFIRM: '{{default "" .ONBOARD_DESTROY_CONFIRM}}'
+      ONBOARD_PLAN_FILE: '{{default "destroy-azure.tfplan" .ONBOARD_PLAN_FILE}}'
     cmds:
       - |
         #!/bin/bash
@@ -237,8 +267,10 @@ tasks:
           printf '%s\n' "Confirmation did not match; no resources were destroyed." >&2
           exit 1
         fi
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
         terraform init
-        terraform destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -target="module.azure_oidc[\"$connector_name\"]" -target="module.stackguardian_connector_cloud[\"$connector_name\"]"
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -target="module.azure_oidc[\"$connector_name\"]" -target="module.stackguardian_connector_cloud[\"$connector_name\"]" -out="$plan_file"
+        terraform apply -input=false "$plan_file"
   validate:
     desc: Initializes and validates isolated copies of in-scope configurations
     deps: [preflight:terraform]

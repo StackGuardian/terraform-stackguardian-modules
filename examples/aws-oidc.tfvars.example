@@ -1,6 +1,6 @@
 # Authenticate before onboarding: aws sso login --profile <profile>
 # The task uses the AWS credential chain, including AWS_PROFILE.
-stackguardian_org_name = "example-org"
+stackguardian_org_name = "wicked-hop"
 aws_region             = "eu-central-1"
 
 workflow_groups = ["engineering"]

@@ -13,13 +13,13 @@ variable "region" {
   description = "Google Cloud region for the provider."
 }
 
-variable "stackguardian_org_id" {
+variable "stackguardian_org_name" {
   type        = string
-  description = "StackGuardian organization ID used in the default OIDC subject."
+  description = "StackGuardian organization name used in the default OIDC subject."
 
   validation {
-    condition     = length(trimspace(var.stackguardian_org_id)) > 0
-    error_message = "stackguardian_org_id must not be empty."
+    condition     = length(trimspace(var.stackguardian_org_name)) > 0
+    error_message = "stackguardian_org_name must not be empty."
   }
 }
 
@@ -30,7 +30,7 @@ variable "oidc_subject" {
 
   validation {
     condition     = var.oidc_subject == null || can(regex("^/orgs/[^/\\s]+$", var.oidc_subject))
-    error_message = "oidc_subject must use the /orgs/<stackguardian_org_id> format."
+    error_message = "oidc_subject must use the /orgs/<stackguardian_org_name> format."
   }
 }
 
