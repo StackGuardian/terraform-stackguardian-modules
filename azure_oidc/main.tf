@@ -15,11 +15,11 @@ resource "azuread_service_principal" "sg_sp" {
 }
 
 # Assign Contributor role to the Service Principal at the subscription level
-resource "azurerm_role_assignment" "example" {
-  principal_id         = azuread_service_principal.sg_sp.object_id
-  role_definition_name = "Contributor"
-  scope                = data.azurerm_subscription.current.id
-}
+# resource "azurerm_role_assignment" "example" {
+#   principal_id         = azuread_service_principal.sg_sp.object_id
+#   role_definition_name = "Contributor"
+#   scope                = data.azurerm_subscription.current.id
+# }
 
 # Configure Workload Identity (Federated Credential)
 resource "azuread_application_federated_identity_credential" "sg_fed_id_creds" {

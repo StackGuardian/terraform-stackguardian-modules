@@ -9,6 +9,11 @@ variable "org_name" {
   description = "Your organization name on StackGuardian Platform"
 }
 
+variable "sg_api_uri" {
+  type        = string
+  description = "Your organization name on StackGuardian Platform"
+}
+
 variable "connector_type" {
   type        = string
   description = "type of connector. You can select anyone of the following AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, GCP_OIDC"

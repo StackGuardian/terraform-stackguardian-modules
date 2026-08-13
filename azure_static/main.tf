@@ -22,22 +22,10 @@ resource "azurerm_role_assignment" "example" {
 }
 
 # Step 3: Create a Client Secret for the Service Principal
-resource "azuread_service_principal_password" "client_secret" {
-  service_principal_id = azuread_service_principal.sg_sp.id
+
+resource "azuread_application_password" "client_secret" {
+  application_id     = azuread_application.app_registration.id
+  display_name       = "Terraform Client Secret"
+  end_date  = "2027-02-07T23:59:59Z"
 }
 
-# Step 4: Output the Client Secret Value (ID will be available in the Service Principal)
-output "client_secret_value" {
-  value     = azuread_service_principal_password.client_secret.value
-  sensitive = true
-}
-
-# Step 5: Output the Client ID (Application ID)
-output "client_id" {
-  value = azuread_application.app_registration.client_id
-}
-
-# Step 6: Output the Client Secret ID (from the service principal password)
-output "client_secret_id" {
-  value = azuread_service_principal_password.client_secret.id
-}
