@@ -1,5 +1,4 @@
 data "azuread_client_config" "current" {}
-data "azurerm_subscription" "current" {}
 
 resource "azuread_application" "app_registration" {
   display_name = var.application_display_name
@@ -29,7 +28,7 @@ resource "azuread_service_principal" "sg_sp" {
 resource "azurerm_role_assignment" "subscription" {
   principal_id         = azuread_service_principal.sg_sp.object_id
   role_definition_name = var.role_definition_name
-  scope                = data.azurerm_subscription.current.id
+  scope                = "/subscriptions/${var.subscription_id}"
 
   lifecycle {
     precondition {

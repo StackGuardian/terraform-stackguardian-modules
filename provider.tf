@@ -33,23 +33,17 @@ provider "stackguardian" {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region = local.aws_provider_region
 }
 
 provider "azurerm" {
   features {}
-  subscription_id = var.azure_subscription_id
-  tenant_id       = var.azure_tenant_id
 }
 
 provider "azuread" {
-  tenant_id = var.azure_tenant_id
 }
 
 provider "google" {
-  alias   = "gcp"
-  project = coalesce(var.gcp_project_id, "unused-project")
-  region  = var.gcp_region
-  # Avoid requiring gcloud ADC when this root is onboarding AWS or Azure.
-  access_token = var.gcp_project_id == null ? "unused" : null
+  # Avoid requiring gcloud ADC when this root has no GCP resources.
+  access_token = local.has_gcp_connector ? null : "unused"
 }

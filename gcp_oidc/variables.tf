@@ -8,11 +8,6 @@ variable "project_id" {
   }
 }
 
-variable "region" {
-  type        = string
-  description = "Google Cloud region for the provider."
-}
-
 variable "stackguardian_org_name" {
   type        = string
   description = "StackGuardian organization name used in the default OIDC subject."

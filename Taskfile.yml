@@ -195,7 +195,10 @@ tasks:
           exit 1
         fi
         terraform init
-        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -out="$plan_file"
+        export ARM_SUBSCRIPTION_ID="$subscription_id"
+        export ARM_TENANT_ID="$tenant_id"
+        export AZUREAD_TENANT_ID="$tenant_id"
+        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
         terraform apply -input=false "$plan_file"
   destroy:aws:
     desc: Destroys an AWS OIDC role and StackGuardian connector, retaining any shared OIDC provider
@@ -269,7 +272,10 @@ tasks:
         fi
         plan_file="{{.ONBOARD_PLAN_FILE}}"
         terraform init
-        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -var="azure_subscription_id=$subscription_id" -var="azure_tenant_id=$tenant_id" -out="$plan_file"
+        export ARM_SUBSCRIPTION_ID="$subscription_id"
+        export ARM_TENANT_ID="$tenant_id"
+        export AZUREAD_TENANT_ID="$tenant_id"
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
         terraform apply -input=false "$plan_file"
   validate:
     desc: Initializes and validates isolated copies of in-scope configurations

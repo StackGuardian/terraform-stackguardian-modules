@@ -35,8 +35,8 @@ Standalone `aws_static` and `azure_static` modules also require `allow_static_cr
 The root creates the selected cloud identity and registers the generated identifiers with StackGuardian. It does not require you to manually supply an AWS role ARN, an Azure application client ID, or a GCP external-account configuration for OIDC connectors.
 
 - AWS uses the standard AWS provider credential chain. Authenticate first with your normal profile or `aws sso login`, then customize `examples/aws-oidc.tfvars.example` and run `task onboard:aws`. The task creates the `api.app.stackguardian.io` IAM OIDC provider when it is absent, or imports an existing unmanaged provider instead of attempting to recreate it.
-- Azure uses the active Azure CLI identity. Authenticate with `az login`, customize `examples/azure-oidc.tfvars.example`, and run `task onboard:azure`. The task obtains the active subscription and tenant from Azure CLI.
-- GCP uses gcloud application-default credentials. Run `gcloud auth application-default login`, configure a `GCP_OIDC` connector with the project and workload identity names, and apply a reviewed plan.
+- Azure uses the active Azure CLI identity. Authenticate with `az login`, set the connector's `azure_subscription_id` and `azure_tenant_id` to match the active account, customize `examples/azure-oidc.tfvars.example`, and run `task onboard:azure`.
+- GCP uses gcloud application-default credentials. Run `gcloud auth application-default login`, configure a `GCP_OIDC` connector with its `gcp_project_id` and workload identity names, and apply a reviewed plan.
 
 Both onboarding tasks use `TF_VAR_stackguardian_api_key` when it is set. Otherwise they prompt for the StackGuardian API token without saving it to a file. Tasks write full plans to the working directory, apply that exact plan, and retain it for inspection: `onboard-aws.tfplan`, `onboard-azure.tfplan`, `destroy-aws.tfplan`, or `destroy-azure.tfplan`. These ignored files can be overridden with `ONBOARD_PLAN_FILE`. A full plan applies every resource declared by the selected vars file, including workflow groups, roles, and assignments. Override `ONBOARD_VARS_FILE` or `ONBOARD_CONNECTOR_NAME` when using a differently named connector fixture.
 
@@ -51,14 +51,14 @@ Use `task destroy:aws` or `task destroy:azure` to remove a connector trial. Each
 | `user_or_group` | `subject` |
 | `connector_type` | `kind` in `cloud_connectors` |
 | `cloud_connector_name` | `name` in `cloud_connectors` |
-| `aws_default_region` | `aws_region` |
-| `armTenantId`, `armSubscriptionId`, `armClientId`, `armClientSecret` | `azure_tenant_id`, `azure_subscription_id`, `azure_client_id`, `azure_client_secret` |
+| `aws_default_region` | `aws_region` in the AWS connector |
+| `armTenantId`, `armSubscriptionId`, `armClientId`, `armClientSecret` | `azure_tenant_id`, `azure_subscription_id`, `azure_client_id`, `azure_client_secret` in the Azure connector |
 | `role_arn`, `role_external_id` | `aws_role_arn`, `aws_external_id` |
 | `aws_oidc.region`, `role_name`, `account_number`, `aws_policy` | `aws_region`, `iam_role_name`, `aws_account_id`, `policy_arn` |
 | `aws_rbac.aws_role_name`, `aws_policy` | `iam_role_name`, `policy_arn` |
 | `azure_static.AD_name` | `application_display_name` |
 | `azure_oidc.sg_org_name` | `stackguardian_org_name` |
-| `gcp_oidc.project`, `sg-org-id` | `project_id`, `stackguardian_org_name` |
+| `gcp_oidc.project`, `sg-org-id` | `gcp_project_id` in the GCP connector, `stackguardian_org_name` |
 
 Legacy aliases are intentionally unavailable. The root configures StackGuardian once; standalone StackGuardian leaf modules inherit provider configuration from their caller and do not accept API credentials.
 

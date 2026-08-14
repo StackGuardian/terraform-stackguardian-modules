@@ -1,11 +1,13 @@
 # Authenticate before onboarding: az login --tenant <tenant-id>
-# The onboarding task discovers the active subscription and tenant from Azure CLI.
+# The subscription and tenant must match the active Azure CLI account.
 stackguardian_org_name = "example-org"
 
 workflow_groups = ["engineering"]
 cloud_connectors = [{
   name                     = "azure-oidc"
   kind                     = "AZURE_OIDC"
+  azure_subscription_id    = "00000000-0000-0000-0000-000000000000"
+  azure_tenant_id          = "00000000-0000-0000-0000-000000000000"
   application_display_name = "stackguardian-oidc"
   role_definition_name     = "Reader"
 }]

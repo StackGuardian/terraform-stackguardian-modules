@@ -11,17 +11,21 @@ cloud_connectors = [
   {
     name          = "aws-oidc"
     kind          = "AWS_OIDC"
+    aws_region    = "eu-central-1"
     iam_role_name = "StackGuardianOidcRole"
   },
   {
     name                     = "azure-oidc"
     kind                     = "AZURE_OIDC"
+    azure_subscription_id    = "00000000-0000-0000-0000-000000000000"
+    azure_tenant_id          = "00000000-0000-0000-0000-000000000000"
     application_display_name = "stackguardian-oidc"
     role_definition_name     = "Reader"
   },
   {
     name                   = "gcp-oidc"
     kind                   = "GCP_OIDC"
+    gcp_project_id         = "example-project"
     gcp_service_account_id = "stackguardian"
     gcp_workload_pool_id   = "stackguardian"
     gcp_provider_id        = "stackguardian-oidc"

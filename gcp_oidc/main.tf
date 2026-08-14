@@ -31,10 +31,12 @@ resource "google_service_account" "stackguardian" {
   account_id   = var.service_account_id
   display_name = "StackGuardian Service Account"
   description  = "Service account used by StackGuardian workload identity federation."
+  project      = var.project_id
 }
 
 resource "google_iam_workload_identity_pool" "stackguardian" {
   workload_identity_pool_id = var.workload_identity_pool_id
+  project                   = var.project_id
 }
 
 resource "google_iam_workload_identity_pool_provider" "stackguardian" {
@@ -42,6 +44,7 @@ resource "google_iam_workload_identity_pool_provider" "stackguardian" {
   workload_identity_pool_provider_id = var.workload_identity_pool_provider_id
   display_name                       = var.workload_identity_pool_display_name
   description                        = "OIDC identity pool provider for StackGuardian."
+  project                            = var.project_id
   attribute_mapping = {
     "google.subject" = "assertion.sub"
   }

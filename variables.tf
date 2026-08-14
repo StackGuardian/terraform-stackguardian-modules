@@ -56,6 +56,10 @@ variable "cloud_connectors" {
     gcp_workload_pool_id     = optional(string)
     gcp_provider_id          = optional(string)
     gcp_project_role         = optional(string, "roles/owner")
+    gcp_project_id           = optional(string)
+    aws_region               = optional(string, "eu-central-1")
+    azure_subscription_id    = optional(string)
+    azure_tenant_id          = optional(string)
     allow_static_credentials = optional(bool, false)
   }))
   validation {
@@ -72,40 +76,12 @@ variable "cloud_connectors" {
     condition = alltrue([for connector in var.cloud_connectors :
       (connector.kind != "AWS_RBAC" || try(length(trimspace(connector.iam_role_name)) > 0, false) && try(length(trimspace(connector.aws_external_id)) > 0, false)) &&
       (connector.kind != "AWS_OIDC" || try(length(trimspace(connector.iam_role_name)) > 0, false)) &&
-      (connector.kind != "GCP_OIDC" || (try(length(trimspace(connector.gcp_service_account_id)) > 0, false) && try(length(trimspace(connector.gcp_workload_pool_id)) > 0, false) && try(length(trimspace(connector.gcp_provider_id)) > 0, false)))
+      (!contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC"], connector.kind) || can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region))) &&
+      (!contains(["AZURE_STATIC", "AZURE_OIDC"], connector.kind) || (try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false))) &&
+      (connector.kind != "GCP_OIDC" || (try(can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", connector.gcp_project_id)), false) && try(length(trimspace(connector.gcp_service_account_id)) > 0, false) && try(length(trimspace(connector.gcp_workload_pool_id)) > 0, false) && try(length(trimspace(connector.gcp_provider_id)) > 0, false)))
     ])
-    error_message = "Each connector must provide the identity names required by its kind; OIDC connector IDs are created by Terraform."
+    error_message = "Each connector must provide the cloud-specific IDs and identity names required by its kind; OIDC connector IDs are created by Terraform."
   }
-}
-
-variable "aws_region" {
-  type        = string
-  description = "AWS region used to create AWS identities. Authentication uses the standard AWS credential chain, including AWS CLI login."
-  default     = "eu-central-1"
-}
-
-variable "azure_subscription_id" {
-  type        = string
-  description = "Azure subscription used to create Azure identities. Authentication uses the Azure CLI login."
-  default     = null
-}
-
-variable "azure_tenant_id" {
-  type        = string
-  description = "Azure tenant used to create Entra identities. Authentication uses the Azure CLI login."
-  default     = null
-}
-
-variable "gcp_project_id" {
-  type        = string
-  description = "Google Cloud project used to create workload identity resources. Authentication uses gcloud application-default credentials."
-  default     = null
-}
-
-variable "gcp_region" {
-  type        = string
-  description = "Google Cloud region used by the Google provider."
-  default     = "europe-west3"
 }
 
 variable "vcs_connectors" {
