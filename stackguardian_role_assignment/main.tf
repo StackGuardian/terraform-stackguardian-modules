@@ -1,5 +1,5 @@
-resource "stackguardian_role_assignment" "sg-user" {
-  user_id     = var.user_or_group
+resource "stackguardian_role_assignment" "sg_user" {
+  user_id     = var.subject
   entity_type = var.entity_type
-  role        = var.role_name
+  roles       = [var.role_name]
 }

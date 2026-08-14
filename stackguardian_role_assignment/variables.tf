@@ -1,26 +1,24 @@
-variable "api_key" {
+variable "subject" {
   type        = string
-  description = "value of the api key for the StackGuardian platform"
+  description = "Local email or qualified SSO email/group subject receiving the role."
+
+  validation {
+    condition     = can(regex("^([^/@\\s]+/[^/\\s]+|[^@\\s]+@[^@\\s]+\\.[^@\\s]+)$", var.subject))
+    error_message = "subject must be a local email or a qualified SSO subject in provider/value format."
+  }
 }
-variable "org_name" {
-  type        = string
-  description = "name of the organization on StackGuardian that you want to work with"
-}
-variable "user_or_group" {
-  type        = string
-  description = "Group or User that should be onboarded"
-  #Format: sso-auth/email (email in SSO), sso-auth/group-id (Group in SSO), email (Email via local login)
-  #Example: "stackguardian-1/user@stackguardian.com" or "stackguardian-1/9djhd38cniwje9jde" or "user@stackguardian.com"
-}
+
 variable "entity_type" {
   type        = string
-  description = "Type of entity that should be onboarded"
-  #Valid values: "EMAIL" or "GROUP"
+  description = "Subject type: EMAIL or GROUP."
+
+  validation {
+    condition     = contains(["EMAIL", "GROUP"], var.entity_type)
+    error_message = "entity_type must be EMAIL or GROUP."
+  }
 }
 
 variable "role_name" {
   type        = string
-  description = "Role that will be assigned to the User or group"
+  description = "Single StackGuardian role assigned to the subject."
 }
-
-

@@ -1,327 +1,100 @@
-# StackGuardian Terraform Modules
+# StackGuardian Terraform Modules v2
 
-A comprehensive collection of Terraform modules for onboarding and managing StackGuardian platform resources. This repository provides everything you need to set up team access, cloud connectors, workflow groups, and role-based access control (RBAC) for your StackGuardian organization.
+Terraform modules for StackGuardian onboarding and cloud identity configuration. The root module creates workflow groups, cloud/VCS connectors, a role, and one assignment. `stackguardian_private_runner/` is explicitly outside the v2 upgrade scope.
 
-## 🚀 Overview
+## Prerequisites
 
-StackGuardian is a cloud infrastructure management platform that helps organizations manage their Infrastructure as Code (IaC) deployments across multiple cloud providers. This Terraform module collection automates the setup of:
+- Terraform **1.5.7** exactly.
+- StackGuardian provider `>= 1.12.0, < 2.0.0`.
+- AWS provider `>= 6.58.0, < 7.0.0`, AzureRM `>= 5.0.1, < 6.0.0`, AzureAD `>= 3.9.0, < 4.0.0`, and Google `>= 7.44.0, < 8.0.0` in their applicable modules.
+- Credentials authorized to create the selected cloud identities. Azure management needs Microsoft Graph application-management and subscription role-assignment privileges.
 
-- **Workflow Groups** - Organize deployments by environment (Dev, Test, Staging, Prod)
-- **Cloud Connectors** - Secure connections to AWS, Azure, and GCP
-- **VCS Connectors** - Integration with GitHub, GitLab, and Bitbucket
-- **Roles & Permissions** - Custom roles with granular permissions
-- **User/Group Management** - Assign roles to users and groups
-- **OIDC Setup** - Optional OpenID Connect provider configuration
+Use `terraform.tfvars.example` as a schema reference. Put secret values in `TF_VAR_*` variables or a secret manager, not version control.
 
-## 📋 Prerequisites
+## Static Credential Deprecation
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- StackGuardian account with API access
-- Cloud provider accounts (AWS/Azure/GCP) if using cloud connectors
-- VCS provider access tokens (GitHub/GitLab/Bitbucket) if using VCS connectors
+`aws_static`, `azure_static`, and `AWS_STATIC` or `AZURE_STATIC` cloud connectors are deprecated. Static secrets are retained in Terraform state and may appear in plan artifacts, so protect both as sensitive data. Prefer `aws_rbac`, `aws_oidc`, `azure_oidc`, or the corresponding non-static connector kind.
 
-## 🏗️ Module Architecture
-
-```
-terraform-stackguardian-modules/
-├── main.tf                           # Root module orchestration
-├── variables.tf                      # Input variables
-├── provider.tf                       # Provider configurations
-├── terraform.tfvars                  # Example configuration
-├── stackguardian_workflow_group/     # Workflow group module
-├── stackguardian_connector_cloud/    # Cloud connector module
-├── stackguardian_connector_vcs/      # VCS connector module
-├── stackguardian_role/               # Role management module
-├── stackguardian_role_assignment/    # Role assignment module
-├── aws_oidc/                         # AWS OIDC setup module
-├── aws_rbac/                         # AWS RBAC setup module
-├── azure_oidc/                       # Azure OIDC setup module
-└── gcp_oidc/                         # GCP OIDC setup module
-```
-
-## 🚀 Quick Start
-
-### 1. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd terraform-stackguardian-modules
-```
-
-### 2. Configure Variables
-
-Copy the example configuration and customize it for your organization:
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-```
-
-Edit `terraform.tfvars` with your StackGuardian credentials and desired configuration:
+Static authentication requires an explicit acknowledgement. The root acknowledgement is per connector and cannot enable another connector:
 
 ```hcl
-# StackGuardian Platform Credentials
-api_key  = "sgu-your-api-key-here"
-org_name = "your-org-name"
-
-# Workflow Groups (environments)
-workflow_groups = ["TeamX-Dev", "TeamX-Test", "TeamX-Staging", "TeamX-Prod"]
-
-# Cloud Connectors
 cloud_connectors = [{
-  name                 = "aws-connector-1"
-  connector_type       = "AWS_RBAC"
-  role_arn            = "arn:aws:iam::123456789012:role/StackGuardianRole"
-  aws_role_external_id = "your-org:random-string"
+  name                     = "legacy-aws"
+  kind                     = "AWS_STATIC"
+  allow_static_credentials = true
+  aws_access_key_id        = var.legacy_aws_access_key_id
+  aws_secret_access_key    = var.legacy_aws_secret_access_key
+  aws_region               = "eu-central-1"
 }]
-
-# VCS Connectors
-vcs_connectors = {
-  vcs_github = {
-    kind = "GITHUB_COM"
-    name = "github-connector"
-    config = [{
-      github_creds = {
-        githubCreds     = "username:personal_access_token"
-        github_com_url  = "https://api.github.com"
-        github_http_url = "https://github.com"
-      }
-    }]
-  }
-}
-
-# Role Configuration
-role_name     = "TeamX-Role"
-template_list = ["opentofu-aws-vpc"]
-
-# User Assignment
-user_or_group = "user@example.com"
-entity_type   = "EMAIL"
 ```
 
-### 3. Initialize and Apply
+Standalone `aws_static` and `azure_static` modules also require `allow_static_credentials = true`. Terraform emits a deprecation warning during apply after acknowledgement.
+
+## Cloud Onboarding
+
+The root creates the selected cloud identity and registers the generated identifiers with StackGuardian. It does not require you to manually supply an AWS role ARN, an Azure application client ID, or a GCP external-account configuration for OIDC connectors.
+
+- AWS uses the standard AWS provider credential chain. Authenticate first with your normal profile or `aws sso login`, then customize `examples/aws-oidc.tfvars.example` and run `task onboard:aws`. The task creates the `api.app.stackguardian.io` IAM OIDC provider when it is absent, or imports an existing unmanaged provider instead of attempting to recreate it.
+- Azure uses the active Azure CLI identity. Authenticate with `az login`, set the connector's `azure_subscription_id` and `azure_tenant_id` to match the active account, customize `examples/azure-oidc.tfvars.example`, and run `task onboard:azure`.
+- GCP uses gcloud application-default credentials. Run `gcloud auth application-default login`, configure a `GCP_OIDC` connector with its `gcp_project_id` and workload identity names, and apply a reviewed plan.
+
+Both onboarding tasks use `TF_VAR_stackguardian_api_key` when it is set. Otherwise they prompt for the StackGuardian API token without saving it to a file. Tasks write full plans to the working directory, apply that exact plan, and retain it for inspection: `onboard-aws.tfplan`, `onboard-azure.tfplan`, `destroy-aws.tfplan`, or `destroy-azure.tfplan`. These ignored files can be overridden with `ONBOARD_PLAN_FILE`. A full plan applies every resource declared by the selected vars file, including workflow groups, roles, and assignments. Override `ONBOARD_VARS_FILE` or `ONBOARD_CONNECTOR_NAME` when using a differently named connector fixture.
+
+Use `task destroy:aws` or `task destroy:azure` to remove a connector trial. Each asks you to type the connector name before it destroys resources. AWS teardown retains any account-level `api.app.stackguardian.io` OIDC provider because it may be shared by multiple StackGuardian roles.
+
+## V2 Inputs
+
+| v1 input | v2 input |
+| --- | --- |
+| `api_key` | `stackguardian_api_key` |
+| `org_name` | `stackguardian_org_name` |
+| `user_or_group` | `subject` |
+| `connector_type` | `kind` in `cloud_connectors` |
+| `cloud_connector_name` | `name` in `cloud_connectors` |
+| `aws_default_region` | `aws_region` in the AWS connector |
+| `armTenantId`, `armSubscriptionId`, `armClientId`, `armClientSecret` | `azure_tenant_id`, `azure_subscription_id`, `azure_client_id`, `azure_client_secret` in the Azure connector |
+| `role_arn`, `role_external_id` | `aws_role_arn`, `aws_external_id` |
+| `aws_oidc.region`, `role_name`, `account_number`, `aws_policy` | `aws_region`, `iam_role_name`, `aws_account_id`, `policy_arn` |
+| `aws_rbac.aws_role_name`, `aws_policy` | `iam_role_name`, `policy_arn` |
+| `azure_static.AD_name` | `application_display_name` |
+| `azure_oidc.sg_org_name` | `stackguardian_org_name` |
+| `gcp_oidc.project`, `sg-org-id` | `gcp_project_id` in the GCP connector, `stackguardian_org_name` |
+
+Legacy aliases are intentionally unavailable. The root configures StackGuardian once; standalone StackGuardian leaf modules inherit provider configuration from their caller and do not accept API credentials.
+
+## Permissions And Defaults
+
+- `aws_static` is deprecated, needs IAM user/key permissions, and stores a generated static key in state. Use `aws_rbac` or `aws_oidc` when possible.
+- `aws_rbac` and `aws_oidc` need IAM role/policy/OIDC permissions. `policy_arn` defaults to `ReadOnlyAccess`; override it for least privilege. RBAC keeps the two historical trusted StackGuardian accounts by default.
+- `azure_static` is deprecated. It and `azure_oidc` create an Entra application and assign `Contributor` at subscription scope by default. This is high privilege; use `role_definition_name` to reduce it. Static passwords expire after `8760h` by default; prefer `azure_oidc`.
+- `gcp_oidc` needs service-account, workload-identity, and project IAM permissions. `project_role` defaults to high-privilege `roles/owner`; override it for production. Validate the configured issuer, audience, and exact `/orgs/<stackguardian_org_name>` subject against a real StackGuardian token before applying.
+- Cloud and VCS connector modules require access to create StackGuardian connectors. They reject missing, mismatched, or conflicting credentials.
+- Role, assignment, and workflow-group modules require StackGuardian role-management permission.
+
+## Role v4 State Migration
+
+The role resource changes from `stackguardian_role` to `stackguardian_rolev4`; this cannot use a `moved` block or `terraform state mv`. During a maintenance window with exclusive backend locking, back up state and record the existing permissions, then run:
 
 ```bash
-# Initialize Terraform
-terraform init
-
-# Plan the deployment
+terraform state rm 'module.stackguardian_role.stackguardian_role.role'
+terraform import 'module.stackguardian_role.stackguardian_rolev4.role' '<role-name>'
 terraform plan
-
-# Apply the configuration
-terraform apply
 ```
 
-## 📚 Module Documentation
+For standalone role usage, omit `module.stackguardian_role.`. Review the v4 `allowed_permissions`, apply the reviewed update, then run a second plan and test an allowed and denied path. Do not use `state mv`; roll back only by restoring the backed-up state/configuration.
 
-### Core Modules
+Before replacing the former authoritative GCP IAM policy, add and import `google_service_account_iam_member.self_workload_identity`, then remove only the old policy state binding. Likewise, import the existing AWS role-policy attachment when converting from the legacy global attachment. Export existing IAM bindings first and verify the plan cannot remove unrelated principals.
 
-#### `stackguardian_workflow_group`
-Creates workflow groups for organizing deployments by environment.
+## Module Usage
 
-**Inputs:**
-- `workflow_group_name` - Name of the workflow group
-- `api_key` - StackGuardian API key
-- `org_name` - StackGuardian organization name
+Each module has a short usage and outputs reference in its directory README. Run `terraform init -upgrade`, `terraform validate`, and a reviewed plan from the specific module directory. Lock files are deliberately not committed because callers initialize independently.
 
-**Outputs:**
-- `workflow_groups` - Created workflow group name
+## Local Checks
 
-#### `stackguardian_connector_cloud`
-Sets up cloud provider connectors with various authentication methods.
+Run `task check` for formatting. Run `task validate` for isolated `terraform init -backend=false` and `terraform validate` checks; it copies configurations to a temporary directory and requires network access for provider downloads. Terraform is pinned to `1.5.7` in `.terraform-version`; tasks use `tfenv` when available, otherwise they check the installed `terraform` binary and print installation guidance when it does not match.
 
-**Supported Connector Types:**
-- `AWS_STATIC` - AWS access key/secret
-- `AWS_RBAC` - AWS role with external ID
-- `AWS_OIDC` - AWS role with OIDC
-- `AZURE_STATIC` - Azure service principal
-- `AZURE_OIDC` - Azure with OIDC
-- `GCP_STATIC` - GCP service account
+Run `task test` for native OpenTofu tests. The checked-in `.opentofu-version` pins OpenTofu 1.12.5; tasks use `tofuenv` when available, otherwise they check the installed `tofu` binary and print installation guidance when it does not match. The task copies tested modules to a temporary directory, relaxes only the copied Terraform 1.5.7 version constraint, and resolves the StackGuardian provider from the Terraform Registry because it is not mirrored by the OpenTofu Registry. Tests use mocked StackGuardian providers and plan-only runs, so they do not apply cloud infrastructure or call the StackGuardian API. Cloud applies and remote API behavior remain integration tests.
 
-**Key Inputs:**
-- `cloud_connector_name` - Name of the connector
-- `connector_type` - Type of connector (see above)
-- `role_arn` - AWS role ARN (for AWS connectors)
-- `role_external_id` - External ID for AWS RBAC
+## Dev Container And CI
 
-#### `stackguardian_connector_vcs`
-Integrates with version control systems.
-
-**Supported VCS Types:**
-- `GITHUB_COM` - GitHub.com
-- `GITLAB_COM` - GitLab.com
-- `BITBUCKET_ORG` - Bitbucket.org
-
-#### `stackguardian_role`
-Creates custom roles with specific permissions.
-
-**Key Inputs:**
-- `role_name` - Name of the role
-- `cloud_connectors` - List of accessible cloud connectors
-- `vcs_connectors` - List of accessible VCS connectors
-- `workflow_groups` - List of accessible workflow groups
-- `template_list` - List of accessible templates
-
-#### `stackguardian_role_assignment`
-Assigns roles to users or groups.
-
-**Key Inputs:**
-- `user_or_group` - User email or group identifier
-- `entity_type` - Either "EMAIL" or "GROUP"
-- `role_name` - Role to assign
-
-### Cloud Setup Modules
-
-#### `aws_oidc`
-Creates AWS IAM OIDC provider and role for StackGuardian.
-
-#### `aws_rbac`
-Sets up AWS IAM role with external ID for RBAC authentication.
-
-#### `azure_oidc`
-Configures Azure AD application and service principal for OIDC.
-
-#### `gcp_oidc`
-Sets up GCP workload identity federation for OIDC authentication.
-
-## 🔧 Configuration Examples
-
-### Multi-Environment Setup
-
-```hcl
-workflow_groups = [
-  "frontend-dev",
-  "frontend-staging",
-  "frontend-prod",
-  "backend-dev",
-  "backend-staging",
-  "backend-prod"
-]
-```
-
-### Multiple Cloud Connectors
-
-```hcl
-cloud_connectors = [
-  {
-    name                 = "aws-dev"
-    connector_type       = "AWS_RBAC"
-    role_arn            = "arn:aws:iam::111111111111:role/StackGuardian-Dev"
-    aws_role_external_id = "myorg:dev-12345"
-  },
-  {
-    name                 = "aws-prod"
-    connector_type       = "AWS_RBAC"
-    role_arn            = "arn:aws:iam::222222222222:role/StackGuardian-Prod"
-    aws_role_external_id = "myorg:prod-67890"
-  }
-]
-```
-
-### Multiple VCS Connectors
-
-```hcl
-vcs_connectors = {
-  vcs_github = {
-    kind = "GITHUB_COM"
-    name = "github-main"
-    config = [{
-      github_creds = {
-        githubCreds     = "username:personal_access_token"
-        github_com_url  = "https://api.github.com"
-        github_http_url = "https://github.com"
-      }
-    }]
-  },
-  vcs_gitlab = {
-    kind = "GITLAB_COM"
-    name = "gitlab-secondary"
-    config = [{
-      gitlab_creds = {
-        gitlabCreds   = "username:personal_access_token"
-        gitlabHttpUrl = "https://gitlab.com"
-        gitlabApiUrl  = "https://gitlab.com/api/v4"
-      }
-    }]
-  }
-}
-```
-
-## 🔐 Security Best Practices
-
-### API Key Management
-- Store API keys in environment variables or secure secret management systems
-- Never commit API keys to version control
-- Use different API keys for different environments
-
-### Cloud Connector Security
-- Use RBAC or OIDC instead of static credentials when possible
-- Follow principle of least privilege for IAM roles
-- Regularly rotate access keys and external IDs
-- Use separate AWS accounts/Azure subscriptions for different environments
-
-### VCS Integration
-- Use personal access tokens with minimal required scopes
-- Regularly rotate VCS tokens
-- Consider using organization-level tokens for team access
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-**Provider Authentication Errors**
-```bash
-Error: Invalid API key or organization name
-```
-- Verify your `api_key` and `org_name` in terraform.tfvars
-- Ensure the API key has sufficient permissions
-
-**Cloud Connector Failures**
-```bash
-Error: Unable to assume role
-```
-- Check that the role ARN is correct
-- Verify the external ID matches your StackGuardian organization
-- Ensure the role trust policy allows StackGuardian to assume it
-
-**VCS Connector Issues**
-```bash
-Error: Invalid VCS credentials
-```
-- Verify your VCS credentials format
-- Check that tokens have required permissions
-- Ensure URLs are correct for your VCS provider
-
-### Debug Mode
-Enable Terraform debug logging:
-```bash
-export TF_LOG=DEBUG
-terraform apply
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- [StackGuardian Documentation](https://docs.stackguardian.io/)
-- [StackGuardian Community](https://community.stackguardian.io/)
-- [Terraform Provider Documentation](https://registry.terraform.io/providers/StackGuardian/stackguardian/latest/docs)
-
-## 🏷️ Version Compatibility
-
-| Module Version | StackGuardian Provider | Terraform Version |
-|---------------|----------------------|------------------|
-| 1.x.x         | 1.1.0-rc5           | >= 1.0           |
-
----
-
-**Made with ❤️ by the StackGuardian Community**
+The `.devcontainer` image installs the versions pinned in `.terraform-version`, `.opentofu-version`, and `.task-version`, and is supported on Linux `amd64` and `arm64`. Open the repository in a Dev Container to use the same checks environment as CI. GitHub Actions runs `task check`, `task validate`, and `task test` through this devcontainer for pull requests and pushes to `main`.

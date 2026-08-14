@@ -1,38 +1,59 @@
-
-variable "api_key" {
-  type        = string
-  description = "value of the api key for the StackGuardian platform"
-}
 variable "org_name" {
   type        = string
-  description = "name of the organization on StackGuardian that you want to work with"
+  description = "StackGuardian organization name used in permission paths."
+
+  validation {
+    condition     = length(trimspace(var.org_name)) > 0
+    error_message = "org_name must not be empty."
+  }
 }
+
 variable "workflow_groups" {
   type        = list(string)
-  description = "The list of workflow groups"
+  description = "Workflow groups granted to the role."
+
+  validation {
+    condition     = length(var.workflow_groups) > 0 && alltrue([for name in var.workflow_groups : length(trimspace(name)) > 0])
+    error_message = "workflow_groups must contain at least one non-empty name."
+  }
 }
+
 variable "cloud_connectors" {
-  type        = list(any)
-  description = "list of cloud connectors you want to work with"
+  type        = list(string)
+  description = "Cloud connector names granted to the role."
+
+  validation {
+    condition     = alltrue([for name in var.cloud_connectors : length(trimspace(name)) > 0])
+    error_message = "cloud_connectors must contain only non-empty names."
+  }
 }
+
 variable "vcs_connectors" {
-  type        = list(any)
-  description = "list of version control systems"
+  type        = list(string)
+  description = "VCS connector names granted to the role."
+
+  validation {
+    condition     = alltrue([for name in var.vcs_connectors : length(trimspace(name)) > 0])
+    error_message = "vcs_connectors must contain only non-empty names."
+  }
 }
+
 variable "template_list" {
-  type        = list(any)
-  description = "the list of templates on StackGuardian that you want to work with"
-}
-variable "allowed_permissions" {
-  type        = any
-  description = "the type of permissions you want to provide to the user"
-  default = {
-    "Permission-key-1" : "Permission-val-1",
-    "Permission-key-2" : "Permission-val-2"
+  type        = list(string)
+  description = "Template names granted to the role."
+
+  validation {
+    condition     = alltrue([for name in var.template_list : length(trimspace(name)) > 0])
+    error_message = "template_list must contain only non-empty names."
   }
 }
 
 variable "role_name" {
   type        = string
-  description = "name of the role"
+  description = "Name of the StackGuardian role."
+
+  validation {
+    condition     = length(trimspace(var.role_name)) > 0
+    error_message = "role_name must not be empty."
+  }
 }

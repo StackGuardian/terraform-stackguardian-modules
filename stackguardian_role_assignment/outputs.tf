@@ -1,8 +1,8 @@
 output "user" {
-  description = "User/Group created"
-  value       = var.user_or_group
+  description = "User or group assigned to the role."
+  value       = var.subject
 }
 output "role" {
-  description = "Role assigned to User/Group"
+  description = "Role assigned to the user or group."
   value       = var.role_name
 }

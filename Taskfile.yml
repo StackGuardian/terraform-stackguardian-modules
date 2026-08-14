@@ -1,21 +1,300 @@
 version: '3'
 
+silent: true
+
 tasks:
-  fmt:
-    desc: Runs terraform fmt in all subdirectories
+  preflight:terraform:
+    internal: true
     cmds:
       - |
         #!/bin/bash
-        # Run in the current directory first
-        terraform fmt
-        # Find all subdirectories and run terraform fmt in each
-        for dir in $(ls -d */);
-        do
-          echo -e "\nFormatting directory: $dir"
-          (cd "$dir" && terraform fmt)
-        done
-  init:
-    desc: Initialize this stack for local testing
+        set -euo pipefail
+        expected="$(tr -d '[:space:]' < .terraform-version)"
+        if command -v tfenv >/dev/null 2>&1; then
+          if ! tfenv install "$expected"; then
+            printf '%s\n' "WARNING: tfenv could not install Terraform $expected; checking the Terraform binary already on PATH." >&2
+          elif ! tfenv use "$expected"; then
+            printf '%s\n' "WARNING: tfenv could not select Terraform $expected; checking the Terraform binary already on PATH." >&2
+          fi
+        fi
+        if ! command -v terraform >/dev/null 2>&1; then
+          printf '%s\n' "Terraform $expected is required but was not found on PATH." >&2
+          if command -v tfenv >/dev/null 2>&1; then
+            printf '%s\n' "Install it with: tfenv install $expected && tfenv use $expected" >&2
+          else
+            printf '%s\n' "Install tfenv, or install Terraform $expected and add it to PATH." >&2
+          fi
+          exit 1
+        fi
+        actual="$(terraform version -json | jq -r '.terraform_version')"
+        if [ "$actual" != "$expected" ]; then
+          printf '%s\n' "Terraform version $actual is active; this repository requires $expected." >&2
+          if command -v tfenv >/dev/null 2>&1; then
+            printf '%s\n' "Run: tfenv install $expected && tfenv use $expected" >&2
+          else
+            printf '%s\n' "Install Terraform $expected or install tfenv, then run: tfenv install $expected && tfenv use $expected" >&2
+          fi
+          exit 1
+        fi
+  preflight:tofu:
+    internal: true
     cmds:
-      - terraform init --upgrade
-      - cp terraform.tfvars.example terraform.auto.tfvars && terraform validate
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        expected="$(tr -d '[:space:]' < .opentofu-version)"
+        if command -v tofuenv >/dev/null 2>&1; then
+          if ! tofuenv install "$expected"; then
+            printf '%s\n' "WARNING: tofuenv could not install OpenTofu $expected; checking the OpenTofu binary already on PATH." >&2
+          elif ! tofuenv use "$expected"; then
+            printf '%s\n' "WARNING: tofuenv could not select OpenTofu $expected; checking the OpenTofu binary already on PATH." >&2
+          fi
+        fi
+        if ! command -v tofu >/dev/null 2>&1; then
+          printf '%s\n' "OpenTofu $expected is required but was not found on PATH." >&2
+          if command -v tofuenv >/dev/null 2>&1; then
+            printf '%s\n' "Install it with: tofuenv install $expected && tofuenv use $expected" >&2
+          else
+            printf '%s\n' "Install tofuenv, or install OpenTofu $expected and add it to PATH." >&2
+          fi
+          exit 1
+        fi
+        actual="$(tofu version -json | jq -r '.terraform_version')"
+        if [ "$actual" != "$expected" ]; then
+          printf '%s\n' "OpenTofu version $actual is active; this repository requires $expected." >&2
+          if command -v tofuenv >/dev/null 2>&1; then
+            printf '%s\n' "Run: tofuenv install $expected && tofuenv use $expected" >&2
+          else
+            printf '%s\n' "Install OpenTofu $expected or install tofuenv, then run: tofuenv install $expected && tofuenv use $expected" >&2
+          fi
+          exit 1
+        fi
+  fmt:
+    desc: Formats root and in-scope Terraform modules
+    deps: [preflight:terraform]
+    cmds:
+      - |
+        #!/bin/bash
+        terraform fmt
+        for dir in aws_static aws_rbac aws_oidc azure_static azure_oidc gcp_oidc stackguardian_connector_cloud stackguardian_connector_vcs stackguardian_role stackguardian_role_assignment stackguardian_workflow_group; do
+          terraform -chdir="$dir" fmt
+        done
+  check:
+    desc: Checks Terraform formatting
+    deps: [preflight:terraform]
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        terraform fmt -check
+        for dir in aws_static aws_rbac aws_oidc azure_static azure_oidc gcp_oidc stackguardian_connector_cloud stackguardian_connector_vcs stackguardian_role stackguardian_role_assignment stackguardian_workflow_group; do
+          terraform -chdir="$dir" fmt -check
+        done
+  test:
+    desc: Runs isolated OpenTofu native tests with mocked providers
+    deps: [preflight:tofu]
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        root="$(pwd)"
+        temp="$(mktemp -d)"
+        trap 'rm -rf "$temp"' EXIT
+        for dir in stackguardian_role stackguardian_connector_cloud; do
+          tar --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$root" "$dir" | tar -xf - -C "$temp"
+          target="$temp/$dir"
+          perl -0pi -e 's/required_version = "= 1\.5\.7"/required_version = ">= 1.6.0"/' "$target/provider.tf"
+          perl -0pi -e 's/source\s*=\s*"StackGuardian\/stackguardian"/source  = "registry.terraform.io\/StackGuardian\/stackguardian"/' "$target/provider.tf"
+          tofu -chdir="$target" init -backend=false
+          tofu -chdir="$target" test
+        done
+  onboard:aws:
+    desc: Creates AWS OIDC resources and registers the connector with StackGuardian
+    deps: [preflight:terraform]
+    vars:
+      ONBOARD_VARS_FILE: '{{default "examples/aws-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
+      ONBOARD_CONNECTOR_NAME: '{{default "aws-oidc" .ONBOARD_CONNECTOR_NAME}}'
+      ONBOARD_PLAN_FILE: '{{default "onboard-aws.tfplan" .ONBOARD_PLAN_FILE}}'
+      ONBOARD_CONFIRM: '{{default "" .ONBOARD_CONFIRM}}'
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        if ! command -v aws >/dev/null 2>&1; then
+          printf '%s\n' "AWS CLI is required. Install it and authenticate with: aws sso login --profile <profile>" >&2
+          exit 1
+        fi
+        if ! aws sts get-caller-identity >/dev/null; then
+          printf '%s\n' "No usable AWS CLI credentials were found. Authenticate first, for example: aws sso login --profile <profile>" >&2
+          exit 1
+        fi
+        if [ -z "${TF_VAR_stackguardian_api_key:-}" ]; then
+          read -r -s -p "StackGuardian API token: " stackguardian_api_key
+          printf '\n'
+          export TF_VAR_stackguardian_api_key="$stackguardian_api_key"
+        fi
+        connector_name="{{.ONBOARD_CONNECTOR_NAME}}"
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
+        confirmation="{{.ONBOARD_CONFIRM}}"
+        printf '%s\n' "AWS onboarding will create or reuse the account-level StackGuardian OIDC provider, create the IAM role and policy attachment for $connector_name, and register the StackGuardian connector."
+        printf '%s\n' "Variables file: {{.ONBOARD_VARS_FILE}}"
+        printf '%s\n' "Plan file: $plan_file"
+        if [ "$confirmation" != "$connector_name" ]; then
+          read -r -p "Type $connector_name to continue: " confirmation
+        fi
+        if [ "$confirmation" != "$connector_name" ]; then
+          printf '%s\n' "Confirmation did not match; no resources were created." >&2
+          exit 1
+        fi
+        oidc_provider_arn="arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):oidc-provider/api.app.stackguardian.io"
+        oidc_provider_address="module.aws_oidc[\"$connector_name\"].aws_iam_openid_connect_provider.oidc_provider"
+        terraform init
+        if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$oidc_provider_arn" >/dev/null 2>&1 && ! terraform state list | grep -Fqx "$oidc_provider_address"; then
+          terraform import -input=false -var-file="{{.ONBOARD_VARS_FILE}}" "$oidc_provider_address" "$oidc_provider_arn"
+        fi
+        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
+        terraform apply -input=false "$plan_file"
+  onboard:azure:
+    desc: Creates Azure OIDC resources and registers the connector with StackGuardian
+    deps: [preflight:terraform]
+    vars:
+      ONBOARD_VARS_FILE: '{{default "examples/azure-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
+      ONBOARD_CONNECTOR_NAME: '{{default "azure-oidc" .ONBOARD_CONNECTOR_NAME}}'
+      ONBOARD_PLAN_FILE: '{{default "onboard-azure.tfplan" .ONBOARD_PLAN_FILE}}'
+      ONBOARD_CONFIRM: '{{default "" .ONBOARD_CONFIRM}}'
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        if ! command -v az >/dev/null 2>&1; then
+          printf '%s\n' "Azure CLI is required. Install it and authenticate with: az login --tenant <tenant-id>" >&2
+          exit 1
+        fi
+        subscription_id="$(az account show --query id --output tsv 2>/dev/null || true)"
+        tenant_id="$(az account show --query tenantId --output tsv 2>/dev/null || true)"
+        if [ -z "$subscription_id" ] || [ -z "$tenant_id" ]; then
+          printf '%s\n' "No active Azure CLI subscription was found. Authenticate first with: az login --tenant <tenant-id>" >&2
+          exit 1
+        fi
+        if [ -z "${TF_VAR_stackguardian_api_key:-}" ]; then
+          read -r -s -p "StackGuardian API token: " stackguardian_api_key
+          printf '\n'
+          export TF_VAR_stackguardian_api_key="$stackguardian_api_key"
+        fi
+        connector_name="{{.ONBOARD_CONNECTOR_NAME}}"
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
+        confirmation="{{.ONBOARD_CONFIRM}}"
+        printf '%s\n' "Azure onboarding will create the Entra application, service principal, federated credential, subscription role assignment, and StackGuardian connector for $connector_name."
+        printf '%s\n' "Variables file: {{.ONBOARD_VARS_FILE}}"
+        printf '%s\n' "Plan file: $plan_file"
+        if [ "$confirmation" != "$connector_name" ]; then
+          read -r -p "Type $connector_name to continue: " confirmation
+        fi
+        if [ "$confirmation" != "$connector_name" ]; then
+          printf '%s\n' "Confirmation did not match; no resources were created." >&2
+          exit 1
+        fi
+        terraform init
+        export ARM_SUBSCRIPTION_ID="$subscription_id"
+        export ARM_TENANT_ID="$tenant_id"
+        export AZUREAD_TENANT_ID="$tenant_id"
+        terraform plan -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
+        terraform apply -input=false "$plan_file"
+  destroy:aws:
+    desc: Destroys an AWS OIDC role and StackGuardian connector, retaining any shared OIDC provider
+    deps: [preflight:terraform]
+    vars:
+      ONBOARD_VARS_FILE: '{{default "examples/aws-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
+      ONBOARD_CONNECTOR_NAME: '{{default "aws-oidc" .ONBOARD_CONNECTOR_NAME}}'
+      ONBOARD_DESTROY_CONFIRM: '{{default "" .ONBOARD_DESTROY_CONFIRM}}'
+      ONBOARD_PLAN_FILE: '{{default "destroy-aws.tfplan" .ONBOARD_PLAN_FILE}}'
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        if ! command -v aws >/dev/null 2>&1 || ! aws sts get-caller-identity >/dev/null; then
+          printf '%s\n' "A logged-in AWS CLI is required. Authenticate first, for example: aws sso login --profile <profile>" >&2
+          exit 1
+        fi
+        if [ -z "${TF_VAR_stackguardian_api_key:-}" ]; then
+          read -r -s -p "StackGuardian API token: " stackguardian_api_key
+          printf '\n'
+          export TF_VAR_stackguardian_api_key="$stackguardian_api_key"
+        fi
+        connector_name="{{.ONBOARD_CONNECTOR_NAME}}"
+        confirmation="{{.ONBOARD_DESTROY_CONFIRM}}"
+        if [ "$confirmation" != "$connector_name" ]; then
+          read -r -p "Type $connector_name to destroy its AWS OIDC role and StackGuardian connector: " confirmation
+        fi
+        if [ "$confirmation" != "$connector_name" ]; then
+          printf '%s\n' "Confirmation did not match; no resources were destroyed." >&2
+          exit 1
+        fi
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
+        terraform init
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
+        terraform apply -input=false "$plan_file"
+  destroy:azure:
+    desc: Destroys an Azure OIDC identity and StackGuardian connector
+    deps: [preflight:terraform]
+    vars:
+      ONBOARD_VARS_FILE: '{{default "examples/azure-oidc.tfvars.example" .ONBOARD_VARS_FILE}}'
+      ONBOARD_CONNECTOR_NAME: '{{default "azure-oidc" .ONBOARD_CONNECTOR_NAME}}'
+      ONBOARD_DESTROY_CONFIRM: '{{default "" .ONBOARD_DESTROY_CONFIRM}}'
+      ONBOARD_PLAN_FILE: '{{default "destroy-azure.tfplan" .ONBOARD_PLAN_FILE}}'
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        if ! command -v az >/dev/null 2>&1; then
+          printf '%s\n' "Azure CLI is required. Install it and authenticate with: az login --tenant <tenant-id>" >&2
+          exit 1
+        fi
+        subscription_id="$(az account show --query id --output tsv 2>/dev/null || true)"
+        tenant_id="$(az account show --query tenantId --output tsv 2>/dev/null || true)"
+        if [ -z "$subscription_id" ] || [ -z "$tenant_id" ]; then
+          printf '%s\n' "No active Azure CLI subscription was found. Authenticate first with: az login --tenant <tenant-id>" >&2
+          exit 1
+        fi
+        if [ -z "${TF_VAR_stackguardian_api_key:-}" ]; then
+          read -r -s -p "StackGuardian API token: " stackguardian_api_key
+          printf '\n'
+          export TF_VAR_stackguardian_api_key="$stackguardian_api_key"
+        fi
+        connector_name="{{.ONBOARD_CONNECTOR_NAME}}"
+        confirmation="{{.ONBOARD_DESTROY_CONFIRM}}"
+        if [ "$confirmation" != "$connector_name" ]; then
+          read -r -p "Type $connector_name to destroy its Azure OIDC identity and StackGuardian connector: " confirmation
+        fi
+        if [ "$confirmation" != "$connector_name" ]; then
+          printf '%s\n' "Confirmation did not match; no resources were destroyed." >&2
+          exit 1
+        fi
+        plan_file="{{.ONBOARD_PLAN_FILE}}"
+        terraform init
+        export ARM_SUBSCRIPTION_ID="$subscription_id"
+        export ARM_TENANT_ID="$tenant_id"
+        export AZUREAD_TENANT_ID="$tenant_id"
+        terraform plan -destroy -input=false -var-file="{{.ONBOARD_VARS_FILE}}" -out="$plan_file"
+        terraform apply -input=false "$plan_file"
+  validate:
+    desc: Initializes and validates isolated copies of in-scope configurations
+    deps: [preflight:terraform]
+    cmds:
+      - |
+        #!/bin/bash
+        set -euo pipefail
+        root="$(pwd)"
+        temp="$(mktemp -d)"
+        trap 'rm -rf "$temp"' EXIT
+        for dir in . aws_static aws_rbac aws_oidc azure_static azure_oidc gcp_oidc stackguardian_connector_cloud stackguardian_connector_vcs stackguardian_role stackguardian_role_assignment stackguardian_workflow_group; do
+          target="$temp/${dir#./}"
+          mkdir -p "$target"
+          if [ "$dir" = "." ]; then
+            tar --exclude='.git' --exclude='.kilo' --exclude='.terraform' --exclude='.terraform.lock.hcl' --exclude='terraform.tfvars' --exclude='*.auto.tfvars' --exclude='role_response.json' --exclude='stackguardian_private_runner' -cf - -C "$root" . | tar -xf - -C "$target"
+          else
+            tar --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$root" "$dir" | tar -xf - -C "$temp"
+          fi
+          terraform -chdir="$target" init -backend=false
+          terraform -chdir="$target" validate
+        done
