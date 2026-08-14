@@ -91,7 +91,7 @@ tasks:
           terraform -chdir="$dir" fmt -check
         done
   test:
-    desc: Runs isolated OpenTofu native tests with mocked providers
+    desc: Runs isolated OpenTofu tests discovered under tests directories
     deps: [preflight:tofu]
     cmds:
       - |
@@ -100,14 +100,21 @@ tasks:
         root="$(pwd)"
         temp="$(mktemp -d)"
         trap 'rm -rf "$temp"' EXIT
-        for dir in stackguardian_role stackguardian_connector_cloud; do
-          tar --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$root" "$dir" | tar -xf - -C "$temp"
-          target="$temp/$dir"
-          perl -0pi -e 's/required_version = "= 1\.5\.7"/required_version = ">= 1.6.0"/' "$target/provider.tf"
-          perl -0pi -e 's/source\s*=\s*"StackGuardian\/stackguardian"/source  = "registry.terraform.io\/StackGuardian\/stackguardian"/' "$target/provider.tf"
+        while IFS= read -r config_dir; do
+          if [ "$config_dir" = "$root" ]; then
+            target="$temp/root"
+          else
+            target="$temp/${config_dir#"$root"/}"
+          fi
+          mkdir -p "$target"
+          tar --exclude='.git' --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$config_dir" . | tar -xf - -C "$target"
+          while IFS= read -r provider_file; do
+            perl -0pi -e 's/required_version = "= 1\.5\.7"/required_version = ">= 1.6.0"/' "$provider_file"
+            perl -0pi -e 's/source\s*=\s*"StackGuardian\/stackguardian"/source  = "registry.terraform.io\/StackGuardian\/stackguardian"/' "$provider_file"
+          done < <(find "$target" -name provider.tf -type f)
           tofu -chdir="$target" init -backend=false
           tofu -chdir="$target" test
-        done
+        done < <(find "$root" \( -name .git -o -name .terraform \) -type d -prune -o -path '*/tests/*.tofutest.hcl' -type f -print | while IFS= read -r test_file; do dirname "$(dirname "$test_file")"; done | sort -u)
   onboard:aws:
     desc: Creates AWS OIDC resources and registers the connector with StackGuardian
     deps: [preflight:terraform]
@@ -291,7 +298,7 @@ tasks:
           target="$temp/${dir#./}"
           mkdir -p "$target"
           if [ "$dir" = "." ]; then
-            tar --exclude='.git' --exclude='.kilo' --exclude='.terraform' --exclude='.terraform.lock.hcl' --exclude='terraform.tfvars' --exclude='*.auto.tfvars' --exclude='role_response.json' --exclude='stackguardian_private_runner' -cf - -C "$root" . | tar -xf - -C "$target"
+            tar --exclude='.git' --exclude='.terraform' --exclude='.terraform.lock.hcl' --exclude='terraform.tfvars' --exclude='*.auto.tfvars' --exclude='role_response.json' --exclude='stackguardian_private_runner' -cf - -C "$root" . | tar -xf - -C "$target"
           else
             tar --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$root" "$dir" | tar -xf - -C "$temp"
           fi
