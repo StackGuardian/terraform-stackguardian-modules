@@ -1,6 +1,6 @@
 # StackGuardian Terraform Modules v2
 
-Terraform modules for StackGuardian onboarding and cloud identity configuration. The root module creates workflow groups, cloud/VCS connectors, a role, and one assignment. `stackguardian_private_runner/` is explicitly outside the v2 upgrade scope.
+Terraform modules for StackGuardian onboarding and cloud identity configuration. The root module creates workflow groups, cloud/VCS connectors, keyed roles, and one multi-role assignment per subject. `stackguardian_private_runner/` is explicitly outside the v2 upgrade scope.
 
 ## Prerequisites
 
@@ -9,7 +9,7 @@ Terraform modules for StackGuardian onboarding and cloud identity configuration.
 - AWS provider `>= 6.58.0, < 7.0.0`, AzureRM `>= 5.0.1, < 6.0.0`, AzureAD `>= 3.9.0, < 4.0.0`, and Google `>= 7.44.0, < 8.0.0` in their applicable modules.
 - Credentials authorized to create the selected cloud identities. Azure management needs Microsoft Graph application-management and subscription role-assignment privileges.
 
-Use `terraform.tfvars.example` as a schema reference. Put secret values in `TF_VAR_*` variables or a secret manager, not version control.
+Use `terraform.tfvars.example` as a configuration reference. Put secret values in `TF_VAR_*` variables or a secret manager, not version control.
 
 ## Static Credential Deprecation
 
@@ -18,14 +18,13 @@ Use `terraform.tfvars.example` as a schema reference. Put secret values in `TF_V
 Static authentication requires an explicit acknowledgement. The root acknowledgement is per connector and cannot enable another connector:
 
 ```hcl
-cloud_connectors = [{
-  name                     = "legacy-aws"
-  kind                     = "AWS_STATIC"
-  allow_static_credentials = true
-  aws_access_key_id        = var.legacy_aws_access_key_id
-  aws_secret_access_key    = var.legacy_aws_secret_access_key
-  aws_region               = "eu-central-1"
-}]
+cloud_connectors = {
+  legacy-aws = {
+    kind                     = "AWS_STATIC"
+    allow_static_credentials = true
+    aws_region               = "eu-central-1"
+  }
+}
 ```
 
 Standalone `aws_static` and `azure_static` modules also require `allow_static_credentials = true`. Terraform emits a deprecation warning during apply after acknowledgement.
@@ -62,6 +61,16 @@ Use `task destroy:aws` or `task destroy:azure` to remove a connector trial. Each
 
 Legacy aliases are intentionally unavailable. The root configures StackGuardian once; standalone StackGuardian leaf modules inherit provider configuration from their caller and do not accept API credentials.
 
+## Onboarding Configuration
+
+`terraform.tfvars.example` is a complete multi-role example. It includes a local user, a qualified SSO user, and an SSO group. `workflow_groups` is a list. Cloud connectors are keyed by connector name. The unchanged VCS connector leaf module retains its required `name` field; in root configuration it must equal its map key.
+
+Each `roles` map key is the StackGuardian role name. A role may scope workflow groups, cloud connectors, VCS connectors, and templates, but must include at least one non-empty scope. Role connector and workflow references are the relevant root map keys. Empty scope categories produce no permissions.
+
+Each `subjects` map key is a local email, qualified SSO email, or qualified SSO group such as `okta/platform-engineers`. A subject has one assignment resource containing its complete, non-empty, duplicate-free `roles` list. `entity_type` defaults to `EMAIL`; use `GROUP` for group subjects.
+
+VCS credentials remain sensitive and are stored in Terraform state. Keep real values in an ignored secret vars file, a generated `terraform.tfvars.json`, or JSON-encoded `TF_VAR_vcs_connectors`; examples use literal placeholders.
+
 ## Permissions And Defaults
 
 - `aws_static` is deprecated, needs IAM user/key permissions, and stores a generated static key in state. Use `aws_rbac` or `aws_oidc` when possible.
@@ -84,6 +93,23 @@ terraform plan
 For standalone role usage, omit `module.stackguardian_role.`. Review the v4 `allowed_permissions`, apply the reviewed update, then run a second plan and test an allowed and denied path. Do not use `state mv`; roll back only by restoring the backed-up state/configuration.
 
 Before replacing the former authoritative GCP IAM policy, add and import `google_service_account_iam_member.self_workload_identity`, then remove only the old policy state binding. Likewise, import the existing AWS role-policy attachment when converting from the legacy global attachment. Export existing IAM bindings first and verify the plan cannot remove unrelated principals.
+
+## Multi-Role Migration
+
+This root interface is a breaking change. Back up state, acquire an exclusive backend lock, convert the old values into one `roles` entry and one `subjects` entry, and review the resulting plan. Preserve workflow names and connector names as the new list values and map keys to retain their existing `for_each` addresses. A key or name change intentionally renames a resource and needs separate migration handling.
+
+Move the former singleton role and assignment addresses for each installation after converting configuration:
+
+```bash
+terraform state mv \
+  'module.stackguardian_role.stackguardian_rolev4.role' \
+  'module.stackguardian_role["engineering-developer"].stackguardian_rolev4.role'
+terraform state mv \
+  'module.stackguardian_role_assignment.stackguardian_role_assignment.sg_user' \
+  'module.stackguardian_role_assignment["developer@example.invalid"].stackguardian_role_assignment.sg_user'
+```
+
+Run a reviewed plan after the moves before applying. The v4 resource-type migration instructions above still apply when migrating from a pre-v4 state address.
 
 ## Module Usage
 
