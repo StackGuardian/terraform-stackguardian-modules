@@ -42,3 +42,48 @@ run "builds_scoped_v4_permissions" {
     error_message = "Role permissions must not include broad administrative endpoints."
   }
 }
+
+run "omits_workflow_permissions_for_connector_only_role" {
+  command = plan
+
+  variables {
+    workflow_groups  = []
+    cloud_connectors = ["cloud-one"]
+    vcs_connectors   = []
+    template_list    = []
+  }
+
+  assert {
+    condition     = alltrue([for url in keys(output.allowed_permissions) : !strcontains(url, "/wfgrps/")])
+    error_message = "A role without workflow groups must not receive workflow permissions."
+  }
+}
+
+run "omits_workflow_permissions_for_template_only_role" {
+  command = plan
+
+  variables {
+    workflow_groups  = []
+    cloud_connectors = []
+    vcs_connectors   = []
+    template_list    = ["template-one"]
+  }
+
+  assert {
+    condition     = tolist(keys(output.allowed_permissions)) == tolist(["DELETE/api/v1/templatetypes/<templateType>/<org>/<template>/", "GET/api/v1/templatetypes/<templateType>/<org>/<template>/", "PATCH/api/v1/templatetypes/<templateType>/<org>/<template>/"])
+    error_message = "A template-only role must contain only template permissions."
+  }
+}
+
+run "rejects_role_without_scopes" {
+  command = plan
+
+  variables {
+    workflow_groups  = []
+    cloud_connectors = []
+    vcs_connectors   = []
+    template_list    = []
+  }
+
+  expect_failures = [stackguardian_rolev4.role]
+}

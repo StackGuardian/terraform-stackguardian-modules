@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+- Replace the singleton root role and assignment inputs with keyed `roles` and `subjects` collections. Roles can independently scope workflow groups, cloud connectors, VCS connectors, and templates; each subject assignment now carries its complete roles list.
+
 ### Added
 - Add root-level AWS, Azure, and GCP identity wiring so Terraform creates the selected cloud identity and registers its generated identifiers with StackGuardian.
 - Add CLI-authenticated AWS and Azure onboarding and guarded destroy tasks with temporary targeted plans and StackGuardian token prompting.

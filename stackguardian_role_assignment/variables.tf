@@ -1,6 +1,6 @@
 variable "subject" {
   type        = string
-  description = "Local email or qualified SSO email/group subject receiving the role."
+  description = "Local email or qualified SSO email/group subject receiving the roles."
 
   validation {
     condition     = can(regex("^([^/@\\s]+/[^/\\s]+|[^@\\s]+@[^@\\s]+\\.[^@\\s]+)$", var.subject))
@@ -11,6 +11,7 @@ variable "subject" {
 variable "entity_type" {
   type        = string
   description = "Subject type: EMAIL or GROUP."
+  default     = "EMAIL"
 
   validation {
     condition     = contains(["EMAIL", "GROUP"], var.entity_type)
@@ -18,7 +19,12 @@ variable "entity_type" {
   }
 }
 
-variable "role_name" {
-  type        = string
-  description = "Single StackGuardian role assigned to the subject."
+variable "roles" {
+  type        = list(string)
+  description = "StackGuardian roles assigned to the subject."
+
+  validation {
+    condition     = length(var.roles) > 0 && length(var.roles) == length(toset(var.roles)) && alltrue([for role in var.roles : length(trimspace(role)) > 0])
+    error_message = "roles must contain one or more unique, non-empty role names."
+  }
 }

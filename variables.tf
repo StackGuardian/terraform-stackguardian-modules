@@ -32,73 +32,94 @@ variable "stackguardian_api_uri" {
 
 variable "workflow_groups" {
   type        = list(string)
-  description = "Workflow groups created and granted to the role."
+  description = "Workflow groups created by this root."
+  default     = []
 
   validation {
-    condition     = length(var.workflow_groups) > 0 && alltrue([for name in var.workflow_groups : length(trimspace(name)) > 0])
-    error_message = "workflow_groups must contain at least one non-empty name."
+    condition     = length(var.workflow_groups) == length(toset(var.workflow_groups)) && alltrue([for name in var.workflow_groups : length(trimspace(name)) > 0])
+    error_message = "workflow_groups must contain unique, non-empty names."
   }
 }
 
 variable "cloud_connectors" {
-  description = "Cloud connectors managed by the root stack. Terraform creates and registers the selected cloud identity; static kinds are legacy-only."
-  type = list(object({
-    name                     = string
+  description = "Keyed cloud connectors. Terraform creates and registers the selected cloud identity; static kinds are legacy-only."
+  type = map(object({
     kind                     = string
+    allow_static_credentials = optional(bool)
+    aws_region               = optional(string)
     iam_role_name            = optional(string)
     iam_user_name            = optional(string)
-    policy_arn               = optional(string, "arn:aws:iam::aws:policy/ReadOnlyAccess")
+    policy_arn               = optional(string)
     aws_external_id          = optional(string)
     trusted_account_ids      = optional(list(string))
-    role_definition_name     = optional(string, "Contributor")
+    azure_subscription_id    = optional(string)
+    azure_tenant_id          = optional(string)
     application_display_name = optional(string)
+    role_definition_name     = optional(string)
+    gcp_project_id           = optional(string)
     gcp_service_account_id   = optional(string)
     gcp_workload_pool_id     = optional(string)
     gcp_provider_id          = optional(string)
-    gcp_project_role         = optional(string, "roles/owner")
-    gcp_project_id           = optional(string)
-    aws_region               = optional(string, "eu-central-1")
-    azure_subscription_id    = optional(string)
-    azure_tenant_id          = optional(string)
-    allow_static_credentials = optional(bool, false)
+    gcp_project_role         = optional(string)
   }))
+  default = {}
+
   validation {
-    condition     = alltrue([for connector in var.cloud_connectors : contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC", "AZURE_STATIC", "AZURE_OIDC", "GCP_OIDC"], connector.kind)])
+    condition     = alltrue([for name in keys(var.cloud_connectors) : can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", name))])
+    error_message = "cloud_connectors keys must be 1-100 character StackGuardian resource names."
+  }
+
+  validation {
+    condition     = alltrue([for connector in values(var.cloud_connectors) : contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC", "AZURE_STATIC", "AZURE_OIDC", "GCP_OIDC"], connector.kind)])
     error_message = "cloud_connectors[*].kind must be AWS_STATIC, AWS_RBAC, AWS_OIDC, AZURE_STATIC, AZURE_OIDC, or GCP_OIDC."
   }
 
   validation {
-    condition     = alltrue([for connector in var.cloud_connectors : !contains(["AWS_STATIC", "AZURE_STATIC"], connector.kind) || connector.allow_static_credentials])
-    error_message = "AWS_STATIC and AZURE_STATIC connectors require allow_static_credentials = true. Use AWS_RBAC, AWS_OIDC, AZURE_OIDC, or another non-static connector kind instead."
-  }
-
-  validation {
-    condition = alltrue([for connector in var.cloud_connectors :
-      (connector.kind != "AWS_RBAC" || try(length(trimspace(connector.iam_role_name)) > 0, false) && try(length(trimspace(connector.aws_external_id)) > 0, false)) &&
-      (connector.kind != "AWS_OIDC" || try(length(trimspace(connector.iam_role_name)) > 0, false)) &&
-      (!contains(["AWS_STATIC", "AWS_RBAC", "AWS_OIDC"], connector.kind) || can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region))) &&
-      (!contains(["AZURE_STATIC", "AZURE_OIDC"], connector.kind) || (try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false))) &&
-      (connector.kind != "GCP_OIDC" || (try(can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", connector.gcp_project_id)), false) && try(length(trimspace(connector.gcp_service_account_id)) > 0, false) && try(length(trimspace(connector.gcp_workload_pool_id)) > 0, false) && try(length(trimspace(connector.gcp_provider_id)) > 0, false)))
+    condition = alltrue([for connector in values(var.cloud_connectors) :
+      (connector.kind == "AWS_STATIC" && connector.allow_static_credentials == true &&
+        (connector.aws_region == null || can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region))) &&
+        (connector.iam_user_name == null || can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", connector.iam_user_name))) &&
+      connector.iam_role_name == null && connector.policy_arn == null && connector.aws_external_id == null && connector.trusted_account_ids == null && connector.azure_subscription_id == null && connector.azure_tenant_id == null && connector.application_display_name == null && connector.role_definition_name == null && connector.gcp_project_id == null && connector.gcp_service_account_id == null && connector.gcp_workload_pool_id == null && connector.gcp_provider_id == null && connector.gcp_project_role == null) ||
+      (connector.kind == "AWS_RBAC" && try(length(trimspace(connector.iam_role_name)) > 0, false) && try(length(trimspace(connector.aws_external_id)) > 0, false) &&
+        (connector.aws_region == null || can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region))) &&
+        (connector.policy_arn == null || length(trimspace(connector.policy_arn)) > 0) &&
+        (connector.trusted_account_ids == null || (length(connector.trusted_account_ids) == length(toset(connector.trusted_account_ids)) && alltrue([for account_id in connector.trusted_account_ids : can(regex("^\\d{12}$", account_id))]))) &&
+      connector.allow_static_credentials == null && connector.iam_user_name == null && connector.azure_subscription_id == null && connector.azure_tenant_id == null && connector.application_display_name == null && connector.role_definition_name == null && connector.gcp_project_id == null && connector.gcp_service_account_id == null && connector.gcp_workload_pool_id == null && connector.gcp_provider_id == null && connector.gcp_project_role == null) ||
+      (connector.kind == "AWS_OIDC" && try(can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", connector.iam_role_name)), false) &&
+        (connector.aws_region == null || can(regex("^[a-z]{2}(-gov)?-[a-z]+-\\d$", connector.aws_region))) &&
+        (connector.policy_arn == null || length(trimspace(connector.policy_arn)) > 0) &&
+      connector.allow_static_credentials == null && connector.iam_user_name == null && connector.aws_external_id == null && connector.trusted_account_ids == null && connector.azure_subscription_id == null && connector.azure_tenant_id == null && connector.application_display_name == null && connector.role_definition_name == null && connector.gcp_project_id == null && connector.gcp_service_account_id == null && connector.gcp_workload_pool_id == null && connector.gcp_provider_id == null && connector.gcp_project_role == null) ||
+      (connector.kind == "AZURE_STATIC" && connector.allow_static_credentials == true && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false) &&
+        (connector.application_display_name == null || can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", connector.application_display_name))) &&
+        (connector.role_definition_name == null || length(trimspace(connector.role_definition_name)) > 0) &&
+      connector.aws_region == null && connector.iam_role_name == null && connector.iam_user_name == null && connector.policy_arn == null && connector.aws_external_id == null && connector.trusted_account_ids == null && connector.gcp_project_id == null && connector.gcp_service_account_id == null && connector.gcp_workload_pool_id == null && connector.gcp_provider_id == null && connector.gcp_project_role == null) ||
+      (connector.kind == "AZURE_OIDC" && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_subscription_id)), false) && try(can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", connector.azure_tenant_id)), false) &&
+        (connector.application_display_name == null || can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", connector.application_display_name))) &&
+        (connector.role_definition_name == null || length(trimspace(connector.role_definition_name)) > 0) &&
+      connector.allow_static_credentials == null && connector.aws_region == null && connector.iam_role_name == null && connector.iam_user_name == null && connector.policy_arn == null && connector.aws_external_id == null && connector.trusted_account_ids == null && connector.gcp_project_id == null && connector.gcp_service_account_id == null && connector.gcp_workload_pool_id == null && connector.gcp_provider_id == null && connector.gcp_project_role == null) ||
+      (connector.kind == "GCP_OIDC" && try(can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", connector.gcp_project_id)), false) && try(length(trimspace(connector.gcp_service_account_id)) > 0, false) && try(length(trimspace(connector.gcp_workload_pool_id)) > 0, false) && try(length(trimspace(connector.gcp_provider_id)) > 0, false) &&
+        (connector.gcp_project_role == null || length(trimspace(connector.gcp_project_role)) > 0) &&
+      connector.allow_static_credentials == null && connector.aws_region == null && connector.iam_role_name == null && connector.iam_user_name == null && connector.policy_arn == null && connector.aws_external_id == null && connector.trusted_account_ids == null && connector.azure_subscription_id == null && connector.azure_tenant_id == null && connector.application_display_name == null && connector.role_definition_name == null)
     ])
-    error_message = "Each connector must provide the cloud-specific IDs and identity names required by its kind; OIDC connector IDs are created by Terraform."
+    error_message = "Each cloud connector must provide only the properties valid for its kind, including required IDs and static credential acknowledgement."
   }
 }
 
 variable "vcs_connectors" {
-  description = "VCS connector configuration. Credentials are sensitive and persist in Terraform state."
+  description = "Keyed VCS connector configuration. Credentials are sensitive and persist in Terraform state."
   sensitive   = true
   type = map(object({
     kind = string
     name = string
     github = optional(object({
       githubCreds     = string
-      github_com_url  = optional(string, "https://api.github.com")
-      github_http_url = optional(string, "https://github.com")
+      github_com_url  = optional(string)
+      github_http_url = optional(string)
     }))
     gitlab = optional(object({
       gitlabCreds   = string
-      gitlabHttpUrl = optional(string, "https://gitlab.com")
-      gitlabApiUrl  = optional(string, "https://gitlab.com/api/v4")
+      gitlabHttpUrl = optional(string)
+      gitlabApiUrl  = optional(string)
     }))
     bitbucket = optional(object({
       bitbucket_creds = string
@@ -107,51 +128,59 @@ variable "vcs_connectors" {
   default = {}
 
   validation {
+    condition     = alltrue([for name, connector in var.vcs_connectors : can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", name)) && connector.name == name])
+    error_message = "vcs_connectors keys must be resource names and match the name required by the unchanged VCS connector module."
+  }
+
+  validation {
     condition = alltrue([for connector in values(var.vcs_connectors) :
-      (connector.kind == "GITHUB_COM" && connector.github != null && connector.gitlab == null && connector.bitbucket == null) ||
-      (connector.kind == "GITLAB_COM" && connector.gitlab != null && connector.github == null && connector.bitbucket == null) ||
-      (connector.kind == "BITBUCKET_ORG" && connector.bitbucket != null && connector.github == null && connector.gitlab == null)
+      (connector.kind == "GITHUB_COM" && connector.github != null && connector.gitlab == null && connector.bitbucket == null && length(trimspace(connector.github.githubCreds)) > 0) ||
+      (connector.kind == "GITLAB_COM" && connector.gitlab != null && connector.github == null && connector.bitbucket == null && length(trimspace(connector.gitlab.gitlabCreds)) > 0) ||
+      (connector.kind == "BITBUCKET_ORG" && connector.bitbucket != null && connector.github == null && connector.gitlab == null && length(trimspace(connector.bitbucket.bitbucket_creds)) > 0)
     ])
-    error_message = "Each VCS connector must have exactly one matching GitHub, GitLab, or Bitbucket credential object."
+    error_message = "Each VCS connector must have exactly one matching GitHub, GitLab, or Bitbucket credential object with non-empty credentials."
   }
 }
 
-variable "role_name" {
-  type        = string
-  description = "StackGuardian role name."
+variable "roles" {
+  description = "Keyed StackGuardian roles and their resource scopes."
+  type = map(object({
+    workflow_groups  = optional(list(string), [])
+    cloud_connectors = optional(list(string), [])
+    vcs_connectors   = optional(list(string), [])
+    template_list    = optional(list(string), [])
+  }))
+  default = {}
 
   validation {
-    condition     = length(trimspace(var.role_name)) > 0
-    error_message = "role_name must not be empty."
+    condition = alltrue([for name, role in var.roles :
+      can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", name)) &&
+      length(role.workflow_groups) == length(toset(role.workflow_groups)) &&
+      length(role.cloud_connectors) == length(toset(role.cloud_connectors)) &&
+      length(role.vcs_connectors) == length(toset(role.vcs_connectors)) &&
+      length(role.template_list) == length(toset(role.template_list)) &&
+      alltrue([for reference in concat(role.workflow_groups, role.cloud_connectors, role.vcs_connectors, role.template_list) : length(trimspace(reference)) > 0]) &&
+      length(concat(role.workflow_groups, role.cloud_connectors, role.vcs_connectors, role.template_list)) > 0
+    ])
+    error_message = "Each role key must be a resource name and each role must have at least one unique, non-empty workflow group, connector, or template reference."
   }
 }
 
-variable "template_list" {
-  type        = list(string)
-  description = "Templates granted to the StackGuardian role."
+variable "subjects" {
+  description = "Keyed local-email, qualified SSO-email, or SSO-group subjects and their assigned roles."
+  type = map(object({
+    entity_type = optional(string, "EMAIL")
+    roles       = list(string)
+  }))
+  default = {}
 
   validation {
-    condition     = length(var.template_list) > 0 && alltrue([for name in var.template_list : length(trimspace(name)) > 0])
-    error_message = "template_list must contain at least one non-empty template name."
-  }
-}
-
-variable "subject" {
-  type        = string
-  description = "Local email or qualified SSO email/group subject receiving the role."
-
-  validation {
-    condition     = can(regex("^([^/@\\s]+/[^/\\s]+|[^@\\s]+@[^@\\s]+\\.[^@\\s]+)$", var.subject))
-    error_message = "subject must be a local email or a qualified SSO subject in provider/value format."
-  }
-}
-
-variable "entity_type" {
-  type        = string
-  description = "Type of StackGuardian assignment subject: EMAIL or GROUP."
-
-  validation {
-    condition     = contains(["EMAIL", "GROUP"], var.entity_type)
-    error_message = "entity_type must be EMAIL or GROUP."
+    condition = alltrue([for subject, assignment in var.subjects :
+      can(regex("^([^/@\\s]+/[^/\\s]+|[^@\\s]+@[^@\\s]+\\.[^@\\s]+)$", subject)) &&
+      contains(["EMAIL", "GROUP"], assignment.entity_type) &&
+      length(assignment.roles) > 0 && length(assignment.roles) == length(toset(assignment.roles)) &&
+      alltrue([for role in assignment.roles : can(regex("^[A-Za-z0-9][A-Za-z0-9 _.-]{0,99}$", role))])
+    ])
+    error_message = "Each subject must be a local email or qualified SSO subject with a valid entity_type and a non-empty, duplicate-free role list."
   }
 }
