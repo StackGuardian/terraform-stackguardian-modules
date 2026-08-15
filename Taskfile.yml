@@ -100,6 +100,17 @@ tasks:
         root="$(pwd)"
         temp="$(mktemp -d)"
         trap 'rm -rf "$temp"' EXIT
+        export AWS_ACCESS_KEY_ID="test"
+        export AWS_SECRET_ACCESS_KEY="test"
+        export AWS_SESSION_TOKEN="test"
+        export AWS_EC2_METADATA_DISABLED="true"
+        export ARM_CLIENT_ID="00000000-0000-0000-0000-000000000000"
+        export ARM_CLIENT_SECRET="test"
+        export ARM_TENANT_ID="00000000-0000-0000-0000-000000000000"
+        export ARM_SUBSCRIPTION_ID="00000000-0000-0000-0000-000000000000"
+        export AZUREAD_CLIENT_ID="$ARM_CLIENT_ID"
+        export AZUREAD_CLIENT_SECRET="$ARM_CLIENT_SECRET"
+        export AZUREAD_TENANT_ID="$ARM_TENANT_ID"
         while IFS= read -r config_dir; do
           if [ "$config_dir" = "$root" ]; then
             target="$temp/root"
@@ -108,6 +119,26 @@ tasks:
           fi
           mkdir -p "$target"
           tar --exclude='.git' --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$config_dir" . | tar -xf - -C "$target"
+          if [ "$config_dir" = "$root" ]; then
+            : > "$target/provider.tf"
+            printf '%s\n' \
+              'terraform {' \
+              '  required_version = "= 1.5.7"' \
+              '' \
+              '  required_providers {' \
+              '    stackguardian = {' \
+              '      source  = "StackGuardian/stackguardian"' \
+              '      version = ">= 1.12.0, < 2.0.0"' \
+              '    }' \
+              '  }' \
+              '}' \
+              '' \
+              'provider "stackguardian" {' \
+              '  api_key  = var.stackguardian_api_key' \
+              '  org_name = var.stackguardian_org_name' \
+              '  api_uri  = var.stackguardian_api_uri' \
+              '}' >> "$target/provider.tf"
+          fi
           while IFS= read -r provider_file; do
             perl -0pi -e 's/required_version = "= 1\.5\.7"/required_version = ">= 1.6.0"/' "$provider_file"
             perl -0pi -e 's/source\s*=\s*"StackGuardian\/stackguardian"/source  = "registry.terraform.io\/StackGuardian\/stackguardian"/' "$provider_file"

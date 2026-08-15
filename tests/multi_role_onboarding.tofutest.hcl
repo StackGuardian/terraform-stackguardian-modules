@@ -1,4 +1,8 @@
 mock_provider "stackguardian" {}
+mock_provider "aws" {}
+mock_provider "azurerm" {}
+mock_provider "azuread" {}
+mock_provider "google" {}
 
 variables {
   stackguardian_api_key  = "sgu_testkey"
