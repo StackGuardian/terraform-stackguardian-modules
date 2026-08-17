@@ -3,17 +3,37 @@
 stackguardian_org_name = "example-org"
 
 workflow_groups = ["engineering"]
-cloud_connectors = [{
-  name                     = "azure-oidc"
-  kind                     = "AZURE_OIDC"
-  azure_subscription_id    = "00000000-0000-0000-0000-000000000000"
-  azure_tenant_id          = "00000000-0000-0000-0000-000000000000"
-  application_display_name = "stackguardian-oidc"
-  role_definition_name     = "Reader"
-}]
+cloud_connectors = {
+  azure-oidc = {
+    kind                     = "AZURE_OIDC"
+    azure_subscription_id    = "00000000-0000-0000-0000-000000000000"
+    azure_tenant_id          = "00000000-0000-0000-0000-000000000000"
+    application_display_name = "stackguardian-oidc"
+    role_definition_name     = "Reader"
+  }
+}
 
-vcs_connectors = {}
-role_name      = "engineering-developer"
-template_list  = ["terraform-azurerm-resource-group"]
-subject        = "developer@example.invalid"
-entity_type    = "EMAIL"
+roles = {
+  engineering-developer = {
+    workflow_groups  = ["engineering"]
+    cloud_connectors = ["azure-oidc"]
+    template_list    = ["terraform-azurerm-resource-group"]
+  }
+}
+
+subjects = {
+  # Local user
+  "developer@example.invalid" = {
+    roles = ["engineering-developer"]
+  }
+  # Qualified SSO user
+  "okta/engineering.user@example.invalid" = {
+    entity_type = "EMAIL"
+    roles       = ["engineering-developer"]
+  }
+  # SSO group
+  "okta/platform-engineers" = {
+    entity_type = "GROUP"
+    roles       = ["engineering-developer"]
+  }
+}

@@ -2,62 +2,64 @@
 # Do not place it in this file.
 stackguardian_org_name = "example-org"
 
-workflow_groups = ["engineering"]
+workflow_groups = ["engineering", "platform"]
 
 # Terraform creates each selected cloud identity using the AWS CLI, Azure CLI, or
 # gcloud application-default credentials and registers its generated identifiers.
-# Prefer OIDC. Static connector kinds are retained only for legacy migrations.
-cloud_connectors = [
-  {
-    name          = "aws-oidc"
+cloud_connectors = {
+  aws-production = {
     kind          = "AWS_OIDC"
     aws_region    = "eu-central-1"
-    iam_role_name = "StackGuardianOidcRole"
-  },
-  {
-    name                     = "azure-oidc"
+    iam_role_name = "StackGuardianProductionRole"
+    policy_arn    = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+  }
+  azure-production = {
     kind                     = "AZURE_OIDC"
     azure_subscription_id    = "00000000-0000-0000-0000-000000000000"
     azure_tenant_id          = "00000000-0000-0000-0000-000000000000"
-    application_display_name = "stackguardian-oidc"
+    application_display_name = "stackguardian-production"
     role_definition_name     = "Reader"
-  },
-  {
-    name                   = "gcp-oidc"
-    kind                   = "GCP_OIDC"
-    gcp_project_id         = "example-project"
-    gcp_service_account_id = "stackguardian"
-    gcp_workload_pool_id   = "stackguardian"
-    gcp_provider_id        = "stackguardian-oidc"
-    gcp_project_role       = "roles/viewer"
-  },
-]
+  }
+}
 
+# Credentials are sensitive and persist in Terraform state. Supply real values
+# through an ignored secret vars file or JSON-encoded TF_VAR_vcs_connectors.
 vcs_connectors = {
   github = {
-    name = "github"
     kind = "GITHUB_COM"
+    name = "github"
     github = {
       githubCreds = "<github-credential>"
     }
   }
-  gitlab = {
-    name = "gitlab"
-    kind = "GITLAB_COM"
-    gitlab = {
-      gitlabCreds = "<gitlab-credential>"
-    }
+}
+
+# Role references are workflow-group and connector map keys.
+roles = {
+  developer = {
+    workflow_groups  = ["engineering"]
+    cloud_connectors = ["aws-production"]
+    vcs_connectors   = ["github"]
+    template_list    = ["terraform-aws-vpc"]
   }
-  bitbucket = {
-    name = "bitbucket"
-    kind = "BITBUCKET_ORG"
-    bitbucket = {
-      bitbucket_creds = "<bitbucket-credential>"
-    }
+  auditor = {
+    workflow_groups  = ["platform"]
+    cloud_connectors = ["aws-production"]
   }
 }
 
-role_name     = "engineering-developer"
-template_list = ["terraform-aws-vpc"]
-subject       = "developer@example.invalid"
-entity_type   = "EMAIL"
+# Local user: an email not qualified by an SSO provider.
+# SSO users and groups use provider/value subject keys.
+subjects = {
+  "developer@example.invalid" = {
+    roles = ["developer", "auditor"]
+  }
+  "okta/engineering.user@example.invalid" = {
+    entity_type = "EMAIL"
+    roles       = ["developer"]
+  }
+  "okta/platform-engineers" = {
+    entity_type = "GROUP"
+    roles       = ["developer"]
+  }
+}

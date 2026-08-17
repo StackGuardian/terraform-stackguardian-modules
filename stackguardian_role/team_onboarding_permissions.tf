@@ -6,7 +6,7 @@ locals {
   template_paths                 = var.template_list
   template_wildcard_paths        = [for template in local.template_paths : ".*"]
 
-  workflow_permissions = {
+  workflow_permissions = length(var.workflow_groups) == 0 ? {} : {
     "GET/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/"                                                                = { name = "GetWorkflowGroup", paths = { "<wfGrp>" = local.workflow_group_paths } }
     "PATCH/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/"                                                              = { name = "UpdateWorkflowGroup", paths = { "<wfGrp>" = local.workflow_group_paths } }
     "DELETE/api/v1/orgs/${var.org_name}/wfgrps/<wfGrp>/"                                                             = { name = "DeleteWorkflowGroup", paths = { "<wfGrp>" = local.workflow_group_paths } }

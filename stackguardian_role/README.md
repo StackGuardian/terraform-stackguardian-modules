@@ -1,6 +1,6 @@
 # StackGuardian Role v4
 
-Creates a StackGuardian `rolev4` resource using workflow, connector, and template collections. Configure the StackGuardian provider in the calling root. Existing `stackguardian_role` state must be removed and imported at the v4 address; see the root README.
+Creates a StackGuardian `rolev4` resource using workflow, connector, and template collections. At least one scope category must be non-empty; empty categories produce no permissions. Configure the StackGuardian provider in the calling root. Existing `stackguardian_role` state must be removed and imported at the v4 address; see the root README.
 
 ```hcl
 module "role" {
