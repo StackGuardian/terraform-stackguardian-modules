@@ -21,6 +21,9 @@ resource "azurerm_subnet" "this" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.this[0].name
   address_prefixes     = [var.network.subnet_address_prefix]
+
+  # Opt-in: reach Azure services over the backbone instead of the public internet
+  service_endpoints = local.subnet_service_endpoints
 }
 
 /*-------------------------------------------+

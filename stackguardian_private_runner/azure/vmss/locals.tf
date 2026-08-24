@@ -1,23 +1,21 @@
+# Extract SG org name from environment if not provided
 data "external" "env" {
   program = [
     "sh",
     "-c",
-    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\", \"sg_api_uri\": \"'$${SG_API_URI:-https://api.app.stackguardian.io}'\"}'"
+    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\"}'"
   ]
 }
 
 locals {
   # StackGuardian configuration - use provided values or extract from environment
+  # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
   sg_org_name = (
-    var.stackguardian.org_name != ""
-    ? var.stackguardian.org_name
+    nonsensitive(var.stackguardian.org_name) != ""
+    ? nonsensitive(var.stackguardian.org_name)
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = (
-    var.stackguardian.api_uri != ""
-    ? var.stackguardian.api_uri
-    : data.external.env.result.sg_api_uri
-  )
+  sg_api_uri = nonsensitive(var.stackguardian.api_uri)
 
   # Network mode logic
   create_network = var.network.create_network
@@ -32,6 +30,13 @@ locals {
   # NAT gateway is only meaningful when the module owns the subnet
   create_nat_gateway = var.network.create_network_infrastructure && local.create_network
 
+  # Service endpoints only apply to the subnet this module creates
+  subnet_service_endpoints = (
+    length(var.network.service_endpoints) > 0
+    ? var.network.service_endpoints
+    : null
+  )
+
   # SSH key logic: provided key > generated key
   use_generated_key = var.firewall.generate_ssh_key && var.firewall.ssh_public_key == ""
   ssh_public_key = (
@@ -40,10 +45,14 @@ locals {
     : var.firewall.ssh_public_key
   )
 
+  # Upgrade policy: azurerm requires a rolling_upgrade_policy block for
+  # Automatic/Rolling and rejects it for Manual (the default)
+  rolling_upgrade = var.upgrade_policy.mode != "Manual"
+
   # Computed prefix with optional org name (matches AWS pattern)
   effective_prefix = (
-    var.override_names.include_org_in_prefix && var.override_names.org_name != ""
-    ? "${var.override_names.global_prefix}_${var.override_names.org_name}"
+    var.override_names.include_org_in_prefix && local.sg_org_name != ""
+    ? "${var.override_names.global_prefix}_${local.sg_org_name}"
     : var.override_names.global_prefix
   )
 

@@ -11,9 +11,11 @@ resource "tls_private_key" "ssh" {
 /*-------------------------------------------+
  | Linux Virtual Machine Scale Set           |
  +-------------------------------------------*/
-# Manual upgrade policy mirrors aws_launch_template + ASG pattern: changes
-# to the SKU/image require explicit instance refresh, which the autoscaler
+# Manual upgrade policy (the default) mirrors aws_launch_template + ASG pattern:
+# changes to the SKU/image require explicit instance refresh, which the autoscaler
 # (or operator) drives — the VMSS resource itself does not roll instances.
+# Set upgrade_policy.mode = "Rolling" to have Azure roll the fleet in batches, the
+# way the AWS module's instance_refresh block does.
 resource "azurerm_linux_virtual_machine_scale_set" "this" {
   name                = local.vmss_name
   resource_group_name = var.resource_group_name
@@ -67,7 +69,52 @@ resource "azurerm_linux_virtual_machine_scale_set" "this" {
     )
   )
 
-  upgrade_mode = "Manual"
+  upgrade_mode = var.upgrade_policy.mode
+
+  # Health signal Azure requires for Rolling/Automatic upgrades and for instance
+  # repair. Either a Load Balancer probe or the in-guest extension below satisfies it.
+  health_probe_id = var.upgrade_policy.health_probe_id != "" ? var.upgrade_policy.health_probe_id : null
+
+  dynamic "extension" {
+    for_each = var.upgrade_policy.application_health_extension != null ? [var.upgrade_policy.application_health_extension] : []
+
+    content {
+      name                       = "ApplicationHealthLinux"
+      publisher                  = "Microsoft.ManagedServices"
+      type                       = "ApplicationHealthLinux"
+      type_handler_version       = "1.0"
+      auto_upgrade_minor_version = true
+
+      settings = jsonencode(merge(
+        {
+          protocol = extension.value.protocol
+          port     = extension.value.port
+        },
+        extension.value.request_path != "" ? { requestPath = extension.value.request_path } : {}
+      ))
+    }
+  }
+
+  # azurerm requires this block for Automatic/Rolling and rejects it for Manual
+  dynamic "rolling_upgrade_policy" {
+    for_each = local.rolling_upgrade ? [1] : []
+
+    content {
+      max_batch_instance_percent              = var.upgrade_policy.max_batch_instance_percent
+      max_unhealthy_instance_percent          = var.upgrade_policy.max_unhealthy_instance_percent
+      max_unhealthy_upgraded_instance_percent = var.upgrade_policy.max_unhealthy_upgraded_instance_percent
+      pause_time_between_batches              = var.upgrade_policy.pause_time_between_batches
+    }
+  }
+
+  dynamic "automatic_instance_repair" {
+    for_each = var.upgrade_policy.automatic_instance_repair ? [1] : []
+
+    content {
+      enabled      = true
+      grace_period = var.upgrade_policy.automatic_instance_repair_grace_period
+    }
+  }
 
   tags = merge(local.common_tags, {
     Name = local.vmss_name

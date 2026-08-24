@@ -14,6 +14,7 @@ This template gives you a horizontally-scalable pool of StackGuardian runners ru
 - **NAT Gateway with public IP** (optional) - Outbound internet access for runners deployed in private subnets.
 - **Managed identity binding** - Runners use a User-Assigned Managed Identity for secure access to the storage backend.
 - **SSH key** (optional) - The platform can generate one for you, or you can bring your own.
+- **Application Health extension** (optional) - An in-guest health probe, required if you enable rolling upgrades or automatic instance repair without a load balancer.
 
 ## Prerequisites
 
@@ -49,9 +50,10 @@ This template gives you a horizontally-scalable pool of StackGuardian runners ru
 | Network → Existing Subnet ID | Resource ID of an existing Subnet within the VNet above (required when not creating a new one). | - |
 | Network → VNet Address Space | CIDR blocks for the new VNet. | `["10.0.0.0/16"]` |
 | Network → Subnet Address Prefix | CIDR for the new subnet inside the VNet address space. | `10.0.1.0/24` |
-| Network → Create NAT Gateway | Create a NAT Gateway with public IP and associate it with the (created) subnet for outbound internet access. | `false` |
+| Network → Create NAT Gateway | Create a NAT Gateway with public IP and associate it with the (created) subnet for outbound internet access. Only applies when "Create New VNet & Subnet" is enabled. | `false` |
 | Network → Proxy URL | Optional HTTP proxy URL for private network deployments. | `""` |
 | Network → Additional NSG IDs | Additional NSG resource IDs to associate with each instance. | `[]` |
+| Network → Service Endpoints | VNet service endpoints enabled on the subnet this template creates, so runners reach Azure PaaS over the Azure backbone (e.g. `Microsoft.Storage`, `Microsoft.KeyVault`, `Microsoft.ContainerRegistry`). Ignored when using an existing subnet. | `[]` |
 | OS Disk → Disk Caching | One of `None`, `ReadOnly`, `ReadWrite`. | `ReadWrite` |
 | OS Disk → Storage Account Type | One of `Standard_LRS`, `StandardSSD_LRS`, `Premium_LRS`, `Premium_ZRS`. | `Premium_LRS` |
 | OS Disk → Disk Size (GB) | OS disk size in GB. Minimum 30. | `100` |
@@ -63,10 +65,18 @@ This template gives you a horizontally-scalable pool of StackGuardian runners ru
 | Scaling → Minimum Instances | Floor on instance count. Must be at least 1. | `1` |
 | Scaling → Maximum Instances | Ceiling on instance count. Must be greater than or equal to Minimum Instances. | `3` |
 | Scaling → Desired Capacity | Initial instance count. Must be between Minimum and Maximum. | `1` |
+| Upgrade Policy → Upgrade Mode | How a new image or VM size reaches running instances. `Manual` leaves them on the old model until they are replaced; `Rolling` replaces them in batches; `Automatic` replaces them all at once. | `Manual` |
+| Upgrade Policy → Health Probe ID | Load Balancer probe used as the health signal for rolling upgrades and instance repair. | `""` |
+| Upgrade Policy → Application Health Extension | In-guest health probe (protocol, port, request path). Use this when there is no load balancer to probe from. | `null` |
+| Upgrade Policy → Max Batch Instance Percent | Percent of instances upgraded in a single batch (5-100). | `20` |
+| Upgrade Policy → Max Unhealthy Instance Percent | Percent of instances allowed to be unhealthy during the upgrade. Must be at least the batch percent. | `20` |
+| Upgrade Policy → Max Unhealthy Upgraded Instance Percent | Percent of already-upgraded instances allowed to be unhealthy before the upgrade aborts (0-100). | `20` |
+| Upgrade Policy → Pause Between Batches | ISO 8601 duration to wait between batches. | `PT5M` |
+| Upgrade Policy → Automatic Instance Repair | Let Azure replace instances that report unhealthy. Needs a health signal. | `false` |
+| Upgrade Policy → Instance Repair Grace Period | ISO 8601 grace period after a state change before repairs kick in. | `PT30M` |
 | Runner Startup Timeout (seconds) | Maximum seconds to wait for Docker to start before shutting down each instance. | `300` |
 | Resource Naming → Global Prefix | Prefix used for naming all Azure resources created by this template. | `SG_RUNNER` |
-| Resource Naming → Include Org in Prefix | When true, appends the org name to the prefix (e.g. `SG_RUNNER_demo-org`). | `false` |
-| Resource Naming → Org Name (for prefix) | Organization name to include in the prefix when "Include Org in Prefix" is enabled. | `""` |
+| Resource Naming → Include Org in Prefix | When true, appends the StackGuardian organization name to the prefix (e.g. `SG_RUNNER_demo-org`). The org name comes from the StackGuardian Platform section - there is no separate naming override. | `false` |
 
 ## Important Notes
 
@@ -76,7 +86,9 @@ This template gives you a horizontally-scalable pool of StackGuardian runners ru
 
 **Generated SSH keys**: If you let the platform generate an SSH keypair, the private key is stored in Terraform state and exposed as a sensitive template output. For production, prefer supplying your own public key and managing the private key separately.
 
-**Network mode**: You must either create a new VNet/Subnet or supply existing IDs - the template won't deploy without one of those. If you select "Create NAT Gateway", you must also enable "Create New VNet & Subnet".
+**Network mode**: You must either create a new VNet/Subnet or supply existing IDs - the template won't deploy without one of those. "Create NAT Gateway" and "Service Endpoints" only apply to a subnet this template creates, so they need "Create New VNet & Subnet" enabled; on an existing subnet they are ignored and you configure them yourself.
+
+**Image upgrades**: By default ("Manual"), publishing a new runner image and re-running the template updates the scale set model but leaves running instances on the old image - they roll over as the autoscaler replaces them. Choose "Rolling" to have Azure replace instances in batches immediately. Rolling and Automatic both need a health signal: either a Load Balancer probe ID or the Application Health Extension. Azure cannot change the upgrade mode of an existing scale set, so changing this on a deployed stack replaces the VM Scale Set and recreates every runner.
 
 **API key safety**: Use a `${secret::NAME}` reference for the API key and runner group token. Pasting raw `sgo_*`/`sgu_*` values into the form embeds them in the run inputs.
 

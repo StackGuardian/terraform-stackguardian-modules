@@ -12,6 +12,7 @@
     "os_disk",
     "firewall",
     "scaling",
+    "upgrade_policy",
     "runner_startup_timeout",
     "override_names"
   ],
@@ -70,7 +71,8 @@
       "subnet_address_prefix",
       "create_network_infrastructure",
       "proxy_url",
-      "additional_nsg_ids"
+      "additional_nsg_ids",
+      "service_endpoints"
     ],
     "create_network": {
       "ui:widget": "radio",
@@ -105,6 +107,10 @@
     "additional_nsg_ids": {
       "ui:description": "Additional NSG resource IDs to associate with each instance.",
       "items": { "ui:placeholder": "/subscriptions/.../networkSecurityGroups/..." }
+    },
+    "service_endpoints": {
+      "ui:description": "VNet service endpoints enabled on the subnet this template creates, so runners reach Azure PaaS over the Azure backbone (e.g. Microsoft.Storage, Microsoft.KeyVault, Microsoft.ContainerRegistry). Ignored when using an existing subnet.",
+      "items": { "ui:placeholder": "Microsoft.Storage" }
     }
   },
   "os_disk": {
@@ -163,13 +169,73 @@
       "ui:description": "Initial instance count. Must be between min_size and max_size."
     }
   },
+  "upgrade_policy": {
+    "ui:title": "Upgrade Policy",
+    "ui:description": "How the scale set rolls out a new image or VM size. Manual keeps the current behaviour: running instances are left alone until the autoscaler or an operator replaces them.",
+    "ui:order": [
+      "mode",
+      "health_probe_id",
+      "application_health_extension",
+      "max_batch_instance_percent",
+      "max_unhealthy_instance_percent",
+      "max_unhealthy_upgraded_instance_percent",
+      "pause_time_between_batches",
+      "automatic_instance_repair",
+      "automatic_instance_repair_grace_period"
+    ],
+    "mode": {
+      "ui:widget": "select",
+      "ui:description": "Manual leaves existing instances on the old model. Rolling replaces them in batches. Both Rolling and Automatic require a health signal below. **Warning:** changing this on a deployed stack replaces the VM Scale Set and recreates every runner."
+    },
+    "health_probe_id": {
+      "ui:placeholder": "/subscriptions/.../loadBalancers/.../probes/...",
+      "ui:description": "Load Balancer probe used to judge instance health. Leave blank and use the Application Health Extension when there is no load balancer."
+    },
+    "application_health_extension": {
+      "ui:description": "Installs the in-guest Application Health extension, which probes the instance locally - the simplest health signal for a runner fleet with no load balancer. Leave unset for Manual upgrades.",
+      "ui:order": ["protocol", "port", "request_path"],
+      "protocol": {
+        "ui:widget": "select",
+        "ui:description": "tcp opens a socket, http/https issue a request against the path below."
+      },
+      "port": {
+        "ui:description": "Local port probed on each instance (22 targets sshd, which the runner image already runs)."
+      },
+      "request_path": {
+        "ui:placeholder": "/health",
+        "ui:description": "Path requested when protocol is http or https. Required for those protocols."
+      }
+    },
+    "max_batch_instance_percent": {
+      "ui:description": "Percent of instances upgraded in a single batch."
+    },
+    "max_unhealthy_instance_percent": {
+      "ui:description": "Percent of instances allowed to be unhealthy during the upgrade. Must be greater than or equal to the batch percent."
+    },
+    "max_unhealthy_upgraded_instance_percent": {
+      "ui:description": "Percent of already-upgraded instances allowed to be unhealthy before the upgrade aborts."
+    },
+    "pause_time_between_batches": {
+      "ui:placeholder": "PT5M",
+      "ui:description": "ISO 8601 duration to wait between batches, giving new runners time to register."
+    },
+    "automatic_instance_repair": {
+      "ui:widget": "radio",
+      "ui:options": { "inline": true },
+      "ui:description": "Let Azure replace instances that report unhealthy. Requires a health signal."
+    },
+    "automatic_instance_repair_grace_period": {
+      "ui:placeholder": "PT30M",
+      "ui:description": "ISO 8601 grace period after a state change before repairs kick in (30-90 minutes)."
+    }
+  },
   "runner_startup_timeout": {
     "ui:description": "Maximum seconds to wait for Docker to start before shutting down each instance."
   },
   "override_names": {
     "ui:title": "Resource Naming",
     "ui:description": "Customize the prefix used for naming Azure resources created by this module.",
-    "ui:order": ["global_prefix", "include_org_in_prefix", "org_name"],
+    "ui:order": ["global_prefix", "include_org_in_prefix"],
     "global_prefix": {
       "ui:placeholder": "SG_RUNNER",
       "ui:description": "Prefix used for naming all Azure resources created by this module."
@@ -177,11 +243,7 @@
     "include_org_in_prefix": {
       "ui:widget": "radio",
       "ui:options": { "inline": true },
-      "ui:description": "When true, appends the org name to the prefix (e.g. SG_RUNNER_demo-org)."
-    },
-    "org_name": {
-      "ui:placeholder": "demo-org",
-      "ui:description": "Organization name to include in the prefix when include_org_in_prefix is true."
+      "ui:description": "When true, appends the StackGuardian organization name to the prefix (e.g. SG_RUNNER_demo-org). The org name comes from the StackGuardian Platform section above."
     }
   }
 }

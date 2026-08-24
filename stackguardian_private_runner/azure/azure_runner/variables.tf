@@ -89,13 +89,12 @@ variable "override_names" {
     Configuration for overriding default resource names.
 
     - global_prefix: Prefix used for naming all Azure resources created by this module
-    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
-    - org_name: Organization name to include in prefix (since this module doesn't resolve it from environment)
+    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org).
+      The org name is taken from stackguardian.org_name (or the SG_ORG_ID environment variable).
   EOT
   type = object({
     global_prefix         = string
     include_org_in_prefix = optional(bool, false)
-    org_name              = optional(string, "")
   })
   default = {
     global_prefix = "SG_RUNNER"
@@ -121,6 +120,10 @@ variable "network" {
     - associate_public_ip: Whether to assign public IP to the VM
     - create_network_infrastructure: Whether to create a NAT Gateway (with public IP) and associate it with the subnet for outbound internet access from a private subnet.
       When disabled, ensure the subnet has its own route to the internet (NAT, firewall, ExpressRoute, etc.) for StackGuardian platform connectivity.
+    - service_endpoints: (Optional) Azure VNet service endpoints to enable on the created subnet
+      (e.g. ["Microsoft.Storage", "Microsoft.KeyVault"]). Lets the runner reach those services over
+      the Azure backbone instead of the public internet. Only applies when create_network = true;
+      for an existing subnet, configure the service endpoints on that subnet directly.
     - proxy_url: HTTP proxy URL for private network deployments (e.g., http://proxy.example.com:8080)
     - additional_nsg_ids: Additional NSG IDs to associate with the NIC
   EOT
@@ -132,6 +135,7 @@ variable "network" {
     subnet_address_prefix         = optional(string, "10.0.1.0/24")
     associate_public_ip           = optional(bool, false)
     create_network_infrastructure = optional(bool, false)
+    service_endpoints             = optional(list(string), [])
     proxy_url                     = optional(string, "")
     additional_nsg_ids            = optional(list(string), [])
   })

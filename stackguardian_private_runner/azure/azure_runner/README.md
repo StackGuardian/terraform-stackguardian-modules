@@ -12,7 +12,7 @@ This Terraform module provisions a single Azure Linux VM-based private runner fo
 - **Network Interface**: Connected to your VNet subnet with optional public IP
 - **Network Security Group**: Configurable inbound rules with full outbound access
 - **SSH Key Pair**: Auto-generated 4096-bit RSA key or user-provided public key
-- **VNet and Subnet** (optional): When `create_network = true`, creates new networking infrastructure
+- **VNet and Subnet** (optional): When `create_network = true`, creates new networking infrastructure, optionally with VNet service endpoints
 - **Public IP** (optional): When `associate_public_ip = true`, assigns a static public IP
 
 ## Prerequisites
@@ -89,20 +89,24 @@ module "azure_runner" {
 |-----------|-------------|---------|
 | `vm_size` | Azure VM size (min 4 vCPU, 8GB RAM recommended) | `Standard_D4s_v3` |
 | `azure_location` | Target Azure region | `westeurope` |
-| `stackguardian.org_name` | Organization name (extracted from environment if not provided) | `""` |
-| `stackguardian.api_uri` | StackGuardian API endpoint | `""` (auto-detected) |
-| `override_names.global_prefix` | Prefix for all resource names | `sg-runner` |
+| `stackguardian.org_name` | Organization name (extracted from the `SG_ORG_ID` environment variable if not provided) | `""` |
+| `stackguardian.api_uri` | StackGuardian API endpoint. One of `https://api.app.stackguardian.io` (EU1), `https://api.us.stackguardian.io` (US1), `https://testapi.qa.stackguardian.io` (DASH) | `https://api.app.stackguardian.io` |
+| `override_names.global_prefix` | Prefix for all resource names | `SG_RUNNER` |
+| `override_names.include_org_in_prefix` | Append the org name to the prefix (e.g. `SG_RUNNER_demo-org`) | `false` |
 | `network.create_network` | Create a new VNet and Subnet | `false` |
 | `network.vnet_address_space` | Address space for new VNet | `["10.0.0.0/16"]` |
 | `network.subnet_address_prefix` | Address prefix for new subnet | `10.0.1.0/24` |
 | `network.associate_public_ip` | Assign a public IP to the VM | `false` |
+| `network.create_network_infrastructure` | Create a NAT Gateway (with public IP) for outbound access from the created subnet | `false` |
+| `network.service_endpoints` | Azure VNet service endpoints to enable on the created subnet (e.g. `["Microsoft.Storage"]`) | `[]` |
+| `network.proxy_url` | HTTP proxy URL for private network deployments | `""` |
 | `network.additional_nsg_ids` | Additional NSG IDs to associate with the NIC | `[]` |
 | `os_disk.caching` | OS disk caching mode (None, ReadOnly, ReadWrite) | `ReadWrite` |
 | `os_disk.storage_account_type` | OS disk storage type | `Premium_LRS` |
 | `os_disk.disk_size_gb` | OS disk size in GB (minimum 30) | `100` |
 | `firewall.admin_username` | SSH admin username | `azureuser` |
 | `firewall.ssh_public_key` | Custom SSH public key content | `""` |
-| `firewall.generate_ssh_key` | Auto-generate a 4096-bit RSA key pair | `true` |
+| `firewall.generate_ssh_key` | Auto-generate a 4096-bit RSA key pair (private key is stored in state) | `false` |
 | `firewall.ssh_access_rules` | Map of CIDR blocks for SSH access | `{}` |
 | `firewall.additional_inbound_rules` | Additional NSG inbound rules | `{}` |
 | `runner_startup_timeout` | Seconds to wait for Docker before shutdown | `300` |
@@ -157,6 +161,34 @@ module "azure_runner" {
     vnet_address_space    = ["10.0.0.0/16"]
     subnet_address_prefix = "10.0.1.0/24"
     associate_public_ip   = true
+  }
+}
+```
+
+#### Private Deployment with Service Endpoints
+
+```hcl
+module "azure_runner" {
+  source = "./azure/azure_runner"
+
+  vm_image_id         = "/subscriptions/.../providers/Microsoft.Compute/images/sg-runner-ubuntu"
+  resource_group_name = "my-resource-group"
+
+  runner_group_name           = "my-runner-group"
+  runner_group_token          = "my-token"
+  storage_backend_identity_id = "/subscriptions/.../providers/Microsoft.ManagedIdentity/userAssignedIdentities/my-identity"
+
+  stackguardian = {
+    api_key = "sgu_your_api_key"
+  }
+
+  network = {
+    create_network                = true
+    create_network_infrastructure = true
+    associate_public_ip           = false
+
+    # Reach Azure services over the backbone instead of the public internet
+    service_endpoints = ["Microsoft.Storage", "Microsoft.KeyVault"]
   }
 }
 ```
@@ -231,8 +263,8 @@ terraform destroy
 |------|---------|
 | `provider.tf` | Azure, StackGuardian, and utility provider configuration |
 | `variables.tf` | Input variable definitions and validation |
-| `locals.tf` | Computed values, naming conventions, network mode logic |
-| `data.tf` | Data sources for environment variable extraction |
+| `locals.tf` | Environment lookup, computed values, naming conventions, network mode logic |
+| `data.tf` | Azure subscription data source |
 | `vm.tf` | Linux VM, SSH key generation, User-Assigned Managed Identity |
 | `network.tf` | VNet, Subnet, NSG, Public IP, Network Interface |
 | `outputs.tf` | Module outputs |
@@ -242,15 +274,18 @@ terraform destroy
 
 Resources are named using the pattern: `{sanitized_prefix}-{resource-type}`
 
-The `global_prefix` is lowercased with underscores replaced by hyphens.
+The `global_prefix` is lowercased with underscores replaced by hyphens. When
+`override_names.include_org_in_prefix = true`, the StackGuardian org name is appended to the prefix
+first (e.g. `SG_RUNNER_demo-org` -> `sg-runner-demo-org`).
 
-Examples with default prefix `sg-runner`:
+Examples with the default prefix `SG_RUNNER`:
 - VM: `sg-runner-private-runner`
 - NSG: `sg-runner-nsg`
 - VNet: `sg-runner-vnet`
 - Subnet: `sg-runner-subnet`
 - NIC: `sg-runner-nic`
-- Public IP: `sg-runner-public-ip`
+- Public IP: `sg-runner-pip`
+- NAT Gateway: `sg-runner-natgw`
 
 ## Troubleshooting
 
@@ -312,10 +347,11 @@ az vm show --resource-group <rg> --name <vm-name> --query provisioningState
 ## Security Considerations
 
 - **SSH-Only Authentication**: Password authentication is disabled; only SSH key-based access is allowed
-- **Auto-Generated Keys**: 4096-bit RSA key pair generated by default for strong encryption
+- **Bring Your Own Key**: `generate_ssh_key` is off by default; when enabled, the generated 4096-bit RSA private key is stored in Terraform state and exposed as a sensitive output
 - **NSG Defaults**: Inbound traffic is blocked by default; SSH access must be explicitly configured via `ssh_access_rules`
 - **Full Outbound**: Security group allows all outbound traffic for runner operations
 - **Managed Identity**: User-Assigned Managed Identity provides secure access to storage backend without credentials
+- **Service Endpoints**: Optional VNet service endpoints keep traffic to Azure services on the Azure backbone
 
 ## Requirements
 

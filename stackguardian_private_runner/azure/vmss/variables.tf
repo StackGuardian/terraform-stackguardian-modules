@@ -89,13 +89,13 @@ variable "override_names" {
     Configuration for overriding default resource names.
 
     - global_prefix: Prefix used for naming all Azure resources created by this module
-    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
-    - org_name: Organization name to include in prefix (since this module doesn't resolve it from environment)
+    - include_org_in_prefix: When true, appends the org name to the prefix (e.g., SG_RUNNER_demo-org).
+      The org name always comes from stackguardian.org_name, falling back to the SG_ORG_ID
+      environment variable - there is no separate override here.
   EOT
   type = object({
     global_prefix         = string
     include_org_in_prefix = optional(bool, false)
-    org_name              = optional(string, "")
   })
   default = {
     global_prefix = "SG_RUNNER"
@@ -119,8 +119,15 @@ variable "network" {
     - subnet_address_prefix: Address prefix for new subnet (when create_network = true)
     - create_network_infrastructure: Create a NAT Gateway (with public IP) and
       associate it with the (created) subnet for outbound internet access.
+      Only takes effect together with create_network = true - the module never
+      attaches a NAT Gateway to a subnet it does not own.
     - proxy_url: HTTP proxy URL for private network deployments
     - additional_nsg_ids: Additional NSG IDs to associate with each instance
+    - service_endpoints: (Optional) VNet service endpoints to enable on the subnet this
+      module creates, so runners reach Azure PaaS over the Azure backbone instead of the
+      public internet. Typical values: Microsoft.Storage, Microsoft.KeyVault,
+      Microsoft.ContainerRegistry. Ignored when bringing an existing subnet - add the
+      endpoints on that subnet yourself.
   EOT
   type = object({
     create_network                = optional(bool, false)
@@ -131,6 +138,7 @@ variable "network" {
     create_network_infrastructure = optional(bool, false)
     proxy_url                     = optional(string, "")
     additional_nsg_ids            = optional(list(string), [])
+    service_endpoints             = optional(list(string), [])
   })
 
   validation {
@@ -139,6 +147,13 @@ variable "network" {
       (var.network.vnet_id != "" && var.network.subnet_id != "")
     )
     error_message = "Either set create_network = true, or provide both vnet_id and subnet_id."
+  }
+
+  validation {
+    condition = alltrue([
+      for endpoint in var.network.service_endpoints : can(regex("^Microsoft\\.[A-Za-z]+(\\.[A-Za-z]+)?$", endpoint))
+    ])
+    error_message = "Each service_endpoints entry must be an Azure service endpoint name such as 'Microsoft.Storage' or 'Microsoft.KeyVault'."
   }
 }
 
@@ -257,6 +272,123 @@ variable "scaling" {
       var.scaling.desired_capacity <= var.scaling.max_size
     )
     error_message = "desired_capacity must be between min_size and max_size (inclusive)."
+  }
+}
+
+/*--------------------------+
+ | Upgrade Policy Variables |
+ +--------------------------*/
+variable "upgrade_policy" {
+  description = <<EOT
+    How the scale set rolls out model changes (a new vm_image_id, vm_size, custom_data, ...).
+
+    Defaults to "Manual", which is the historical behaviour: existing instances keep running
+    the old model until they are replaced by the autoscaler or by an operator. Opt in to
+    "Rolling" (or "Automatic") to have Azure replace instances in batches automatically.
+
+    - mode: Manual (default) | Rolling | Automatic. Azure cannot change the upgrade mode of
+      an existing scale set, so switching this replaces the VMSS (all runners are recreated).
+    - health_probe_id: Load Balancer probe used to judge instance health. Azure requires a
+      health signal for Rolling/Automatic upgrades and for automatic instance repair - supply
+      either this or application_health_extension.
+    - application_health_extension: Installs the in-guest Application Health extension, which
+      probes the instance locally (no Load Balancer needed). protocol tcp|http|https, port,
+      and request_path (http/https only).
+    - max_batch_instance_percent: Max percent of instances upgraded in a single batch.
+    - max_unhealthy_instance_percent: Max percent of instances allowed to be unhealthy during
+      the upgrade. Must be >= max_batch_instance_percent.
+    - max_unhealthy_upgraded_instance_percent: Max percent of already-upgraded instances
+      allowed to be unhealthy before the upgrade aborts.
+    - pause_time_between_batches: ISO 8601 duration to wait between batches (e.g. PT5M).
+    - automatic_instance_repair: Let Azure replace instances that report unhealthy. Also
+      requires a health signal.
+    - automatic_instance_repair_grace_period: ISO 8601 grace period after a state change
+      before repairs kick in (30-90 minutes).
+  EOT
+  type = object({
+    mode            = optional(string, "Manual")
+    health_probe_id = optional(string, "")
+    application_health_extension = optional(object({
+      protocol     = optional(string, "tcp")
+      port         = optional(number, 22)
+      request_path = optional(string, "")
+    }), null)
+    max_batch_instance_percent              = optional(number, 20)
+    max_unhealthy_instance_percent          = optional(number, 20)
+    max_unhealthy_upgraded_instance_percent = optional(number, 20)
+    pause_time_between_batches              = optional(string, "PT5M")
+    automatic_instance_repair               = optional(bool, false)
+    automatic_instance_repair_grace_period  = optional(string, "PT30M")
+  })
+  default = {
+    mode = "Manual"
+  }
+
+  validation {
+    condition     = contains(["Manual", "Rolling", "Automatic"], var.upgrade_policy.mode)
+    error_message = "The upgrade_policy.mode must be one of: Manual, Rolling, Automatic."
+  }
+
+  validation {
+    condition = (
+      var.upgrade_policy.mode == "Manual" ||
+      var.upgrade_policy.health_probe_id != "" ||
+      var.upgrade_policy.application_health_extension != null
+    )
+    error_message = "Rolling and Automatic upgrades need a health signal: set upgrade_policy.health_probe_id or upgrade_policy.application_health_extension."
+  }
+
+  validation {
+    condition = (
+      !var.upgrade_policy.automatic_instance_repair ||
+      var.upgrade_policy.health_probe_id != "" ||
+      var.upgrade_policy.application_health_extension != null
+    )
+    error_message = "The upgrade_policy.automatic_instance_repair needs a health signal: set upgrade_policy.health_probe_id or upgrade_policy.application_health_extension."
+  }
+
+  validation {
+    condition = (
+      var.upgrade_policy.application_health_extension == null ||
+      contains(["tcp", "http", "https"], try(var.upgrade_policy.application_health_extension.protocol, ""))
+    )
+    error_message = "The upgrade_policy.application_health_extension.protocol must be one of: tcp, http, https."
+  }
+
+  validation {
+    condition = (
+      var.upgrade_policy.application_health_extension == null ||
+      try(var.upgrade_policy.application_health_extension.protocol, "") == "tcp" ||
+      try(var.upgrade_policy.application_health_extension.request_path, "") != ""
+    )
+    error_message = "The upgrade_policy.application_health_extension.request_path is required when protocol is http or https."
+  }
+
+  validation {
+    condition = (
+      var.upgrade_policy.max_batch_instance_percent >= 5 &&
+      var.upgrade_policy.max_batch_instance_percent <= 100 &&
+      var.upgrade_policy.max_unhealthy_instance_percent >= 5 &&
+      var.upgrade_policy.max_unhealthy_instance_percent <= 100 &&
+      var.upgrade_policy.max_unhealthy_upgraded_instance_percent >= 0 &&
+      var.upgrade_policy.max_unhealthy_upgraded_instance_percent <= 100
+    )
+    error_message = "The max_batch_instance_percent and max_unhealthy_instance_percent must be between 5 and 100, max_unhealthy_upgraded_instance_percent between 0 and 100."
+  }
+
+  validation {
+    condition     = var.upgrade_policy.max_unhealthy_instance_percent >= var.upgrade_policy.max_batch_instance_percent
+    error_message = "The max_unhealthy_instance_percent must be greater than or equal to max_batch_instance_percent."
+  }
+
+  validation {
+    condition     = can(regex("^P(T?[0-9]+[DHMS])+$", var.upgrade_policy.pause_time_between_batches))
+    error_message = "The pause_time_between_batches must be an ISO 8601 duration (e.g. PT0S, PT5M)."
+  }
+
+  validation {
+    condition     = can(regex("^P(T?[0-9]+[DHMS])+$", var.upgrade_policy.automatic_instance_repair_grace_period))
+    error_message = "The automatic_instance_repair_grace_period must be an ISO 8601 duration (e.g. PT30M)."
   }
 }
 

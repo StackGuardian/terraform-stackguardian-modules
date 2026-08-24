@@ -69,6 +69,7 @@
       "subnet_address_prefix",
       "associate_public_ip",
       "create_network_infrastructure",
+      "service_endpoints",
       "proxy_url",
       "additional_nsg_ids"
     ],
@@ -102,6 +103,10 @@
       "ui:widget": "radio",
       "ui:options": { "inline": true },
       "ui:description": "Create a NAT Gateway with public IP and associate it with the (created) subnet for outbound internet access."
+    },
+    "service_endpoints": {
+      "ui:description": "Azure VNet service endpoints to enable on the created subnet (e.g. Microsoft.Storage). Only applies when \"Create New VNet & Subnet\" is enabled.",
+      "items": { "ui:placeholder": "Microsoft.Storage" }
     },
     "proxy_url": {
       "ui:placeholder": "http://proxy.internal:3128",
@@ -160,7 +165,7 @@
   "override_names": {
     "ui:title": "Resource Naming",
     "ui:description": "Customize the prefix used for naming Azure resources created by this module.",
-    "ui:order": ["global_prefix", "include_org_in_prefix", "org_name"],
+    "ui:order": ["global_prefix", "include_org_in_prefix"],
     "global_prefix": {
       "ui:placeholder": "SG_RUNNER",
       "ui:description": "Prefix used for naming all Azure resources created by this module."
@@ -168,11 +173,7 @@
     "include_org_in_prefix": {
       "ui:widget": "radio",
       "ui:options": { "inline": true },
-      "ui:description": "When true, appends the org name to the prefix (e.g. SG_RUNNER_demo-org)."
-    },
-    "org_name": {
-      "ui:placeholder": "demo-org",
-      "ui:description": "Organization name to include in the prefix when include_org_in_prefix is true."
+      "ui:description": "When true, appends the org name to the prefix (e.g. SG_RUNNER_demo-org). The org name comes from the StackGuardian Platform section above."
     }
   }
 }

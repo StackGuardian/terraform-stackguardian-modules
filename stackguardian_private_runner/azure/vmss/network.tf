@@ -21,6 +21,10 @@ resource "azurerm_subnet" "this" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.this[0].name
   address_prefixes     = [var.network.subnet_address_prefix]
+
+  # Reach Azure PaaS (Storage, Key Vault, ...) over the Azure backbone instead
+  # of the public internet. Empty list leaves the subnet untouched.
+  service_endpoints = local.subnet_service_endpoints
 }
 
 /*-------------------------------------------+

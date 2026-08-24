@@ -116,6 +116,12 @@
           "type": "array",
           "items": { "type": "string" },
           "default": []
+        },
+        "service_endpoints": {
+          "title": "Service Endpoints",
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
         }
       },
       "dependencies": {
@@ -274,6 +280,90 @@
       },
       "additionalProperties": false
     },
+    "upgrade_policy": {
+      "title": "Upgrade Policy",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "title": "Upgrade Mode",
+          "type": "string",
+          "default": "Manual",
+          "enum": ["Manual", "Rolling", "Automatic"],
+          "enumNames": [
+            "Manual - instances keep the old model until replaced",
+            "Rolling - Azure replaces instances in batches",
+            "Automatic - Azure replaces all instances at once"
+          ]
+        },
+        "health_probe_id": {
+          "title": "Health Probe ID",
+          "type": "string",
+          "default": ""
+        },
+        "application_health_extension": {
+          "title": "Application Health Extension",
+          "type": ["object", "null"],
+          "default": null,
+          "properties": {
+            "protocol": {
+              "title": "Protocol",
+              "type": "string",
+              "default": "tcp",
+              "enum": ["tcp", "http", "https"]
+            },
+            "port": {
+              "title": "Port",
+              "type": "number",
+              "default": 22,
+              "minimum": 1
+            },
+            "request_path": {
+              "title": "Request Path",
+              "type": "string",
+              "default": ""
+            }
+          },
+          "additionalProperties": false
+        },
+        "max_batch_instance_percent": {
+          "title": "Max Batch Instance Percent",
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 100
+        },
+        "max_unhealthy_instance_percent": {
+          "title": "Max Unhealthy Instance Percent",
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 100
+        },
+        "max_unhealthy_upgraded_instance_percent": {
+          "title": "Max Unhealthy Upgraded Instance Percent",
+          "type": "number",
+          "default": 20,
+          "minimum": 0,
+          "maximum": 100
+        },
+        "pause_time_between_batches": {
+          "title": "Pause Between Batches",
+          "type": "string",
+          "default": "PT5M"
+        },
+        "automatic_instance_repair": {
+          "title": "Automatic Instance Repair",
+          "type": "boolean",
+          "default": false
+        },
+        "automatic_instance_repair_grace_period": {
+          "title": "Instance Repair Grace Period",
+          "type": "string",
+          "default": "PT30M"
+        }
+      },
+      "additionalProperties": false
+    },
     "runner_startup_timeout": {
       "title": "Runner Startup Timeout (seconds)",
       "type": "number",
@@ -293,11 +383,6 @@
           "title": "Include Org in Prefix",
           "type": "boolean",
           "default": false
-        },
-        "org_name": {
-          "title": "Org Name (for prefix)",
-          "type": "string",
-          "default": ""
         }
       },
       "required": ["global_prefix"],

@@ -3,8 +3,10 @@ terraform {
 
   required_providers {
     azurerm = {
-      source  = "hashicorp/azurerm"
-      version = ">= 3.0"
+      source = "hashicorp/azurerm"
+      # Ceiling is load-bearing: azurerm 5.x removed azurerm_subnet.service_endpoints,
+      # which this module uses for network.service_endpoints
+      version = ">= 3.0, < 5.0"
     }
     external = {
       source  = "hashicorp/external"
