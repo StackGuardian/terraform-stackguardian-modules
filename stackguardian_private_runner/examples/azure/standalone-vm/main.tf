@@ -3,7 +3,7 @@
  | Creates StackGuardian runner group + Azure storage backend |
  +============================================================*/
 module "runner_group" {
-  source = "../../runner_group"
+  source = "../../../runner_group"
 
   cloud_provider              = "azure"
   azure_location              = var.azure_location
