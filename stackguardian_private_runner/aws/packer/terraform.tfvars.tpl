@@ -106,12 +106,16 @@ os = {
 /*----------------------------------+
  | Packer Configuration Variables   |
  +----------------------------------*/
+# The AMI is built on the first apply and reused on every following plan.
+# To build a new one, change rebuild_ami_token to any new value (a date, a tool
+# version, anything). Leaving it unchanged never rebuilds.
 # packer_config = {
-#   version = "1.14.1"
+#   version           = "1.14.1"
+#   rebuild_ami_token = ""  # e.g. "2026-07-30" or "tofu-1.11" to force a rebuild
 #   deregistration_protection = {
 #     enabled = true         # Enable/disable deregistration protection
 #     with_cooldown = false  # Enable/disable cooldown period
 #   }
-#   delete_snapshots = true        # Delete EBS snapshots during AMI cleanup
-#   cleanup_amis_on_destroy = true  # Automatically deregister AMIs on terraform destroy
+#   delete_snapshots = true          # Delete EBS snapshots during AMI cleanup
+#   cleanup_amis_on_destroy = true   # Deregister the built AMI on terraform destroy
 # }

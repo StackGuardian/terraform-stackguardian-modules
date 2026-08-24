@@ -61,9 +61,14 @@ variable "os" {
  | Packer Configuration Variables   |
  +----------------------------------*/
 variable "packer_config" {
-  description = "Packer build configuration"
+  description = <<EOT
+    Packer build configuration.
+    The AMI is built on the first apply and then reused on every following plan.
+    To build a new one, change rebuild_ami_token to any new value.
+  EOT
   type = object({
-    version = string
+    version           = string
+    rebuild_ami_token = optional(string, "")
     deregistration_protection = optional(object({
       enabled       = bool
       with_cooldown = bool
@@ -75,7 +80,8 @@ variable "packer_config" {
     cleanup_amis_on_destroy = optional(bool, true)
   })
   default = {
-    version = "1.14.1"
+    version           = "1.14.1"
+    rebuild_ami_token = ""
     deregistration_protection = {
       enabled       = true
       with_cooldown = false
@@ -112,5 +118,25 @@ variable "opentofu" {
   default = {
     primary_version     = ""
     additional_versions = []
+  }
+}
+
+/*----------------------------------+
+ | StackGuardian Runner Settings    |
+ +----------------------------------*/
+variable "sg_runner" {
+  description = <<EOT
+    StackGuardian runner script installation configuration.
+    Set pre_release to true to bake the newest pre-release of the sg-runner
+    script into the AMI instead of the latest stable release. When no
+    pre-release exists, the build falls back to the latest stable release.
+    Changing this alone does not rebuild an existing AMI - also change
+    packer_config.rebuild_ami_token.
+  EOT
+  type = object({
+    pre_release = optional(bool, false)
+  })
+  default = {
+    pre_release = false
   }
 }

@@ -121,6 +121,14 @@ main() { #{{{
     -var "deregistration_protection_with_cooldown=$DEREGISTRATION_PROTECTION_WITH_COOLDOWN" \
     -machine-readable \
     ./ami.pkr.hcl | tee packer_manifest.log
+
+  # tee masks Packer's exit status, so check for the artifact line instead.
+  # Terraform records the build as done as soon as this script succeeds, so a
+  # silent failure here would stick until the rebuild token is changed.
+  if ! grep -q 'artifact,0,id' packer_manifest.log; then
+    echo "ERROR: Packer build produced no AMI. See the output above."
+    exit 1
+  fi
 }
 #}}}: main
 

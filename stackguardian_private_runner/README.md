@@ -25,6 +25,11 @@ cd aws/packer/
 
 See [aws/packer/README.md](aws/packer/README.md) for full configuration options.
 
+> **AMI reuse:** Packer runs on the first apply only. The AMI ID is recorded in
+> state and reused by every later plan, so re-applies are fast and the runner keeps
+> the same image. To build a fresh AMI, change `packer_config.rebuild_ami_token` to
+> any new value. See [When Packer Runs](aws/packer/README.md#when-packer-runs).
+
 **Deploy:**
 
 ```bash
@@ -205,7 +210,7 @@ Each module has its own README with detailed configuration options:
 
 | Template | Output | Description | Usage |
 |----------|--------|-------------|-------|
-| Packer | `ami_id` | Created AMI identifier | Input for Autoscaling Group |
+| Packer | `ami_id` | Built AMI identifier, recorded in state | Input for Autoscaling Group |
 | Runner Group | `runner_group_name` | StackGuardian runner group name | Input for ASG and Autoscaler |
 | Runner Group | `runner_group_token` | Token for runner registration | Input for Autoscaling Group |
 | Runner Group | `s3_bucket_name` | S3 storage backend bucket | Input for ASG and Autoscaler |

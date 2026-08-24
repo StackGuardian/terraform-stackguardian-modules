@@ -20,9 +20,14 @@ data "aws_ami" "this" {
 }
 
 # Build custom AMI using Packer
+#
+# Created once per state, so Packer runs on the first apply only. Change
+# packer_config.rebuild_ami_token to any new value to replace this resource and
+# build a fresh AMI; re-plans with an unchanged token do nothing.
 resource "null_resource" "packer_build" {
   provisioner "local-exec" {
-    command = "sh ${path.module}/scripts/build_ami.sh"
+    command     = "sh ${path.module}/scripts/build_ami.sh"
+    working_dir = path.module
     environment = {
       BASE_AMI                                = data.aws_ami.this.id
       OS_FAMILY                               = var.os.family
@@ -39,6 +44,7 @@ resource "null_resource" "packer_build" {
       TERRAFORM_VERSIONS                      = join(" ", var.terraform.additional_versions)
       OPENTOFU_VERSION                        = var.opentofu.primary_version
       OPENTOFU_VERSIONS                       = join(" ", var.opentofu.additional_versions)
+      SG_RUNNER_PRE_RELEASE                   = var.sg_runner.pre_release
       VPC_ID                                  = var.network.vpc_id
       DEREGISTRATION_PROTECTION_ENABLED       = var.packer_config.deregistration_protection.enabled
       DEREGISTRATION_PROTECTION_WITH_COOLDOWN = var.packer_config.deregistration_protection.with_cooldown
@@ -47,17 +53,49 @@ resource "null_resource" "packer_build" {
 
 
   triggers = {
-    timestamp = timestamp()
+    rebuild_token = var.packer_config.rebuild_ami_token
+  }
+}
+
+# Parse the AMI ID out of the Packer build log
+#
+# Only meaningful right after a build. It returns an empty AMI ID when the log is
+# missing (fresh checkout, CI runner) instead of failing the plan, because the
+# recorded AMI ID is read from state via terraform_data.ami_id below.
+data "external" "packer_ami_id" {
+  program = [
+    "sh",
+    "-c",
+    "ami_id=$(grep 'artifact,0,id' ${path.module}/packer_manifest.log 2>/dev/null | tail -1 | cut -d, -f6 | cut -d: -f2); printf '{\"ami_id\": \"%s\"}' \"$ami_id\""
+  ]
+
+  depends_on = [null_resource.packer_build]
+}
+
+# Record the built AMI ID in state
+#
+# input is only re-read when a build runs (replace_triggered_by); ignore_changes
+# keeps the recorded ID untouched by later plans, even if the build log is stale
+# or gone.
+resource "terraform_data" "ami_id" {
+  input = data.external.packer_ami_id.result["ami_id"]
+
+  lifecycle {
+    ignore_changes       = [input]
+    replace_triggered_by = [null_resource.packer_build]
   }
 }
 
 # Conditional AMI cleanup resource
+#
+# Tracks the AMI this module built, so a destroy never deregisters an image it
+# did not create. Re-keyed by a rebuild, which deregisters the superseded AMI.
 resource "null_resource" "ami_cleanup" {
   count = var.packer_config.cleanup_amis_on_destroy ? 1 : 0
 
   # Store AMI information as triggers so they're available during destroy
   triggers = {
-    ami_id           = data.external.packer_ami_id.result["ami_id"]
+    ami_id           = local.ami_id
     region           = var.aws_region
     delete_snapshots = var.packer_config.delete_snapshots
     script_path      = "${path.module}/scripts/cleanup_amis.sh"
@@ -73,17 +111,4 @@ resource "null_resource" "ami_cleanup" {
       REGION            = self.triggers.region
     }
   }
-
-  depends_on = [null_resource.packer_build]
-}
-
-# Parse the AMI ID from the Packer output
-data "external" "packer_ami_id" {
-  program = [
-    "sh",
-    "-c",
-    "grep 'artifact,0,id' packer_manifest.log | tail -1 | cut -d, -f6 | cut -d: -f2 | xargs -I{} echo '{\"ami_id\": \"{}\"}'"
-  ]
-
-  depends_on = [null_resource.packer_build]
 }
