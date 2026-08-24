@@ -5,7 +5,7 @@ terraform {
       version = ">= 1.3.3"
     }
     aws = {
-      source = "registry.terraform.io/hashicorp/aws"
+      source = "hashicorp/aws"
     }
     external = {
       source = "hashicorp/external"
@@ -27,7 +27,7 @@ terraform {
 #   Creates: runner group, S3 bucket, IAM role, connector
 # -------------------------------------------------------
 module "runner_group" {
-  source = "../../../runner_group"
+  source = "../../../aws/runner_group"
 
   stackguardian = var.stackguardian
   aws_region    = var.aws_region

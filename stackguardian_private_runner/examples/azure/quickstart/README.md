@@ -288,7 +288,7 @@ packer_network = {
 ## The Storage Backend Identity
 
 The runner authenticates to the storage account with a **User-Assigned Managed
-Identity**. The `runner_group` module does not create one - it registers an AAD
+Identity**. The `azure/runner_group` module does not create one - it registers an AAD
 application and service principal for the *platform's* OIDC connector, which is a
 different principal with a different purpose. So this root module creates the
 identity itself and grants it `Storage Blob Data Contributor` on the storage

@@ -1,7 +1,7 @@
-# S3 Bucket for Storage Backend (AWS only, created when create_storage_backend = true)
+# S3 Bucket for Storage Backend (created when create_storage_backend = true)
 
 resource "random_string" "storage_backend_prefix" {
-  count = local.is_aws && var.create_storage_backend ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   length  = 8
   special = false
@@ -9,14 +9,14 @@ resource "random_string" "storage_backend_prefix" {
 }
 
 resource "aws_s3_bucket" "this" {
-  count = local.is_aws && var.create_storage_backend ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket        = "${random_string.storage_backend_prefix[0].result}-private-runner-storage-backend"
   force_destroy = var.force_destroy_storage_backend
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
-  count = local.is_aws && var.create_storage_backend ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
 
@@ -27,7 +27,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 }
 
 resource "aws_s3_bucket_cors_configuration" "this" {
-  count = local.is_aws && var.create_storage_backend ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
 
@@ -41,9 +41,9 @@ resource "aws_s3_bucket_cors_configuration" "this" {
   }
 }
 
-# Data source for existing S3 bucket (when using existing bucket, AWS only)
+# Data source for existing S3 bucket (when using an existing bucket)
 data "aws_s3_bucket" "existing" {
-  count = local.is_aws && !var.create_storage_backend ? 1 : 0
+  count = var.create_storage_backend ? 0 : 1
 
   bucket = var.existing_s3_bucket_name
 }

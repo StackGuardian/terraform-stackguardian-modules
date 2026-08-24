@@ -1,182 +1,34 @@
-/*---------------------------+
- | Cloud Provider Toggle     |
- +---------------------------*/
-variable "cloud_provider" {
-  description = "The cloud provider for the storage backend. Determines which resources are created (AWS S3 or Azure Blob Storage)."
-  type        = string
-  default     = "aws"
-
-  validation {
-    condition     = contains(["aws", "azure"], var.cloud_provider)
-    error_message = "The cloud_provider must be either 'aws' or 'azure'."
-  }
-}
-
-/*---------------------------+
- | Storage Backend Options   |
- +---------------------------*/
-variable "create_storage_backend" {
-  description = <<EOT
-    Whether to create a new storage backend (S3 bucket for AWS, Storage Account for Azure).
-    Set to false to use an existing storage backend.
-  EOT
-  type        = bool
-  default     = true
-}
-
-variable "existing_s3_bucket_name" {
-  description = "Name of an existing S3 bucket to use as storage backend (required when cloud_provider = 'aws' and create_storage_backend = false)"
-  type        = string
-  default     = ""
-}
-
-variable "force_destroy_storage_backend" {
-  description = <<EOT
-    Whether to force destroy the storage backend (S3 bucket) when the module is destroyed.
-    This will delete all data in the bucket, so use with caution.
-    Default is false, meaning the bucket will not be deleted if it contains objects.
-  EOT
-  type        = bool
-  default     = false
-}
-
-/*---------------------------+
- | Azure Storage Variables   |
- +---------------------------*/
-variable "azure_location" {
-  description = "The Azure region where resources will be deployed (required when cloud_provider = 'azure')"
-  type        = string
-  default     = "westeurope"
-}
-
-variable "create_blob_reader_role_assignment" {
-  description = <<EOT
-    Whether to create the 'Storage Blob Data Reader' role assignment that grants the OIDC connector service principal read access to the storage account.
-    Set to false when the identity running Terraform lacks Microsoft.Authorization/roleAssignments/write (e.g. Contributor without User Access Administrator). When false, you must create the role assignment out of band before runners can read from the storage account.
-  EOT
-  type        = bool
-  default     = true
-}
-
-variable "create_azure_resource_group" {
-  description = <<EOT
-    Whether to create a new Azure Resource Group to host the storage account (and to be reused by downstream azure/* modules via the azure_resource_group_name output).
-    Set to false to deploy the storage account into an existing resource group passed via azure_resource_group_name.
-  EOT
-  type        = bool
-  default     = true
-}
-
-variable "azure_resource_group_name" {
-  description = <<EOT
-    Name of the Azure Resource Group used by the module.
-
-    - When create_azure_resource_group = true (default), this is an optional override for the new resource group's name. If left empty, the name is derived from the module's effective_prefix and account identifier.
-    - When create_azure_resource_group = false, this must be the name of an existing resource group to deploy the storage account into.
-  EOT
-  type        = string
-  default     = ""
-}
-
-variable "existing_azure_storage_account_name" {
-  description = "Name of an existing Azure Storage Account to use as storage backend (required when cloud_provider = 'azure' and create_storage_backend = false)"
-  type        = string
-  default     = ""
-}
-
-variable "existing_azure_storage_account_access_key" {
-  description = "Access key for the existing Azure Storage Account (required when cloud_provider = 'azure' and create_storage_backend = false)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "azure_storage" {
-  description = <<EOT
-    Azure Storage Account configuration (used when cloud_provider = 'azure' and create_storage_backend = true).
-
-    - account_tier: Performance tier of the storage account (Standard or Premium)
-    - account_replication_type: Replication strategy (LRS, GRS, RAGRS, ZRS)
-  EOT
-  type = object({
-    account_tier             = optional(string, "Standard")
-    account_replication_type = optional(string, "LRS")
-  })
-  default = {
-    account_tier             = "Standard"
-    account_replication_type = "LRS"
-  }
-
-  validation {
-    condition     = contains(["Standard", "Premium"], var.azure_storage.account_tier)
-    error_message = "The account_tier must be either 'Standard' or 'Premium'."
-  }
-
-  validation {
-    condition     = contains(["LRS", "GRS", "RAGRS", "ZRS"], var.azure_storage.account_replication_type)
-    error_message = "The account_replication_type must be one of: LRS, GRS, RAGRS, ZRS."
-  }
-}
-
 /*-----------------------------------+
  | StackGuardian Platform Variables  |
  +-----------------------------------*/
-variable "stackguardian" {
-  description = "StackGuardian platform configuration"
-  type = object({
-    api_key  = string
-    api_uri  = optional(string, "https://api.app.stackguardian.io")
-    org_name = optional(string, "")
-  })
-  sensitive = true
-
-  validation {
-    condition     = can(regex("^sg[uo]_.*", var.stackguardian.api_key))
-    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_' (user) or 'sgo_' (organization)."
-  }
-
-  validation {
-    condition = contains([
-      "https://api.app.stackguardian.io",
-      "https://api.us.stackguardian.io",
-      "https://testapi.qa.stackguardian.io"
-    ], var.stackguardian.api_uri)
-    error_message = "The api_uri must be either 'https://api.app.stackguardian.io' (EU1), 'https://api.us.stackguardian.io' (US1) or 'https://testapi.qa.stackguardian.io' (DASH)."
-  }
-}
-
-/*-------------------+
- | General Variables |
- +-------------------*/
-variable "aws_region" {
-  description = "The target AWS Region (used when cloud_provider = 'aws')"
+variable "sg_org_name" {
+  description = "StackGuardian organization name, resolved by the calling module."
   type        = string
-  default     = "eu-central-1"
+
+  validation {
+    condition     = var.sg_org_name != ""
+    error_message = "sg_org_name must not be empty. Set stackguardian.org_name on the calling module or make sure SG_ORG_ID is exported."
+  }
 }
 
-variable "override_names" {
-  description = <<EOT
-    Configuration for overriding default resource names.
-
-    - global_prefix: Prefix used for naming all resources created by this module
-    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
-    - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {effective_prefix}-runner-group-{account_id}
-    - connector_name: Override the default StackGuardian connector name (AWS only). If not provided, uses {effective_prefix}-private-runner-backend-{account_id}
-  EOT
-  type = object({
-    global_prefix         = string
-    include_org_in_prefix = optional(bool, false)
-    runner_group_name     = optional(string, "")
-    connector_name        = optional(string, "")
-  })
-  default = {
-    global_prefix = "SG_RUNNER"
-  }
+variable "sg_app_uri" {
+  description = "StackGuardian web console base URI, resolved by the calling module (e.g. https://app.stackguardian.io). Used to build the runner group URL output."
+  type        = string
 }
 
 /*---------------------------+
- | Runner Group Configuration |
+ | Runner Group & Connector  |
  +---------------------------*/
+variable "runner_group_name" {
+  description = "Name of the StackGuardian runner group to create."
+  type        = string
+}
+
+variable "connector_name" {
+  description = "Name of the StackGuardian connector to create for storage backend access."
+  type        = string
+}
+
 variable "max_runners" {
   description = "Maximum number of runners allowed in the runner group"
   type        = number
@@ -185,5 +37,53 @@ variable "max_runners" {
   validation {
     condition     = var.max_runners >= 1
     error_message = "max_runners must be at least 1."
+  }
+}
+
+/*---------------------------+
+ | Storage Backend           |
+ +---------------------------*/
+variable "storage_backend" {
+  description = <<EOT
+    Resolved storage backend the runner group and connector are wired to. The cloud
+    resources themselves are created by the calling module (aws/runner_group or
+    azure/runner_group); this module only registers them with the platform.
+
+    - type: "aws_s3" or "azure_blob_storage"
+    - aws: required when type = "aws_s3" — bucket name plus the cross-account role
+      and external ID the AWS_RBAC connector assumes
+    - azure: required when type = "azure_blob_storage" — storage account name and
+      access key plus the identity the AZURE_OIDC connector federates with
+  EOT
+  type = object({
+    type = string
+    aws = optional(object({
+      region      = string
+      bucket_name = string
+      role_arn    = string
+      external_id = string
+    }))
+    azure = optional(object({
+      storage_account_name = string
+      access_key           = string
+      tenant_id            = string
+      subscription_id      = string
+      client_id            = string
+    }))
+  })
+
+  validation {
+    condition     = contains(["aws_s3", "azure_blob_storage"], var.storage_backend.type)
+    error_message = "storage_backend.type must be either 'aws_s3' or 'azure_blob_storage'."
+  }
+
+  validation {
+    condition     = var.storage_backend.type != "aws_s3" || var.storage_backend.aws != null
+    error_message = "storage_backend.aws is required when storage_backend.type = 'aws_s3'."
+  }
+
+  validation {
+    condition     = var.storage_backend.type != "azure_blob_storage" || var.storage_backend.azure != null
+    error_message = "storage_backend.azure is required when storage_backend.type = 'azure_blob_storage'."
   }
 }

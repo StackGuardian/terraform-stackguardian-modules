@@ -1,18 +1,22 @@
-# StackGuardian Connector (AWS and Azure storage backend authentication)
+# StackGuardian Connector (storage backend authentication)
+#
+# Both variants are plain platform resources: the cloud identities they point at are
+# created by the calling module and arrive here as strings, so this module needs no
+# AWS or Azure provider.
 
 # AWS Connector — Uses RBAC role for S3 access
 resource "stackguardian_connector" "aws" {
   count = local.is_aws ? 1 : 0
 
-  resource_name = local.connector_name
-  description   = "AWS connector for accessing Private Runner storage backend (S3 Bucket: ${local.s3_bucket_name})."
+  resource_name = var.connector_name
+  description   = "AWS connector for accessing Private Runner storage backend (S3 Bucket: ${local.aws_backend.bucket_name})."
 
   settings = {
     kind = "AWS_RBAC"
 
     config = [{
-      role_arn         = aws_iam_role.storage_backend[0].arn
-      external_id      = "${local.sg_org_name}:${random_string.connector_external_id[0].result}"
+      role_arn         = local.aws_backend.role_arn
+      external_id      = local.aws_backend.external_id
       duration_seconds = "3600"
     }]
   }
@@ -20,28 +24,22 @@ resource "stackguardian_connector" "aws" {
   tags = local.default_tags
 }
 
-# Azure Connector — Uses OIDC with auto-provisioned Service Principal
+# Azure Connector — Uses OIDC with a Service Principal provisioned by the caller
 resource "stackguardian_connector" "azure" {
   count = local.is_azure ? 1 : 0
 
-  resource_name = local.connector_name
+  resource_name = var.connector_name
   description   = "Azure OIDC connector for Private Runner storage backend"
 
   settings = {
     kind = "AZURE_OIDC"
 
     config = [{
-      arm_tenant_id       = data.azurerm_client_config.current[0].tenant_id
-      arm_subscription_id = data.azurerm_client_config.current[0].subscription_id
-      arm_client_id       = azuread_application.connector[0].client_id
+      arm_tenant_id       = local.azure_backend.tenant_id
+      arm_subscription_id = local.azure_backend.subscription_id
+      arm_client_id       = local.azure_backend.client_id
     }]
   }
 
   tags = local.default_tags
-}
-
-# State migration: moved block for backward compatibility
-moved {
-  from = stackguardian_connector.this
-  to   = stackguardian_connector.aws[0]
 }

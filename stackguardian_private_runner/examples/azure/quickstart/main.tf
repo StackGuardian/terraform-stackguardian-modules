@@ -45,9 +45,8 @@ provider "azurerm" {
 #            blob container, AAD app + OIDC connector
 # -------------------------------------------------------
 module "runner_group" {
-  source = "../../../runner_group"
+  source = "../../../azure/runner_group"
 
-  cloud_provider = "azure"
   azure_location = var.azure_location
 
   stackguardian = var.stackguardian
@@ -104,19 +103,12 @@ resource "azurerm_user_assigned_identity" "storage_backend" {
   tags = local.common_tags
 }
 
-# Resolve the storage account created by the runner group; the module exposes its
-# name but not the resource ID needed to scope the role assignment.
-data "azurerm_storage_account" "backend" {
-  name                = module.runner_group.azure_storage_account_name
-  resource_group_name = module.runner_group.azure_resource_group_name
-}
-
 # Read/write on the blob container, because the runner both reads and writes the
 # state it produces for the jobs it runs.
 resource "azurerm_role_assignment" "storage_backend" {
   count = var.create_role_assignments ? 1 : 0
 
-  scope                = data.azurerm_storage_account.backend.id
+  scope                = module.runner_group.azure_storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_user_assigned_identity.storage_backend.principal_id
 }

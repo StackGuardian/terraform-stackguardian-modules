@@ -1,0 +1,206 @@
+{
+  "type": "object",
+  "properties": {
+    "stackguardian": {
+      "title": "StackGuardian Configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_uri": {
+          "title": "API Region",
+          "type": "string",
+          "enum": [
+            "https://api.app.stackguardian.io",
+            "https://api.us.stackguardian.io",
+            "https://testapi.qa.stackguardian.io"
+          ],
+          "enumNames": [
+            "EU1 - Europe",
+            "US1 - East",
+            "DASH - QA Environment"
+          ],
+          "default": "https://api.app.stackguardian.io"
+        },
+        "api_key": {
+          "title": "API Key",
+          "type": "string",
+          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$",
+          "minLength": 1
+        },
+        "org_name": {
+          "title": "Organization Name",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["api_key"]
+    },
+    "azure_location": {
+      "title": "Azure Region",
+      "type": "string",
+      "enum": [
+        "eastus",
+        "eastus2",
+        "centralus",
+        "northcentralus",
+        "southcentralus",
+        "westcentralus",
+        "westus",
+        "westus2",
+        "westus3",
+        "canadacentral",
+        "canadaeast",
+        "mexicocentral",
+        "brazilsouth",
+        "brazilsoutheast",
+        "northeurope",
+        "westeurope",
+        "francecentral",
+        "francesouth",
+        "germanywestcentral",
+        "germanynorth",
+        "italynorth",
+        "norwayeast",
+        "norwaywest",
+        "polandcentral",
+        "spaincentral",
+        "swedencentral",
+        "switzerlandnorth",
+        "switzerlandwest",
+        "uksouth",
+        "ukwest",
+        "australiacentral",
+        "australiacentral2",
+        "australiaeast",
+        "australiasoutheast",
+        "newzealandnorth",
+        "centralindia",
+        "southindia",
+        "westindia",
+        "jioindiacentral",
+        "jioindiawest",
+        "japaneast",
+        "japanwest",
+        "koreacentral",
+        "koreasouth",
+        "eastasia",
+        "southeastasia",
+        "indonesiacentral",
+        "malaysiawest",
+        "taiwannorth",
+        "uaenorth",
+        "uaecentral",
+        "qatarcentral",
+        "israelcentral",
+        "saudiarabiacentral",
+        "southafricanorth",
+        "southafricawest"
+      ],
+      "default": "westeurope"
+    },
+    "create_azure_resource_group": {
+      "title": "Create Azure Resource Group",
+      "type": "boolean",
+      "default": true
+    },
+    "azure_resource_group_name": {
+      "title": "Azure Resource Group Name",
+      "type": "string",
+      "default": ""
+    },
+    "create_blob_reader_role_assignment": {
+      "title": "Create Blob Reader Role Assignment",
+      "type": "boolean",
+      "default": true
+    },
+    "create_storage_backend": {
+      "title": "Create Storage Backend",
+      "type": "boolean",
+      "default": true
+    },
+    "override_names": {
+      "title": "Resource Naming",
+      "type": "object",
+      "properties": {
+        "global_prefix": {
+          "title": "Global Prefix",
+          "type": "string",
+          "default": "SG_RUNNER"
+        },
+        "include_org_in_prefix": {
+          "title": "Include Organization Name in Prefix",
+          "type": "boolean",
+          "default": false
+        },
+        "runner_group_name": {
+          "title": "Runner Group Name Override",
+          "type": "string",
+          "default": ""
+        },
+        "connector_name": {
+          "title": "Connector Name Override",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["global_prefix"],
+      "additionalProperties": false
+    },
+    "max_runners": {
+      "title": "Maximum Runners",
+      "type": "integer",
+      "default": 3,
+      "minimum": 1
+    }
+  },
+  "dependencies": {
+    "create_storage_backend": {
+      "oneOf": [
+        {
+          "properties": {
+            "create_storage_backend": { "enum": [true] },
+            "azure_storage": {
+              "title": "Azure Storage Configuration",
+              "type": "object",
+              "properties": {
+                "account_tier": {
+                  "title": "Account Tier",
+                  "type": "string",
+                  "enum": ["Standard", "Premium"],
+                  "default": "Standard"
+                },
+                "account_replication_type": {
+                  "title": "Replication Type",
+                  "type": "string",
+                  "enum": ["LRS", "GRS", "RAGRS", "ZRS"],
+                  "default": "LRS"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "create_storage_backend": { "enum": [false] },
+            "existing_azure_storage_account_name": {
+              "title": "Existing Azure Storage Account Name",
+              "type": "string",
+              "minLength": 1
+            },
+            "existing_azure_storage_account_access_key": {
+              "title": "Existing Azure Storage Account Access Key",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "existing_azure_storage_account_name",
+            "existing_azure_storage_account_access_key"
+          ]
+        }
+      ]
+    }
+  },
+  "required": ["stackguardian"]
+}

@@ -1,20 +1,16 @@
 {
-  "ui:title": "StackGuardian Runner Group",
-  "ui:description": "Create a new StackGuardian Runner Group with cloud storage backend (AWS S3 or Azure Blob Storage). Default tags are automatically applied: 'StackGuardian Private Runner', runner group name, and organization name.",
+  "ui:title": "StackGuardian Runner Group - Azure",
+  "ui:description": "Create a new StackGuardian Runner Group backed by Azure Blob Storage, with an Entra ID OIDC connector. Default tags are automatically applied: 'StackGuardian Private Runner', runner group name, and organization name.",
   "ui:order": [
     "stackguardian",
-    "cloud_provider",
-    "aws_region",
     "azure_location",
     "create_azure_resource_group",
     "azure_resource_group_name",
     "create_blob_reader_role_assignment",
     "create_storage_backend",
-    "existing_s3_bucket_name",
+    "azure_storage",
     "existing_azure_storage_account_name",
     "existing_azure_storage_account_access_key",
-    "force_destroy_storage_backend",
-    "azure_storage",
     "override_names",
     "max_runners"
   ],
@@ -35,53 +31,29 @@
       "ui:description": "Your organization name. If not provided, will be extracted from environment."
     }
   },
-  "cloud_provider": {
-    "ui:widget": "select",
-    "ui:description": "Select the cloud provider for the storage backend"
-  },
-  "aws_region": {
-    "ui:widget": "select",
-    "ui:description": "The target AWS Region for S3 bucket and IAM resources"
-  },
   "azure_location": {
-    "ui:placeholder": "westeurope",
-    "ui:description": "The Azure region where storage resources will be deployed"
+    "ui:widget": "select",
+    "ui:description": "The Azure region where the resource group and storage account will be deployed"
   },
   "create_azure_resource_group": {
     "ui:widget": "checkbox",
-    "ui:description": "Create a new Azure Resource Group for the storage account (Azure only). Disable to deploy into an existing resource group."
-  },
-  "create_blob_reader_role_assignment": {
-    "ui:widget": "checkbox",
-    "ui:description": "Grant the OIDC connector service principal 'Storage Blob Data Reader' on the storage account (Azure only). Disable when the identity running Terraform lacks role-assignment write permission; you must then create the assignment out of band."
+    "ui:description": "Create a new Azure Resource Group for the storage account. Disable to deploy into an existing resource group."
   },
   "azure_resource_group_name": {
     "ui:placeholder": "(auto-generated when creating)",
     "ui:description": "Optional name override when creating the resource group; required when using an existing resource group."
   },
+  "create_blob_reader_role_assignment": {
+    "ui:widget": "checkbox",
+    "ui:description": "Grant the OIDC connector service principal 'Storage Blob Data Reader' on the storage account. Disable when the identity running Terraform lacks role-assignment write permission; you must then create the assignment out of band."
+  },
   "create_storage_backend": {
     "ui:widget": "checkbox",
-    "ui:description": "Whether to create a new storage backend (S3 bucket for AWS, Storage Account for Azure)"
-  },
-  "existing_s3_bucket_name": {
-    "ui:placeholder": "my-existing-bucket",
-    "ui:description": "Name of an existing S3 bucket to use as storage backend (AWS only)"
-  },
-  "existing_azure_storage_account_name": {
-    "ui:placeholder": "myexistingstorageaccount",
-    "ui:description": "Name of an existing Azure Storage Account to use as storage backend (Azure only)"
-  },
-  "existing_azure_storage_account_access_key": {
-    "ui:placeholder": "primary or secondary access key",
-    "ui:description": "Access key for the existing Azure Storage Account (Azure only)"
-  },
-  "force_destroy_storage_backend": {
-    "ui:widget": "checkbox",
-    "ui:description": "Warning: Force destroy the S3 bucket on module destruction (deletes all data, AWS only)"
+    "ui:description": "Whether to create a new Azure Storage Account as the storage backend"
   },
   "azure_storage": {
     "ui:title": "Azure Storage Configuration",
-    "ui:description": "Configure Azure Storage Account settings (Azure only)",
+    "ui:description": "Configure Azure Storage Account settings",
     "ui:order": ["account_tier", "account_replication_type"],
     "account_tier": {
       "ui:widget": "select",
@@ -91,6 +63,14 @@
       "ui:widget": "select",
       "ui:description": "Replication strategy for the storage account"
     }
+  },
+  "existing_azure_storage_account_name": {
+    "ui:placeholder": "myexistingstorageaccount",
+    "ui:description": "Name of an existing Azure Storage Account to use as storage backend"
+  },
+  "existing_azure_storage_account_access_key": {
+    "ui:placeholder": "primary or secondary access key",
+    "ui:description": "Access key for the existing Azure Storage Account"
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",
@@ -106,11 +86,11 @@
     },
     "runner_group_name": {
       "ui:placeholder": "(auto-generated)",
-      "ui:description": "Override the runner group name. If empty, uses {effective_prefix}-runner-group-{account_id}"
+      "ui:description": "Override the runner group name. If empty, uses {effective_prefix}-runner-group-{subscription_id}"
     },
     "connector_name": {
       "ui:placeholder": "(auto-generated)",
-      "ui:description": "Override the connector name (AWS only). If empty, uses {effective_prefix}-private-runner-backend-{account_id}"
+      "ui:description": "Override the connector name. If empty, uses {effective_prefix}-private-runner-backend-{subscription_id}"
     }
   },
   "max_runners": {
