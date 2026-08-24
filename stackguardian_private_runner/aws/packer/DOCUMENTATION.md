@@ -69,7 +69,7 @@ Before deploying this template:
 
 **AMI Reuse**: The AMI is built on the first deployment only. Its ID is recorded in state and reused on every run after that, so repeated runs cost no build time and the runner keeps the same image. To build a fresh AMI — after changing the OS, the user script, or the Terraform/OpenTofu versions — set *Rebuild AMI Token* to any new value. Leaving the token unchanged never rebuilds.
 
-**AMI Cleanup**: *Automatic AMI Cleanup* is enabled by default. It only ever deregisters the AMI this deployment built: on destroy, and when a rebuild supersedes it. AMIs built by other deployments are never touched, because the template never adopts an AMI it did not build. Disable it to preserve images for manual cleanup.
+**AMI Cleanup**: *Automatic AMI Cleanup* is enabled by default. It only ever deregisters the AMI this deployment built: on destroy, and when a rebuild supersedes it. AMIs built by other deployments are never touched, because the template never adopts an AMI it did not build. Disable it to preserve images for manual cleanup. To preview what a cleanup would remove without changing anything, run `scripts/cleanup_amis.sh` yourself with `DRY_RUN=true` — every destructive call is printed instead of executed.
 
 ## Outputs
 

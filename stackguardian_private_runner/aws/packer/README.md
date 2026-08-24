@@ -289,6 +289,20 @@ terraform apply -var="ami_id=$AMI_ID"
 terraform destroy
 ```
 
+To preview exactly what the cleanup would deregister and delete without touching
+anything, run the script directly with `DRY_RUN=true`:
+
+```bash
+DRY_RUN=true \
+  TARGET_AMI_ID="$(terraform output -raw ami_id)" \
+  REGION="us-east-1" \
+  sh ./scripts/cleanup_amis.sh
+```
+
+Every destructive call — disabling deregistration protection, deregistering the
+AMI, and deleting its snapshots — is printed as `[dry-run] aws ec2 ...` instead of
+being executed.
+
 For manual cleanup when deregistration protection is enabled:
 
 ```bash
@@ -438,7 +452,7 @@ terraform apply
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.0 |
+| terraform | >= 1.4.0 |
 | aws | >= 4.0 |
 | null | >= 3.0 |
 | external | >= 2.0 |

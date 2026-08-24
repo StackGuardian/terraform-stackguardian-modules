@@ -70,6 +70,8 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 - Configure a proxy URL, or
 - Use VPC endpoints with `vpc_endpoint_security_group_ids`
 
+**Proxy Support**: When "Proxy URL" is set, the instance exports it as `HTTP_PROXY`/`HTTPS_PROXY` at boot, before it registers with StackGuardian. Leave it empty and no proxy is configured.
+
 **VPC Endpoints**: For fully private deployments without internet access, create VPC endpoints for AWS services (STS, SSM, ECR, S3) and provide their security group IDs. The template automatically adds inbound rules to allow the runner to access these endpoints.
 
 **Subnet Priority**: When both private and public subnets are provided, the instance is deployed to the private subnet.

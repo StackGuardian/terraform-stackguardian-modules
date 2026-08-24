@@ -90,19 +90,42 @@ variable "override_names" {
   }
 }
 
+/*-------------------+
+ | Resource Tagging  |
+ +-------------------*/
+variable "tags" {
+  description = "Additional tags applied to every taggable resource created by this module"
+  type        = map(string)
+  default     = {}
+}
+
 /*-----------------------------------+
  | Scaling Configuration            |
  +-----------------------------------*/
 variable "scaling" {
-  description = "Auto scaling thresholds and behavior configuration"
+  description = <<EOT
+    Auto scaling thresholds and behavior configuration.
+
+    - min_size / max_runners: hard floor and ceiling on ASG instance count.
+    - desired_runners: optional initial capacity. If null, the autoscaler picks
+      a value between min_size and max_runners on first run.
+    - scale_*_threshold: pending-job count that triggers scale in/out.
+    - scale_*_step: number of instances to add/remove per decision.
+    - scale_*_cooldown_duration: minutes to wait before re-evaluating.
+    - schedule_expression: EventBridge Scheduler expression that drives how
+      often the Lambda runs (every minute by default).
+  EOT
   type = object({
     min_size                    = optional(number, 1)
+    max_runners                 = optional(number, 3)
+    desired_runners             = optional(number, null)
     scale_out_threshold         = optional(number, 3)
     scale_in_threshold          = optional(number, 1)
     scale_out_step              = optional(number, 1)
     scale_in_step               = optional(number, 1)
     scale_out_cooldown_duration = optional(number, 4)
     scale_in_cooldown_duration  = optional(number, 5)
+    schedule_expression         = optional(string, "rate(1 minute)")
   })
   default = {}
 
@@ -114,6 +137,24 @@ variable "scaling" {
   validation {
     condition     = var.scaling.scale_out_cooldown_duration >= 4
     error_message = "scale_out_cooldown_duration must be at least 4 minutes."
+  }
+
+  validation {
+    condition     = var.scaling.max_runners >= var.scaling.min_size
+    error_message = "max_runners must be greater than or equal to min_size."
+  }
+
+  validation {
+    condition = (
+      var.scaling.desired_runners == null ||
+      (var.scaling.desired_runners >= var.scaling.min_size && var.scaling.desired_runners <= var.scaling.max_runners)
+    )
+    error_message = "desired_runners must be between min_size and max_runners (inclusive)."
+  }
+
+  validation {
+    condition     = var.scaling.schedule_expression != ""
+    error_message = "schedule_expression must not be empty."
   }
 }
 

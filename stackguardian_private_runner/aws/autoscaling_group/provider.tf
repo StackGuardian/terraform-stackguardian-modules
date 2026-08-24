@@ -1,4 +1,8 @@
 terraform {
+  # optional() attributes with defaults (var.network, var.scaling, var.firewall)
+  # need 1.3+
+  required_version = ">= 1.3.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

@@ -4,14 +4,16 @@ This Terraform module deploys a Lambda-based autoscaler that monitors StackGuard
 
 ## Overview
 
-The autoscaler module provides intelligent scaling for StackGuardian Private Runners by monitoring job queue depth and adjusting the number of runner instances accordingly. It runs as a serverless Lambda function triggered every minute by EventBridge Scheduler.
+The autoscaler module provides intelligent scaling for StackGuardian Private Runners by monitoring job queue depth and adjusting the number of runner instances accordingly. It runs as a serverless Lambda function triggered by EventBridge Scheduler on a configurable schedule (every minute by default).
 
 ### What Gets Created
 
 - **Lambda Function**: Python-based autoscaler that queries StackGuardian API for queue status
-- **EventBridge Scheduler**: Triggers the Lambda function every minute
+- **EventBridge Scheduler**: Triggers the Lambda function on the configured schedule (every minute by default)
 - **IAM Roles & Policies**: Execution roles for Lambda and EventBridge Scheduler
 - **CloudWatch Log Group**: Stores Lambda execution logs with 14-day retention
+
+All taggable resources are tagged with a `purpose` / `prefix` marker plus any tags supplied via `tags`.
 
 ## Prerequisites
 
@@ -93,17 +95,21 @@ module "autoscaler" {
 | `override_names.global_prefix` | Prefix for resource naming | `SG_RUNNER` |
 | `override_names.include_org_in_prefix` | Append org name to prefix | `false` |
 | `scaling.min_size` | Minimum number of runners | `1` |
+| `scaling.max_runners` | Maximum number of runners the autoscaler may provision | `3` |
+| `scaling.desired_runners` | Optional initial capacity; `null` lets the autoscaler decide | `null` |
 | `scaling.scale_out_threshold` | Queued jobs to trigger scale-out | `3` |
 | `scaling.scale_in_threshold` | Queued jobs to trigger scale-in | `1` |
 | `scaling.scale_out_step` | Instances to add when scaling out | `1` |
 | `scaling.scale_in_step` | Instances to remove when scaling in | `1` |
 | `scaling.scale_out_cooldown_duration` | Minutes after scale-out before scaling again (min: 4) | `4` |
 | `scaling.scale_in_cooldown_duration` | Minutes after scale-in before scaling again | `5` |
+| `scaling.schedule_expression` | EventBridge Scheduler expression driving how often the Lambda runs | `rate(1 minute)` |
 | `lambda_config.runtime` | Python runtime version | `python3.11` |
 | `lambda_config.timeout` | Lambda timeout in seconds | `60` |
 | `lambda_config.memory_size` | Lambda memory in MB | `128` |
 | `autoscaler_repo.url` | Git repository URL for Lambda source | `https://github.com/StackGuardian/sg-runner-autoscaler` |
 | `autoscaler_repo.branch` | Git branch for Lambda source | `main` |
+| `tags` | Additional tags merged into every taggable resource | `{}` |
 
 ### Configuration Examples
 
@@ -148,18 +154,26 @@ module "autoscaler" {
 
   scaling = {
     min_size                    = 2
+    max_runners                 = 10
+    desired_runners             = 3
     scale_out_threshold         = 5
     scale_in_threshold          = 2
     scale_out_step              = 2
     scale_in_step               = 1
     scale_out_cooldown_duration = 5
     scale_in_cooldown_duration  = 10
+    schedule_expression         = "rate(2 minutes)"
   }
 
   lambda_config = {
     runtime     = "python3.12"
     timeout     = 120
     memory_size = 256
+  }
+
+  tags = {
+    environment = "production"
+    owner       = "platform-team"
   }
 }
 ```
@@ -184,9 +198,9 @@ terraform apply
 
 ### Auto-scaling Behavior
 
-The autoscaler operates on a 1-minute cycle:
+The autoscaler runs on the cadence set by `scaling.schedule_expression` (1-minute cycle by default):
 
-1. **Scale-out**: When queued jobs >= `scale_out_threshold`, adds `scale_out_step` instances
+1. **Scale-out**: When queued jobs >= `scale_out_threshold`, adds `scale_out_step` instances (up to `max_runners`)
 2. **Scale-in**: When queued jobs < `scale_in_threshold`, removes `scale_in_step` instances (down to `min_size`)
 3. **Cooldown**: After scaling, waits the configured cooldown duration before scaling again
 
@@ -229,6 +243,17 @@ Examples with default prefix `SG_RUNNER`:
 
 With `include_org_in_prefix = true` and `org_name = "demo"`:
 - Lambda: `SG_RUNNER_demo-autoscale-private-runner`
+
+### Resource Tagging
+
+Every taggable resource (Lambda function, CloudWatch log group, IAM roles and policies) receives:
+
+- `purpose = "stackguardian-private-runner"`
+- `prefix = {global_prefix}`
+- `Name = {resource name}`
+- any key/value pairs supplied through `tags`
+
+EventBridge Scheduler schedules are not taggable in AWS, so `aws_scheduler_schedule` carries no tags.
 
 ## Troubleshooting
 
@@ -276,7 +301,7 @@ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names {asg_nam
 ## Security Considerations
 
 - **API Key Protection**: The StackGuardian API key is stored as a Lambda environment variable (encrypted at rest)
-- **IAM Least Privilege**: Lambda role has minimal permissions for S3, ASG, EC2, and CloudWatch
+- **IAM Least Privilege**: The Lambda role is scoped per resource wherever AWS allows it - `s3:GetObject`/`s3:PutObject` to the runner group bucket, `autoscaling:SetDesiredCapacity`/`autoscaling:SetInstanceProtection` to this module's ASG, and the `logs:*` actions to this module's own log group. `autoscaling:DescribeAutoScalingGroups` and `ec2:DescribeInstances` remain on `Resource = "*"` because AWS does not support resource-level permissions for those Describe actions
 - **Network Security**: Lambda runs in AWS-managed VPC (no customer VPC configuration required)
 - **Log Retention**: CloudWatch logs are retained for 14 days
 
@@ -284,7 +309,7 @@ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names {asg_nam
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.0 |
+| terraform | >= 1.4 |
 | aws | >= 4.0 |
 | null | >= 3.0 |
 | archive | >= 2.0 |

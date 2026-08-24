@@ -1,4 +1,5 @@
-# EventBridge Scheduler Schedule for triggering Lambda every minute
+# EventBridge Scheduler Schedule for triggering the autoscaler Lambda
+# (aws_scheduler_schedule does not support tags; only schedule groups do)
 resource "aws_scheduler_schedule" "autoscaler" {
   name       = "${local.effective_prefix}-autoscale-trigger"
   group_name = "default"
@@ -7,7 +8,7 @@ resource "aws_scheduler_schedule" "autoscaler" {
     mode = "OFF"
   }
 
-  schedule_expression = "rate(1 minute)"
+  schedule_expression = var.scaling.schedule_expression
 
   target {
     arn      = aws_lambda_function.autoscaler.arn

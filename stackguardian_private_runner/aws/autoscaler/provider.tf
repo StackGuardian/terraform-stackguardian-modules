@@ -1,4 +1,7 @@
 terraform {
+  # terraform_data (lambda_build.tf) requires 1.4 or newer
+  required_version = ">= 1.4"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

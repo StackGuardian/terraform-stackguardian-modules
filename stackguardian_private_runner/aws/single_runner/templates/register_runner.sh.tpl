@@ -4,6 +4,16 @@ set -e
 
 startup_log_file="/var/log/sg_runner_startup.log"
 
+## Configure HTTP/HTTPS proxy if provided (for private network deployments)
+proxy_url="${proxy_url}"
+if [ -n "$proxy_url" ]; then
+  echo ">> Configuring proxy: $proxy_url" | tee -a "$startup_log_file"
+  export HTTP_PROXY="$proxy_url"
+  export HTTPS_PROXY="$proxy_url"
+  export http_proxy="$proxy_url"
+  export https_proxy="$proxy_url"
+fi
+
 ## Sometimes registration fails because `docker.service` is not ready.
 ## We will check if `docker.service` is ready and continue.
 ## Otherwise, sleep for 1 second and try again.

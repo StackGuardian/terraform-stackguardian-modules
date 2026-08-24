@@ -24,6 +24,8 @@ resource "aws_lambda_function" "autoscaler" {
       SCALE_OUT_STEP              = tostring(var.scaling.scale_out_step)
       SCALE_IN_STEP               = tostring(var.scaling.scale_in_step)
       MIN_RUNNERS                 = tostring(var.scaling.min_size)
+      MAX_RUNNERS                 = tostring(var.scaling.max_runners)
+      DESIRED_RUNNERS             = var.scaling.desired_runners == null ? "" : tostring(var.scaling.desired_runners)
       SG_BASE_URI                 = local.sg_api_uri
       SG_API_KEY                  = var.stackguardian.api_key
       SG_ORG                      = var.stackguardian.org_name
@@ -43,10 +45,18 @@ resource "aws_lambda_function" "autoscaler" {
   lifecycle {
     replace_triggered_by = [terraform_data.build_lambda]
   }
+
+  tags = merge(local.common_tags, {
+    Name = local.lambda_function_name
+  })
 }
 
 # CloudWatch Log Group for Lambda
 resource "aws_cloudwatch_log_group" "autoscaler" {
   name              = local.log_group_name
   retention_in_days = 14
+
+  tags = merge(local.common_tags, {
+    Name = local.log_group_name
+  })
 }

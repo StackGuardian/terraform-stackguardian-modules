@@ -7,6 +7,10 @@ data "external" "env" {
   ]
 }
 
+# Account id used to build the ARNs referenced by the Lambda IAM policy
+# (the region comes from var.aws_region, which also configures the provider)
+data "aws_caller_identity" "current" {}
+
 locals {
   # StackGuardian configuration - use provided values or extract from environment
   # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
@@ -24,6 +28,15 @@ locals {
     : var.override_names.global_prefix
   )
 
+  # Common tags applied to every taggable resource, plus user supplied extras
+  common_tags = merge(
+    {
+      purpose = "stackguardian-private-runner"
+      prefix  = var.override_names.global_prefix
+    },
+    var.tags
+  )
+
   # Lambda build directory and zip path
   lambda_build_dir = "${path.module}/.lambda_build"
   lambda_zip_path  = "${local.lambda_build_dir}/lambda.zip"
@@ -33,4 +46,9 @@ locals {
 
   # CloudWatch log group name
   log_group_name = "/aws/lambda/${local.lambda_function_name}"
+
+  # ARN of the Auto Scaling Group the autoscaler is allowed to scale.
+  # ASG ARNs embed a service generated UUID that is not known before the group
+  # exists, so the UUID segment is wildcarded and the group name is pinned.
+  asg_arn = "arn:aws:autoscaling:${var.aws_region}:${data.aws_caller_identity.current.account_id}:autoScalingGroup:*:autoScalingGroupName/${var.asg_name}"
 }

@@ -76,7 +76,7 @@ This template creates an automatically scaling group of EC2 instances that run S
 
 **VPC Endpoints**: For fully private deployments without NAT Gateway, you can use VPC endpoints. Provide the security group IDs of your VPC endpoints (STS, SSM, ECR, etc.) in the "VPC Endpoint Security Group IDs" field. The template will add inbound rules to allow HTTPS traffic from the runners.
 
-**Proxy Support**: If your network requires HTTP proxy for outbound connections, configure the "Proxy URL" field with your proxy address (e.g., http://proxy.example.com:8080).
+**Proxy Support**: If your network requires HTTP proxy for outbound connections, configure the "Proxy URL" field with your proxy address (e.g., http://proxy.example.com:8080). Each instance exports it as `HTTP_PROXY`/`HTTPS_PROXY` at boot, before it registers with StackGuardian. Leave it empty and no proxy is configured.
 
 **Scaling Behavior**: This template creates the ASG with static capacity limits. For dynamic queue-based scaling, deploy the companion `autoscaler` template which monitors your job queue and adjusts capacity automatically.
 

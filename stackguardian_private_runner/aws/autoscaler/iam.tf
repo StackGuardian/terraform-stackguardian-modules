@@ -18,6 +18,10 @@ resource "aws_iam_role" "lambda" {
       }
     ]
   })
+
+  tags = merge(local.common_tags, {
+    Name = "${local.effective_prefix}-autoscale-lambda-role"
+  })
 }
 
 # IAM Policy for Lambda Autoscaling Function
@@ -40,24 +44,31 @@ resource "aws_iam_policy" "lambda" {
         ]
       },
       {
+        # Mutating calls support resource-level permissions, so they are
+        # scoped to this module's Auto Scaling Group only
         Sid    = "AutoScalingAccess"
         Effect = "Allow"
         Action = [
           "autoscaling:SetDesiredCapacity",
-          "autoscaling:SetInstanceProtection",
-          "autoscaling:DescribeAutoScalingGroups"
+          "autoscaling:SetInstanceProtection"
         ]
-        Resource = "*"
+        Resource = local.asg_arn
       },
       {
-        Sid    = "EC2Access"
+        # autoscaling:DescribeAutoScalingGroups and ec2:DescribeInstances do
+        # not support resource-level permissions; AWS rejects any resource
+        # other than "*" for them, so they stay unscoped by necessity
+        Sid    = "DescribeAccess"
         Effect = "Allow"
         Action = [
+          "autoscaling:DescribeAutoScalingGroups",
           "ec2:DescribeInstances"
         ]
         Resource = "*"
       },
       {
+        # Both the log group itself (CreateLogGroup) and its streams
+        # (CreateLogStream, PutLogEvents) have to be listed
         Sid    = "CloudWatchLogs"
         Effect = "Allow"
         Action = [
@@ -65,9 +76,16 @@ resource "aws_iam_policy" "lambda" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+        Resource = [
+          aws_cloudwatch_log_group.autoscaler.arn,
+          "${aws_cloudwatch_log_group.autoscaler.arn}:*"
+        ]
       }
     ]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "${local.effective_prefix}-autoscale-lambda-policy"
   })
 }
 
@@ -96,6 +114,10 @@ resource "aws_iam_role" "scheduler" {
       }
     ]
   })
+
+  tags = merge(local.common_tags, {
+    Name = "${local.effective_prefix}-scheduler-execution-role"
+  })
 }
 
 # IAM Policy for EventBridge Scheduler
@@ -114,6 +136,10 @@ resource "aws_iam_policy" "scheduler" {
         Resource = aws_lambda_function.autoscaler.arn
       }
     ]
+  })
+
+  tags = merge(local.common_tags, {
+    Name = "${local.effective_prefix}-scheduler-execution-policy"
   })
 }
 

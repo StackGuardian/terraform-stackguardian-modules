@@ -35,14 +35,21 @@ The destroy process will:
 ### Option 1: Use the Automated Cleanup Script
 
 ```bash
-./scripts/cleanup_amis.sh
+TARGET_AMI_ID="ami-0123456789abcdef0" REGION="us-east-1" ./scripts/cleanup_amis.sh
 ```
 
 This script will:
 
-- List all SG-RUNNER AMIs
-- Optionally deregister selected AMIs
-- Delete associated EBS snapshots
+- Disable deregistration protection on the target AMI (unless it has a cooldown)
+- Deregister the AMI named by `TARGET_AMI_ID`
+- Delete its associated EBS snapshots (set `DELETE_SNAPSHOTS=false` to keep them)
+
+Set `DRY_RUN=true` to preview the cleanup without changing anything — each
+destructive call is printed as `[dry-run] aws ec2 ...` instead of being executed:
+
+```bash
+DRY_RUN=true TARGET_AMI_ID="ami-0123456789abcdef0" REGION="us-east-1" ./scripts/cleanup_amis.sh
+```
 
 ### Option 2: Manual AWS CLI Cleanup
 
