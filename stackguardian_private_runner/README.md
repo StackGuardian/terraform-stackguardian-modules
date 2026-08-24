@@ -2,6 +2,11 @@
 
 Deploy auto-scaling StackGuardian Private Runners on AWS with custom AMI creation.
 
+> **Just want a runner running?** [`examples/aws/quickstart/`](examples/aws/quickstart/)
+> wires the runner group, AMI build, and a single runner into one root module. Fill in
+> four values, apply once, and you have a registered runner - no copying outputs
+> between modules.
+
 ## Overview
 
 This project provides four templates that work together to create a complete auto-scaling private runner solution:
@@ -11,7 +16,7 @@ This project provides four templates that work together to create a complete aut
 3. **[Autoscaling Group](aws/autoscaling_group/)** - Deploy auto-scaling EC2 runner instances
 4. **[Autoscaler](aws/autoscaler/)** - Lambda-based intelligent scaling based on job queue
 
-**Alternative**: For simpler deployments without auto-scaling, see [Single Runner](aws/single_runner/).
+**Alternative**: For simpler deployments without auto-scaling, see [Single Runner](aws/single_runner/), or the ready-made [AWS Quickstart example](examples/aws/quickstart/) that deploys one end to end.
 
 ## Complete Deployment Guide
 
@@ -236,6 +241,11 @@ For simpler deployments without auto-scaling, use the [Single Runner](aws/single
 - Simpler infrastructure requirements
 
 See [aws/single_runner/README.md](aws/single_runner/README.md) for configuration.
+
+The fastest path is [`examples/aws/quickstart/`](examples/aws/quickstart/), a root
+module that combines the runner group, AMI build, and single runner into one apply.
+Use the `aws/single_runner` module directly instead when you need a private subnet,
+NAT gateway, or proxy - the quickstart deliberately covers the public-subnet case only.
 
 ## Automated Deployment
 

@@ -11,11 +11,14 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+tfplan
+*.tfplan
 
 # Generated permissions files
 *_permissions.json
 
 # IDE
+.claude/settings.local.json
 .idea/
 *.swp
 *.swo
