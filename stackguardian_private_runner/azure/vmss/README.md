@@ -1,5 +1,7 @@
 # Private Runner VMSS - Azure Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [Azure stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Terraform module that deploys a self-registering StackGuardian Private Runner as an Azure Linux Virtual Machine Scale Set (VMSS), wired to an existing or freshly-created VNet/Subnet, an NSG, and (optionally) a NAT Gateway for outbound traffic.
 
 ## Overview

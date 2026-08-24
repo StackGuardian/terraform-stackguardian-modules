@@ -1,5 +1,7 @@
 # StackGuardian Private Runner - Azure Single Runner Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [Azure stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Deploy a standalone StackGuardian Private Runner on an Azure Linux VM. This module creates a single VM instance that automatically registers with your StackGuardian runner group and executes workflow jobs in your Azure environment.
 
 ## Overview

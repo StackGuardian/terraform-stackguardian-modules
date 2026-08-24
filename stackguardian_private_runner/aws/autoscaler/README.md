@@ -1,5 +1,7 @@
 # StackGuardian Runner Autoscaler - AWS Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [AWS stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 This Terraform module deploys a Lambda-based autoscaler that monitors StackGuardian job queues and automatically scales an Auto Scaling Group up or down based on workload demand.
 
 ## Overview

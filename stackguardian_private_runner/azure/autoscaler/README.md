@@ -1,5 +1,7 @@
 # StackGuardian Runner Autoscaler - Azure Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [Azure stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Deploy an Azure Function-based autoscaler that monitors StackGuardian job queues and automatically scales a VM Scale Set up or down based on workload demand.
 
 ## Overview

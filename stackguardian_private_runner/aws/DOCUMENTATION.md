@@ -70,7 +70,7 @@ Build a custom AMI for StackGuardian Private Runner with pre-installed dependenc
 
 ## Template 2: Runner Group
 
-Create a StackGuardian Runner Group with S3 storage backend and AWS connector.
+Create a StackGuardian Runner Group with S3 storage backend and AWS connector. This is the `aws/runner_group/` template. It requires only the AWS provider — the platform-side resources it shares with the Azure stack live in the internal, cloud-agnostic `runner_group/` module it calls, so an AWS deployment never initializes `azurerm`/`azuread`.
 
 ### Required Parameters
 
@@ -103,6 +103,7 @@ Create a StackGuardian Runner Group with S3 storage backend and AWS connector.
 | s3_bucket_name | Name of the S3 bucket for storage backend |
 | storage_backend_role_arn | ARN of the IAM role for S3 access |
 | connector_name | Name of the StackGuardian connector |
+| connector_external_id | External ID enforced by the IAM role trust policy |
 
 ---
 

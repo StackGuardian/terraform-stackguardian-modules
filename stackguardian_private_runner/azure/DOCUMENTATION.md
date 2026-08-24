@@ -4,7 +4,7 @@ Deploy a complete auto-scaling StackGuardian Private Runner infrastructure on Az
 
 ## Overview
 
-This Stack deploys a production-ready private runner environment with custom managed image building, an auto-scaling VM Scale Set, and an Azure Function-based autoscaler. The Stack orchestrates four Azure templates plus the shared `runner_group` template, which work together to provide a fully managed runner infrastructure inside your own subscription.
+This Stack deploys a production-ready private runner environment with custom managed image building, an auto-scaling VM Scale Set, and an Azure Function-based autoscaler. The Stack orchestrates five Azure templates, which work together to provide a fully managed runner infrastructure inside your own subscription.
 
 ### What This Stack Creates
 
@@ -20,7 +20,7 @@ This Stack deploys a production-ready private runner environment with custom man
 - StackGuardian organization API key (`sgo_*` or `sgu_*`)
 - Azure subscription with Contributor permissions (User Access Administrator as well, if the templates should create role assignments for you)
 - Azure CLI authenticated (`az login`) on the machine or runner executing the apply — Packer, the Function App code deployment, and image cleanup all shell out to `az`
-- A Resource Group for the runner infrastructure (the `runner_group` template can create one for you)
+- A Resource Group for the runner infrastructure (the `azure/runner_group` template can create one for you)
 - A User-Assigned Managed Identity that the runner VMs will use to read the storage backend (see [Managed identity model](#managed-identity-model))
 - Outbound internet access for the runner instances (NAT Gateway, Azure Firewall, or an HTTP proxy)
 - OpenTofu >= 1.4 (`tofu`) or Terraform >= 1.4 — the `packer` template records the built image in state via `terraform_data`, which needs 1.4+. Everything here is plain HCL, so `terraform` works identically if that is what you have.
@@ -79,15 +79,14 @@ There is no `ssh_username` input — the build user is derived from `os.publishe
 
 ---
 
-## Template 2: Runner Group (shared)
+## Template 2: Runner Group
 
-Create a StackGuardian Runner Group with an Azure Blob Storage backend and an Entra ID OIDC connector. This is the shared `runner_group/` template at the repository root, driven into Azure mode with `cloud_provider = "azure"`; the same template serves the AWS stack.
+Create a StackGuardian Runner Group with an Azure Blob Storage backend and an Entra ID OIDC connector. This is the `azure/runner_group/` template. It requires only the Azure providers — the platform-side resources it shares with the AWS stack live in the internal, cloud-agnostic `runner_group/` module it calls, so an Azure deployment never initializes the AWS provider.
 
 ### Required Parameters
 
 | Parameter | Description | Type |
 |-----------|-------------|------|
-| cloud_provider | Must be set to `azure` (defaults to `aws`) | string |
 | stackguardian.api_key | Your organization's API key (`sgo_*`/`sgu_*`) or secret reference | string |
 
 ### Optional Parameters
@@ -108,9 +107,8 @@ Create a StackGuardian Runner Group with an Azure Blob Storage backend and an En
 | override_names.global_prefix | Prefix for naming all resources | `SG_RUNNER` |
 | override_names.include_org_in_prefix | Append organization name to prefix | `false` |
 | override_names.runner_group_name | Override the runner group name | (auto-generated) |
+| override_names.connector_name | Override the connector name | (auto-generated) |
 | max_runners | Maximum number of runners allowed in the group | `3` |
-
-`override_names.connector_name` exists but only names the AWS connector; the Azure connector name is derived from the effective prefix.
 
 ### Outputs
 
@@ -123,6 +121,7 @@ Create a StackGuardian Runner Group with an Azure Blob Storage backend and an En
 | azure_resource_group_name | Resource group hosting the storage account — feed this to the `resource_group_name` input of the Azure templates |
 | azure_resource_group_location | Location of that resource group |
 | azure_storage_account_name | Name of the Storage Account used as backend |
+| azure_storage_account_id | Resource ID of that Storage Account — scope role assignments to it |
 | azure_storage_access_key | Access key for that Storage Account (sensitive) |
 | azure_connector_service_principal_object_id | Object ID of the OIDC connector service principal |
 | sg_org_name / sg_api_uri | Resolved organization name and platform API URI |
@@ -301,9 +300,9 @@ The autoscaler template only manages a VM Scale Set, so this path is not autosca
 | vmss | `vmss_name` | autoscaler | `vmss.name` |
 | vmss | `vmss_resource_group_name` | autoscaler | `vmss.resource_group_name` |
 
-**Managed identity model**: the runner VMs are assigned a **User-Assigned Managed Identity** (`storage_backend_identity_id`) so they can read and write the storage backend. That identity is an input you supply — the `runner_group` template does not emit one. On its Azure path, `runner_group` instead registers an Entra ID application plus service principal with an OIDC federated credential (issuer and audience are the StackGuardian API URI, subject `/orgs/<org>`) and grants that principal `Storage Blob Data Reader` on the storage account; that is how the *platform* reaches the backend, not how the *VMs* do. Create the User-Assigned Managed Identity yourself, grant it the blob data role you need on the storage account from `azure_storage_account_name`, and pass its resource ID in. The autoscaler Function App is separate again: it uses a **system-assigned** identity, created and role-assigned by that template.
+**Managed identity model**: the runner VMs are assigned a **User-Assigned Managed Identity** (`storage_backend_identity_id`) so they can read and write the storage backend. That identity is an input you supply — the `runner_group` template does not emit one. On its Azure path, `runner_group` instead registers an Entra ID application plus service principal with an OIDC federated credential (issuer and audience are the StackGuardian API URI, subject `/orgs/<org>`) and grants that principal `Storage Blob Data Reader` on the storage account; that is how the *platform* reaches the backend, not how the *VMs* do. Create the User-Assigned Managed Identity yourself, grant it the blob data role you need on the storage account from `azure_storage_account_id`, and pass its resource ID in. The autoscaler Function App is separate again: it uses a **system-assigned** identity, created and role-assigned by that template.
 
-**Resource group model**: Azure has no implicit container the way an AWS region does, so every template takes a `resource_group_name`. The simplest arrangement is to let `runner_group` create one (`create_azure_resource_group = true`) and pass its `azure_resource_group_name` output to all three Azure templates. The `packer` template can create its own separate resource group for images (`create_resource_group = true`), which keeps image lifecycle independent of the runner infrastructure.
+**Resource group model**: Azure has no implicit container the way an AWS region does, so every template takes a `resource_group_name`. The simplest arrangement is to let `azure/runner_group` create one (`create_azure_resource_group = true`) and pass its `azure_resource_group_name` output to all three Azure templates. The `packer` template can create its own separate resource group for images (`create_resource_group = true`), which keeps image lifecycle independent of the runner infrastructure.
 
 **Azure CLI dependency**: three of these templates shell out to `az` during apply — Packer authenticates with `use_azure_cli_auth`, the autoscaler deploys the function zip with `az functionapp deployment source config-zip`, and image cleanup on destroy runs `az image delete`. The executing identity must be logged in (`az login`) *and* have the target subscription selected, not just have `ARM_*` provider credentials in the environment.
 

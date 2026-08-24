@@ -1,5 +1,7 @@
 # StackGuardian Autoscaled Private Runner - AWS Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [AWS stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 This Terraform module deploys an Auto Scaling Group of StackGuardian Private Runners on AWS EC2. It creates the infrastructure (ASG, Launch Template, networking) for running Private Runners. For dynamic queue-based scaling, deploy this module together with the `autoscaler` module.
 
 ## Overview

@@ -90,6 +90,10 @@ This template creates an automatically scaling group of EC2 instances that run S
 | Security Group ID | ID of the runner security group |
 | IAM Role ARN | ARN of the EC2 instance role |
 | NAT Gateway Public IP | Public IP of NAT Gateway (if created) |
+| NAT Gateway ID | ID of the NAT Gateway (only when Create Network Infrastructure is enabled) |
+| IAM Instance Profile Name | Name of the IAM instance profile (only when the ASG is created) |
+| Launch Template ID | ID of the Launch Template (only when the ASG is created) |
+| Launch Template Latest Version | Latest version number of the Launch Template |
 
 ## Security Features
 

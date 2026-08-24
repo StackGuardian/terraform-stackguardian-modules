@@ -80,6 +80,8 @@ Before using this template, you need:
 | Lambda Function ARN | The ARN for referencing the Lambda function |
 | Scheduler Name | The name of the EventBridge Scheduler |
 | Log Group Name | CloudWatch Log Group for viewing autoscaler logs |
+| Lambda Role ARN | ARN of the Lambda execution role |
+| Scheduler ARN | ARN of the EventBridge Scheduler |
 
 ## Security Features
 

@@ -1,5 +1,7 @@
 # StackGuardian Private Runner - AWS Single Runner Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [AWS stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Deploy a standalone StackGuardian Private Runner on AWS EC2. This module creates a single EC2 instance that automatically registers with your StackGuardian runner group and executes workflow jobs in your AWS environment.
 
 ## Overview

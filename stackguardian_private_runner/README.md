@@ -14,7 +14,7 @@ This project provides Terraform modules that work together to create a complete 
 ### AWS
 
 1. **[Packer AMI Builder](aws/packer/)** - Build custom AMIs with pre-installed dependencies
-2. **[Runner Group](runner_group/)** - Create StackGuardian Runner Group with S3 storage backend
+2. **[Runner Group](aws/runner_group/)** - Create StackGuardian Runner Group with S3 storage backend
 3. **[Autoscaling Group](aws/autoscaling_group/)** - Deploy auto-scaling EC2 runner instances
 4. **[Autoscaler](aws/autoscaler/)** - Lambda-based intelligent scaling based on job queue
 
@@ -23,7 +23,7 @@ This project provides Terraform modules that work together to create a complete 
 ### Azure
 
 1. **[Packer Image Builder](azure/packer/)** - Build custom Azure Managed Images with pre-installed dependencies
-2. **[Runner Group](runner_group/)** - Create StackGuardian Runner Group (shared module)
+2. **[Runner Group](azure/runner_group/)** - Create StackGuardian Runner Group with Azure Blob Storage backend
 3. **[Single Runner](azure/azure_runner/)** - Deploy a standalone runner on an Azure Linux VM
 4. **[Autoscaler](azure/autoscaler/)** - Azure Function-based intelligent scaling for VM Scale Sets
 
@@ -64,11 +64,11 @@ echo "AMI ID: $AMI_ID"
 Navigate to the **Runner Group** module and create the StackGuardian runner group with S3 backend.
 
 ```bash
-cd ../runner_group/
-# Or from root: cd runner_group/
+cd ../aws/runner_group/
+# Or from root: cd aws/runner_group/
 ```
 
-See [runner_group/README.md](runner_group/README.md) for full configuration options.
+See [aws/runner_group/README.md](aws/runner_group/README.md) for full configuration options.
 
 **Deploy:**
 
@@ -92,7 +92,7 @@ STORAGE_ROLE_ARN=$(terraform output -raw storage_backend_role_arn)
 Navigate to the **Autoscaling Group** module and deploy EC2 runner instances.
 
 ```bash
-cd ../aws/autoscaling_group/
+cd ../autoscaling_group/
 # Or from root: cd aws/autoscaling_group/
 ```
 
@@ -207,21 +207,40 @@ Each module has its own README with detailed configuration options:
 
 ### AWS Modules
 
+Stack overview: [aws/DOCUMENTATION.md](aws/DOCUMENTATION.md)
+
 | Module | Purpose | Configuration |
 |--------|---------|---------------|
 | [aws/packer](aws/packer/) | Build custom AMI | [README](aws/packer/README.md) |
-| [runner_group](runner_group/) | Create Runner Group and S3 backend | [README](runner_group/README.md) |
+| [aws/runner_group](aws/runner_group/) | Create Runner Group and S3 backend | [README](aws/runner_group/README.md) |
+| [aws/single_runner](aws/single_runner/) | Deploy one EC2 runner (no autoscaling) | [README](aws/single_runner/README.md) |
 | [aws/autoscaling_group](aws/autoscaling_group/) | Deploy EC2 Auto Scaling Group | [README](aws/autoscaling_group/README.md) |
 | [aws/autoscaler](aws/autoscaler/) | Deploy Lambda autoscaler | [README](aws/autoscaler/README.md) |
 
 ### Azure Modules
 
+Stack overview: [azure/DOCUMENTATION.md](azure/DOCUMENTATION.md)
+
 | Module | Purpose | Configuration |
 |--------|---------|---------------|
 | [azure/packer](azure/packer/) | Build custom Azure Managed Image | [README](azure/packer/README.md) |
-| [runner_group](runner_group/) | Create Runner Group (shared) | [README](runner_group/README.md) |
+| [azure/runner_group](azure/runner_group/) | Create Runner Group and Blob Storage backend | [README](azure/runner_group/README.md) |
 | [azure/azure_runner](azure/azure_runner/) | Deploy Azure Linux VM runner | [README](azure/azure_runner/README.md) |
+| [azure/vmss](azure/vmss/) | Deploy Azure VM Scale Set of runners | [README](azure/vmss/README.md) |
 | [azure/autoscaler](azure/autoscaler/) | Deploy Azure Function autoscaler | [README](azure/autoscaler/README.md) |
+
+### Shared
+
+| Module | Purpose | Configuration |
+|--------|---------|---------------|
+| [runner_group](runner_group/) | Cloud-agnostic platform resources, called by both `*/runner_group` wrappers. Not deployed directly. | [README](runner_group/README.md) |
+
+### Examples
+
+| Example | Purpose |
+|---------|---------|
+| [examples/aws/quickstart](examples/aws/quickstart/) | Runner group + AMI build + one EC2 runner in a single apply |
+| [examples/azure/quickstart](examples/azure/quickstart/) | Runner group + image build + one Azure VM runner in a single apply |
 
 ### Common Required Parameters
 
@@ -298,7 +317,7 @@ terraform init && terraform apply -auto-approve
 AMI_ID=$(terraform output -raw ami_id)
 
 # Step 2: Create Runner Group
-cd ../../runner_group/
+cd ../runner_group/
 terraform init && terraform apply -auto-approve
 RUNNER_GROUP_NAME=$(terraform output -raw runner_group_name)
 RUNNER_GROUP_TOKEN=$(terraform output -raw runner_group_token)
@@ -306,7 +325,7 @@ S3_BUCKET_NAME=$(terraform output -raw s3_bucket_name)
 STORAGE_ROLE_ARN=$(terraform output -raw storage_backend_role_arn)
 
 # Step 3: Deploy Autoscaling Group
-cd ../aws/autoscaling_group/
+cd ../autoscaling_group/
 terraform init
 terraform apply -auto-approve \
   -var="ami_id=$AMI_ID" \
@@ -344,14 +363,17 @@ terraform init && terraform apply -auto-approve
 IMAGE_ID=$(terraform output -raw image_id)
 
 # Step 2: Create Runner Group
-cd ../../runner_group/
+cd ../runner_group/
 terraform init && terraform apply -auto-approve
 RUNNER_GROUP_NAME=$(terraform output -raw runner_group_name)
 RUNNER_GROUP_TOKEN=$(terraform output -raw runner_group_token)
-STORAGE_BACKEND_IDENTITY_ID=$(terraform output -raw storage_backend_identity_id)
+RESOURCE_GROUP_NAME=$(terraform output -raw azure_resource_group_name)
 
 # Step 3: Deploy Azure Runner
-cd ../azure/azure_runner/
+#   storage_backend_identity_id is a User-Assigned Managed Identity you create
+#   yourself and grant "Storage Blob Data Contributor" on the storage account;
+#   see examples/azure/quickstart for a worked version.
+cd ../azure_runner/
 terraform init
 terraform apply -auto-approve \
   -var="vm_image_id=$IMAGE_ID" \
@@ -412,11 +434,11 @@ echo "Image ID: $IMAGE_ID"
 Navigate to the **Runner Group** module and create the StackGuardian runner group.
 
 ```bash
-cd ../../runner_group/
-# Or from root: cd runner_group/
+cd ../runner_group/
+# Or from root: cd azure/runner_group/
 ```
 
-See [runner_group/README.md](runner_group/README.md) for full configuration options.
+See [azure/runner_group/README.md](azure/runner_group/README.md) for full configuration options.
 
 **Deploy:**
 
@@ -431,7 +453,8 @@ terraform apply
 ```bash
 RUNNER_GROUP_NAME=$(terraform output -raw runner_group_name)
 RUNNER_GROUP_TOKEN=$(terraform output -raw runner_group_token)
-STORAGE_BACKEND_IDENTITY_ID=$(terraform output -raw storage_backend_identity_id)
+RESOURCE_GROUP_NAME=$(terraform output -raw azure_resource_group_name)
+STORAGE_ACCOUNT_ID=$(terraform output -raw azure_storage_account_id)
 ```
 
 ### Step 3: Deploy Azure Runner
@@ -439,7 +462,7 @@ STORAGE_BACKEND_IDENTITY_ID=$(terraform output -raw storage_backend_identity_id)
 Navigate to the **Azure Runner** module and deploy the runner VM.
 
 ```bash
-cd ../azure/azure_runner/
+cd ../azure_runner/
 # Or from root: cd azure/azure_runner/
 ```
 
@@ -451,8 +474,13 @@ See [azure/azure_runner/README.md](azure/azure_runner/README.md) for full config
 vm_image_id                 = "/subscriptions/.../images/sg-runner-ubuntu"  # From Step 1
 runner_group_name           = "your-runner-group"  # From Step 2
 runner_group_token          = "your-token"  # From Step 2
-storage_backend_identity_id = "/subscriptions/.../userAssignedIdentities/..."  # From Step 2
+storage_backend_identity_id = "/subscriptions/.../userAssignedIdentities/..."  # See note below
 ```
+
+> **Managed identity:** the runner group module does not create the identity the VM
+> uses to reach the storage account. Create a User-Assigned Managed Identity and grant it
+> `Storage Blob Data Contributor` scoped to `azure_storage_account_id` from Step 2 — see
+> [examples/azure/quickstart](examples/azure/quickstart/) for a worked version.
 
 **Deploy:**
 

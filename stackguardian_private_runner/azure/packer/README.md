@@ -1,5 +1,7 @@
 # StackGuardian Private Runner Image Builder - Azure Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [Azure stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Terraform module that builds a custom Azure managed image preloaded with the StackGuardian Private Runner agent, Terraform, and OpenTofu, using HashiCorp Packer driven from a `null_resource` `local-exec`.
 
 ## Overview

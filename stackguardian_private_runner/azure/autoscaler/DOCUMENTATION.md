@@ -86,6 +86,12 @@ Before using this template, you need:
 | Application Insights Name | The Application Insights instance for monitoring autoscaler logs and metrics |
 | VMSS Name | The name of the VM Scale Set being managed |
 | VMSS Resource Group | The resource group of the VM Scale Set |
+| Function App ID | Resource ID of the Azure Function App |
+| Function App Identity Principal ID | Principal ID of the Function App's managed identity |
+| Storage Account ID | Resource ID of the Storage Account |
+| Storage Container Name | Blob container holding autoscaler state |
+| Application Insights Connection String | Connection string for Application Insights (sensitive) |
+| Application Insights Instrumentation Key | Instrumentation key for Application Insights (sensitive) |
 
 ## Security Features
 

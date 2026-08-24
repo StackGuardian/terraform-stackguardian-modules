@@ -69,6 +69,7 @@ This template produces a reusable Azure managed image so your private runners bo
 | `image_id` | Resource ID of the Azure managed image built by this deployment and recorded in state — pass this to the Azure runner template |
 | `image_info` | Image metadata: ID, location, resource group, OS family/SKU, image name, name prefix, cleanup settings |
 | `resource_group_name` | Resource group where the image is stored |
+| `cleanup_commands` | Ready-made Azure CLI commands for manual image cleanup |
 
 ## Security Features
 

@@ -1,5 +1,7 @@
 # StackGuardian Private Runner - Packer AMI Builder (AWS)
 
+> Part of [StackGuardian Private Runner](../../README.md) — [AWS stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Build custom Amazon Machine Images (AMIs) for StackGuardian Private Runner deployments with pre-installed dependencies and configurable tooling.
 
 ## Overview
@@ -283,6 +285,10 @@ terraform apply -var="ami_id=$AMI_ID"
 ```
 
 ### Cleanup
+
+See [TERRAFORM_DESTROY_GUIDE.md](TERRAFORM_DESTROY_GUIDE.md) for the full destroy
+walkthrough, including why AMIs survive `destroy` by default and how deregistration
+protection interacts with cleanup.
 
 ```bash
 # Destroy and cleanup AMI (if cleanup_amis_on_destroy = true)

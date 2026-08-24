@@ -102,6 +102,8 @@ This template gives you a horizontally-scalable pool of StackGuardian runners ru
 | Subnet ID | The subnet hosting the runners (created or existing). |
 | SSH Public Key | SSH public key configured on the VMSS instances. |
 | SSH Private Key | Generated RSA private key (only when "Generate SSH Key" is enabled). Sensitive. |
+| VMSS ID | Resource ID of the Linux VM Scale Set. |
+| Network Security Group ID | ID of the NSG attached to the runner subnet. |
 
 ## Security Features
 

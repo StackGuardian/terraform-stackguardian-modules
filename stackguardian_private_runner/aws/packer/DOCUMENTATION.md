@@ -44,10 +44,10 @@ Before deploying this template:
 | Custom User Script | Shell script for additional customization (runs after standard setup) | Empty |
 | Packer Version | Version of HashiCorp Packer to use for building the AMI | `1.14.1` |
 | Rebuild AMI Token | Change to any new value (a date, a version tag) to build a fresh AMI once. Unchanged means no rebuild | Empty |
-| Enable Deregistration Protection | Prevent accidental AMI deletion through AWS console or API | Enabled |
-| Enable Cooldown Period | 24-hour waiting period before allowing deregistration | Disabled |
-| Delete EBS Snapshots | Delete EBS snapshots during cleanup | Enabled |
-| Automatic AMI Cleanup | Auto-cleanup AMI on stack destroy | Enabled |
+| Deregistration Protection - Enable Protection | Prevent accidental AMI deletion through AWS console or API | Enabled |
+| Deregistration Protection - With Cooldown | 24-hour waiting period before allowing deregistration | Disabled |
+| Delete Snapshots | Delete EBS snapshots during cleanup | Enabled |
+| Cleanup AMIs on Destroy | Auto-cleanup AMI on stack destroy | Enabled |
 | Primary Terraform Version | Main Terraform version to install as `/bin/terraform` | Empty |
 | Additional Terraform Versions | Extra Terraform versions (installed as `/bin/terraform{version}`) | Empty |
 | Primary OpenTofu Version | Main OpenTofu version to install as `/bin/tofu` | Empty |
