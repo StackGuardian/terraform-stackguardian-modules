@@ -43,6 +43,7 @@ Before deploying this template:
 | SSH Username | SSH username for the build instance (auto-detected based on OS if empty) | Auto-detected |
 | Custom User Script | Shell script for additional customization (runs after standard setup) | Empty |
 | Packer Version | Version of HashiCorp Packer to use for building the AMI | `1.14.1` |
+| Rebuild AMI Token | Change to any new value (a date, a version tag) to build a fresh AMI once. Unchanged means no rebuild | Empty |
 | Enable Deregistration Protection | Prevent accidental AMI deletion through AWS console or API | Enabled |
 | Enable Cooldown Period | 24-hour waiting period before allowing deregistration | Disabled |
 | Delete EBS Snapshots | Delete EBS snapshots during cleanup | Enabled |
@@ -51,6 +52,7 @@ Before deploying this template:
 | Additional Terraform Versions | Extra Terraform versions (installed as `/bin/terraform{version}`) | Empty |
 | Primary OpenTofu Version | Main OpenTofu version to install as `/bin/tofu` | Empty |
 | Additional OpenTofu Versions | Extra OpenTofu versions (installed as `/bin/tofu{version}`) | Empty |
+| Use Pre-release | Install the newest sg-runner pre-release instead of the latest stable release (falls back to stable when none is published) | Disabled |
 | Proxy URL | HTTP proxy for private network builds (e.g., `http://proxy.company.com:8080`) | Empty |
 
 ## Important Notes
@@ -61,13 +63,19 @@ Before deploying this template:
 
 **Terraform/OpenTofu Versions**: Version strings must follow semantic versioning (e.g., "1.5.7"). The primary version becomes the default binary, while additional versions are installed with version suffixes (e.g., `/bin/terraform1.4.6`).
 
+**sg-runner Release Channel**: The AMI installs the latest stable sg-runner release by default. Enable *Use Pre-release* to bake in the newest pre-release instead — useful for validating upcoming runner changes, not recommended for production. If no pre-release is published, the build falls back to the latest stable release. On an existing deployment the change only takes effect once a new AMI is built, so set *Rebuild AMI Token* to a new value as well.
+
 **AMI Protection**: Deregistration protection is enabled by default to prevent accidental deletion. If cooldown is also enabled, you must wait 24 hours after disabling protection before the AMI can be deregistered.
+
+**AMI Reuse**: The AMI is built on the first deployment only. Its ID is recorded in state and reused on every run after that, so repeated runs cost no build time and the runner keeps the same image. To build a fresh AMI — after changing the OS, the user script, or the Terraform/OpenTofu versions — set *Rebuild AMI Token* to any new value. Leaving the token unchanged never rebuilds.
+
+**AMI Cleanup**: *Automatic AMI Cleanup* is enabled by default. It only ever deregisters the AMI this deployment built: on destroy, and when a rebuild supersedes it. AMIs built by other deployments are never touched, because the template never adopts an AMI it did not build. Disable it to preserve images for manual cleanup.
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| AMI ID | The ID of the created AMI for use with the AWS deployment template |
+| AMI ID | The ID of the AMI to use with the AWS deployment template |
 | AMI Info | Comprehensive metadata including region, OS details, and protection settings |
 | Cleanup Commands | Ready-to-use AWS CLI commands for manual AMI cleanup |
 

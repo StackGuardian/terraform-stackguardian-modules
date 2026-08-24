@@ -19,7 +19,7 @@ output "runner_group_token" {
 
 output "runner_group_url" {
   description = "Direct URL to the runner group in the StackGuardian web console"
-  value       = "${replace(local.sg_api_uri, "api.", "")}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${local.final_runner_group_name}"
+  value       = "${local.sg_app_uri}/orchestrator/orgs/${local.sg_org_name}/runnergroups/${local.final_runner_group_name}"
 }
 
 /*---------------------------------+

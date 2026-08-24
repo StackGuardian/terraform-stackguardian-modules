@@ -70,13 +70,17 @@
           "default": ""
         }
       },
-      "required": ["vpc_id"],
+      "required": [
+        "vpc_id"
+      ],
       "additionalProperties": false
     },
     "os": {
       "title": "Operating System",
       "type": "object",
-      "required": ["family"],
+      "required": [
+        "family"
+      ],
       "allOf": [
         {
           "if": {
@@ -91,8 +95,16 @@
               "family": {
                 "title": "OS Family",
                 "type": "string",
-                "enum": ["amazon", "ubuntu", "rhel"],
-                "enumNames": ["Amazon Linux 2", "Ubuntu", "RHEL (Red Hat Enterprise Linux)"],
+                "enum": [
+                  "amazon",
+                  "ubuntu",
+                  "rhel"
+                ],
+                "enumNames": [
+                  "Amazon Linux 2",
+                  "Ubuntu",
+                  "RHEL (Red Hat Enterprise Linux)"
+                ],
                 "default": "amazon"
               },
               "update_os_before_install": {
@@ -128,8 +140,16 @@
               "family": {
                 "title": "OS Family",
                 "type": "string",
-                "enum": ["amazon", "ubuntu", "rhel"],
-                "enumNames": ["Amazon Linux 2", "Ubuntu", "RHEL (Red Hat Enterprise Linux)"],
+                "enum": [
+                  "amazon",
+                  "ubuntu",
+                  "rhel"
+                ],
+                "enumNames": [
+                  "Amazon Linux 2",
+                  "Ubuntu",
+                  "RHEL (Red Hat Enterprise Linux)"
+                ],
                 "default": "amazon"
               },
               "version": {
@@ -153,7 +173,9 @@
                 "default": ""
               }
             },
-            "required": ["version"]
+            "required": [
+              "version"
+            ]
           }
         }
       ]
@@ -167,6 +189,11 @@
           "type": "string",
           "default": "1.14.1",
           "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "rebuild_ami_token": {
+          "title": "Rebuild AMI Token",
+          "type": "string",
+          "default": ""
         },
         "deregistration_protection": {
           "title": "Deregistration Protection",
@@ -245,7 +272,22 @@
         }
       },
       "additionalProperties": false
+    },
+    "sg_runner": {
+      "title": "StackGuardian Runner",
+      "type": "object",
+      "properties": {
+        "pre_release": {
+          "title": "Use Pre-release",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
     }
   },
-  "required": ["aws_region", "network"]
+  "required": [
+    "aws_region",
+    "network"
+  ]
 }

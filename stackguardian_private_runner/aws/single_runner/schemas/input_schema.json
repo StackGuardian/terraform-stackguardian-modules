@@ -80,6 +80,11 @@
       "title": "Runner Group Name",
       "type": "string"
     },
+    "runner_group_token": {
+      "title": "Runner Group Token",
+      "type": "string",
+      "minLength": 1
+    },
     "storage_backend_role_arn": {
       "title": "Storage Backend Role ARN",
       "type": "string",
@@ -254,6 +259,7 @@
   "required": [
     "ami_id",
     "runner_group_name",
+    "runner_group_token",
     "storage_backend_role_arn",
     "stackguardian",
     "network"

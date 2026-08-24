@@ -27,7 +27,7 @@ This Terraform module automates the creation of custom AMIs using HashiCorp Pack
 - **AWS Account**: With permissions to create EC2 instances and AMIs
 - **VPC**: Existing VPC with internet access (direct or via NAT/proxy)
 - **Subnet**: Public subnet with IGW access OR private subnet with NAT Gateway
-- **Terraform**: Version 1.0 or later
+- **Terraform**: Version 1.4 or later (OpenTofu 1.6+), for `terraform_data`
 - **AWS CLI**: Configured with appropriate credentials
 
 ### Required IAM Permissions
@@ -104,15 +104,50 @@ module "packer_ami" {
 | `os.ssh_username` | SSH username override | auto-detected |
 | `os.user_script` | Custom script to run during provisioning | `""` |
 | `packer_config.version` | Packer version to use | `1.14.1` |
+| `packer_config.rebuild_ami_token` | Change to any new value to rebuild the AMI (see [When Packer runs](#when-packer-runs)) | `""` |
 | `packer_config.deregistration_protection.enabled` | Enable AMI deregistration protection | `true` |
 | `packer_config.deregistration_protection.with_cooldown` | Enable 24-hour cooldown period | `false` |
 | `packer_config.delete_snapshots` | Delete EBS snapshots during cleanup | `true` |
-| `packer_config.cleanup_amis_on_destroy` | Auto-cleanup AMI on terraform destroy | `true` |
+| `packer_config.cleanup_amis_on_destroy` | Deregister this deployment's AMI on terraform destroy | `true` |
 | `terraform.primary_version` | Primary Terraform version to install | `""` |
 | `terraform.additional_versions` | Additional Terraform versions | `[]` |
 | `opentofu.primary_version` | Primary OpenTofu version to install | `""` |
 | `opentofu.additional_versions` | Additional OpenTofu versions | `[]` |
+| `sg_runner.pre_release` | Install the newest sg-runner pre-release instead of the latest stable release (falls back to stable when none exists) | `false` |
 | `network.proxy_url` | HTTP proxy for private network builds | `""` |
+
+### When Packer Runs
+
+Building an AMI takes several minutes, so this module builds **once per state** and
+then reuses what it built:
+
+| Situation | Result |
+|-----------|--------|
+| First apply | Packer builds the AMI, and its ID is recorded in state |
+| Every plan/apply after that | No build, no diff — the AMI ID comes from state |
+| `rebuild_ami_token` changed to a new value | Packer builds a new AMI, once |
+| State destroyed and re-applied | Packer builds again |
+
+```hcl
+# Force one fresh build (e.g. to pick up new Terraform/OpenTofu versions)
+packer_config = {
+  version           = "1.14.1"
+  rebuild_ami_token = "2026-07-30-tofu-1.11"
+}
+```
+
+The token is deliberately a free-form string rather than an on/off flag: bump it to
+rebuild, then leave it alone. A boolean would build again the moment you unset it.
+
+The recorded AMI ID lives in `terraform_data.ami_id`, not in `packer_manifest.log`,
+so plans stay stable on a fresh checkout, on a CI runner, or after the log is deleted.
+Because the ID no longer changes on every apply, the runner instance is no longer
+replaced on every apply either.
+
+> **Note:** `packer_config.cleanup_amis_on_destroy` (default `true`) only ever
+> touches the AMI this deployment built — on destroy, and on the rebuild that
+> supersedes it. AMIs belonging to other deployments are never deregistered, since
+> the module never adopts an AMI it did not build.
 
 ### Configuration Examples
 
@@ -298,6 +333,8 @@ terraform apply
     |
     v
 [Execute Packer] --> null_resource.packer_build
+    |                  created once per state; replaced only when
+    |                  rebuild_ami_token changes
     |                     |
     |                     v
     |              scripts/build_ami.sh
@@ -309,8 +346,12 @@ terraform apply
     |              scripts/setup.sh (on EC2)
     |
     v
-[Parse AMI ID] --> data.external.packer_ami_id
+[Parse AMI ID] --> data.external.packer_ami_id (reads packer_manifest.log)
     |
+    v
+[Record AMI ID] --> terraform_data.ami_id
+    |                  the ID lives here; later plans read it from state
+    |                  instead of rebuilding or re-reading the log
     v
 [Register Cleanup] --> null_resource.ami_cleanup
     |
@@ -339,16 +380,21 @@ Examples:
    - Verify proxy configuration if in private network
    - Review `packer_manifest.log` for detailed errors
 
-2. **AMI Cleanup Fails**
+2. **Packer Does Not Run / Old AMI Is Used**
+   - Expected: the AMI is built once and then reused from state
+   - Change `packer_config.rebuild_ami_token` to any new value to build a fresh one
+   - Or, without touching variables: `terraform apply -replace=null_resource.packer_build`
+
+3. **AMI Cleanup Fails**
    - Check if deregistration protection is enabled
    - Wait for cooldown period if configured
    - Verify AWS CLI credentials
 
-3. **Terraform/OpenTofu Not Installed**
+4. **Terraform/OpenTofu Not Installed**
    - Ensure version strings are valid (e.g., `1.5.7`, not `v1.5.7`)
    - Check network access to download URLs
 
-4. **Permission Denied**
+5. **Permission Denied**
    - Verify IAM permissions for EC2 and AMI operations
    - Check if AMI deregistration protection is blocking cleanup
 
@@ -376,7 +422,7 @@ terraform apply
 
 | Output | Description |
 |--------|-------------|
-| `ami_id` | The ID of the created AMI |
+| `ami_id` | The ID of the AMI built by this module and recorded in state |
 | `ami_info` | Comprehensive AMI metadata (region, OS, timestamps, protection settings) |
 | `cleanup_commands` | Ready-to-use AWS CLI commands for manual AMI cleanup |
 

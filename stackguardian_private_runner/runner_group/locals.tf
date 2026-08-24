@@ -18,6 +18,15 @@ locals {
   )
   sg_api_uri = nonsensitive(var.stackguardian.api_uri)
 
+  # Web console URL per platform region. Kept as an explicit map because the
+  # console host is not derivable from the API host in every region.
+  sg_app_uris = {
+    "https://api.app.stackguardian.io"    = "https://app.stackguardian.io"
+    "https://api.us.stackguardian.io"     = "https://us.stackguardian.io"
+    "https://testapi.qa.stackguardian.io" = "https://dash.qa.stackguardian.io"
+  }
+  sg_app_uri = local.sg_app_uris[local.sg_api_uri]
+
   # Computed prefix with optional org name
   effective_prefix = (
     var.override_names.include_org_in_prefix && local.sg_org_name != ""

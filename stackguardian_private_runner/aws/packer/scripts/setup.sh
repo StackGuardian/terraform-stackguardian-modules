@@ -20,9 +20,9 @@ _configure_proxy() { #{{{
     export HTTPS_PROXY="$PROXY_URL"
 
     # Configure wget proxy
-    echo "http_proxy = $PROXY_URL" >> ~/.wgetrc
-    echo "https_proxy = $PROXY_URL" >> ~/.wgetrc
-    echo "use_proxy = on" >> ~/.wgetrc
+    echo "http_proxy = $PROXY_URL" >>~/.wgetrc
+    echo "https_proxy = $PROXY_URL" >>~/.wgetrc
+    echo "use_proxy = on" >>~/.wgetrc
   fi
 }
 #}}}: _configure_proxy
@@ -152,17 +152,17 @@ _detect_arch() { #{{{
   machine="$(uname -m)"
 
   case "$machine" in
-    x86_64) echo "amd64" ;;
-    aarch64) echo "arm64" ;;
-    armv7l) echo "arm" ;;
-    i386|i686) echo "386" ;;
-    *) echo "$machine" ;;
+  x86_64) echo "amd64" ;;
+  aarch64) echo "arm64" ;;
+  armv7l) echo "arm" ;;
+  i386 | i686) echo "386" ;;
+  *) echo "$machine" ;;
   esac
 }
 #}}}: _detect_arch
 
 _detect_os() { #{{{
-    uname -s | tr '[:upper:]' '[:lower:]'
+  uname -s | tr '[:upper:]' '[:lower:]'
 }
 #}}}: _detect_os
 
@@ -171,10 +171,10 @@ _get_latest_github_release() { #{{{
   file_name="$2"
   latest_release_url="https://api.github.com/repos/$repo/releases/latest"
 
-  wget -qO- "$latest_release_url" \
-    | grep "\"browser_download_url\": \".*/$file_name\"" \
-    | tr -d ' "' \
-    | grep -o 'https.*'
+  wget -qO- "$latest_release_url" |
+    grep "\"browser_download_url\": \".*/$file_name\"" |
+    tr -d ' "' |
+    grep -o 'https.*'
 }
 #}}}: _get_latest_github_release
 
@@ -334,8 +334,8 @@ _install_sg_runner() { #{{{
   fi
 
   # Save configuration for sg-runner-update
-  echo "# StackGuardian Runner configuration" | sudo tee /etc/sg-runner.conf > /dev/null
-  echo "SG_RUNNER_PRE_RELEASE=${SG_RUNNER_PRE_RELEASE:-false}" | sudo tee -a /etc/sg-runner.conf > /dev/null
+  echo "# StackGuardian Runner configuration" | sudo tee /etc/sg-runner.conf >/dev/null
+  echo "SG_RUNNER_PRE_RELEASE=${SG_RUNNER_PRE_RELEASE:-false}" | sudo tee -a /etc/sg-runner.conf >/dev/null
   echo ">> Saved config to /etc/sg-runner.conf"
 }
 #}}}: _install_sg_runner
@@ -344,7 +344,7 @@ _install_sg_runner_update() { #{{{
   echo "## ----------"
   echo ">> Installing sg-runner-update script.."
 
-  sudo tee /usr/bin/sg-runner-update > /dev/null << 'SCRIPT_EOF'
+  sudo tee /usr/bin/sg-runner-update >/dev/null <<'SCRIPT_EOF'
 #!/bin/sh
 set -e
 

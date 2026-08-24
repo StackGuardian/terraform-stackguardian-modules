@@ -2,6 +2,11 @@
 
 Deploy auto-scaling StackGuardian Private Runners on AWS with custom AMI creation.
 
+> **Just want a runner running?** [`examples/aws/quickstart/`](examples/aws/quickstart/)
+> wires the runner group, AMI build, and a single runner into one root module. Fill in
+> four values, apply once, and you have a registered runner - no copying outputs
+> between modules.
+
 ## Overview
 
 This project provides four templates that work together to create a complete auto-scaling private runner solution:
@@ -11,7 +16,7 @@ This project provides four templates that work together to create a complete aut
 3. **[Autoscaling Group](aws/autoscaling_group/)** - Deploy auto-scaling EC2 runner instances
 4. **[Autoscaler](aws/autoscaler/)** - Lambda-based intelligent scaling based on job queue
 
-**Alternative**: For simpler deployments without auto-scaling, see [Single Runner](aws/single_runner/).
+**Alternative**: For simpler deployments without auto-scaling, see [Single Runner](aws/single_runner/), or the ready-made [AWS Quickstart example](examples/aws/quickstart/) that deploys one end to end.
 
 ## Complete Deployment Guide
 
@@ -24,6 +29,11 @@ cd aws/packer/
 ```
 
 See [aws/packer/README.md](aws/packer/README.md) for full configuration options.
+
+> **AMI reuse:** Packer runs on the first apply only. The AMI ID is recorded in
+> state and reused by every later plan, so re-applies are fast and the runner keeps
+> the same image. To build a fresh AMI, change `packer_config.rebuild_ami_token` to
+> any new value. See [When Packer Runs](aws/packer/README.md#when-packer-runs).
 
 **Deploy:**
 
@@ -205,7 +215,7 @@ Each module has its own README with detailed configuration options:
 
 | Template | Output | Description | Usage |
 |----------|--------|-------------|-------|
-| Packer | `ami_id` | Created AMI identifier | Input for Autoscaling Group |
+| Packer | `ami_id` | Built AMI identifier, recorded in state | Input for Autoscaling Group |
 | Runner Group | `runner_group_name` | StackGuardian runner group name | Input for ASG and Autoscaler |
 | Runner Group | `runner_group_token` | Token for runner registration | Input for Autoscaling Group |
 | Runner Group | `s3_bucket_name` | S3 storage backend bucket | Input for ASG and Autoscaler |
@@ -231,6 +241,11 @@ For simpler deployments without auto-scaling, use the [Single Runner](aws/single
 - Simpler infrastructure requirements
 
 See [aws/single_runner/README.md](aws/single_runner/README.md) for configuration.
+
+The fastest path is [`examples/aws/quickstart/`](examples/aws/quickstart/), a root
+module that combines the runner group, AMI build, and single runner into one apply.
+Use the `aws/single_runner` module directly instead when you need a private subnet,
+NAT gateway, or proxy - the quickstart deliberately covers the public-subnet case only.
 
 ## Automated Deployment
 

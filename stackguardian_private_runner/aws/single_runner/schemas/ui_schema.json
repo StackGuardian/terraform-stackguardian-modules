@@ -6,6 +6,7 @@
     "aws_region",
     "ami_id",
     "runner_group_name",
+    "runner_group_token",
     "storage_backend_role_arn",
     "instance_type",
     "override_names",
@@ -42,6 +43,11 @@
   "runner_group_name": {
     "ui:placeholder": "my-runner-group",
     "ui:description": "Name of the runner group on StackGuardian (from stackguardian_runner_group module)"
+  },
+  "runner_group_token": {
+    "ui:widget": "password",
+    "ui:placeholder": "${secret::RUNNER_GROUP_TOKEN}",
+    "ui:description": "Registration token for the runner group (from the stackguardian_runner_group module's runner_group_token output). Sensitive - prefer a secret reference (${secret::SECRET_NAME}) over a literal value."
   },
   "storage_backend_role_arn": {
     "ui:placeholder": "arn:aws:iam::***:role/***",

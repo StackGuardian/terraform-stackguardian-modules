@@ -49,10 +49,11 @@ Build a custom AMI for StackGuardian Private Runner with pre-installed dependenc
 | os.ssh_username | SSH username (auto-detected if empty) | `""` |
 | os.user_script | Custom shell script to execute during provisioning | `""` |
 | packer_config.version | Packer version to use | `1.14.1` |
+| packer_config.rebuild_ami_token | Change to any new value to build a fresh AMI (the AMI is otherwise built once and reused from state) | `""` |
 | packer_config.deregistration_protection.enabled | Enable AMI deregistration protection | `true` |
 | packer_config.deregistration_protection.with_cooldown | Enable cooldown period before deregistration | `false` |
 | packer_config.delete_snapshots | Delete EBS snapshots during cleanup | `true` |
-| packer_config.cleanup_amis_on_destroy | Auto-delete AMIs on terraform destroy | `true` |
+| packer_config.cleanup_amis_on_destroy | Deregister this deployment's AMI on terraform destroy | `true` |
 | terraform.primary_version | Primary Terraform version to install | `""` |
 | terraform.additional_versions | Additional Terraform versions to install | `[]` |
 | opentofu.primary_version | Primary OpenTofu version to install | `""` |
