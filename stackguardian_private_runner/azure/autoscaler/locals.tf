@@ -14,7 +14,7 @@ locals {
     ? var.stackguardian.org_name
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = data.external.env.result.sg_api_uri
+  sg_api_uri = var.stackguardian.api_uri
 
   # Resource group for VMSS (defaults to main resource group if not specified)
   vmss_resource_group = (
