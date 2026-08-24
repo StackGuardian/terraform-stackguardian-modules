@@ -10,9 +10,6 @@ hand-copying outputs between them.
 > autoscaled fleet, use the `azure/vmss` and `azure/autoscaler` modules directly -
 > see the [top-level README](../../../README.md).
 
-For a no-Packer variant that installs everything at first boot, see
-[`../standalone-vm`](../standalone-vm).
-
 ## Contents
 
 - [What Gets Deployed](#what-gets-deployed)
@@ -432,11 +429,6 @@ To force a rebuild without touching variables:
 ```bash
 tofu apply -replace=module.packer.null_resource.packer_build
 ```
-
-[`../standalone-vm/troubleshooting.md`](../standalone-vm/troubleshooting.md) covers a
-separate failure mode - the ECS agent terminally exiting after a successful
-registration because of a stale container-instance ARN. It applies to any private
-runner, including this one.
 
 ## Limitations
 

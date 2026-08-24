@@ -1,5 +1,0 @@
-# Local state and plan artifacts from running the examples in place.
-# Plan files may embed credentials from the tfvars.
-tfplan
-tofuplan
-*.tfplan

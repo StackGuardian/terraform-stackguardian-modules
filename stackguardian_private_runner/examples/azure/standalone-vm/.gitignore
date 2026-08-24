@@ -1,4 +1,0 @@
-# Plan artifacts - may embed credentials from the tfvars
-tfplan
-tofuplan
-*.tfplan
