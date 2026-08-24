@@ -74,13 +74,19 @@ variable "os" {
  | Packer Configuration Variables   |
  +----------------------------------*/
 variable "packer_config" {
-  description = "Packer build configuration"
+  description = <<EOT
+    Packer build configuration.
+    The image is built on the first apply and then reused on every following plan.
+    To build a new one, change rebuild_image_token to any new value.
+  EOT
   type = object({
     version                   = optional(string, "1.14.1")
+    rebuild_image_token       = optional(string, "")
     cleanup_images_on_destroy = optional(bool, true)
   })
   default = {
     version                   = "1.14.1"
+    rebuild_image_token       = ""
     cleanup_images_on_destroy = true
   }
 }

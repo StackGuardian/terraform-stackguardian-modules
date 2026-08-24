@@ -9,8 +9,9 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 ### What Gets Created
 
 - **`azurerm_resource_group`** (optional, count-gated by `create_resource_group`): destination resource group for the image.
-- **`null_resource.packer_build`**: runs `scripts/build_image.sh`, which installs Packer, renders `image.pkr.hcl`, and triggers the build. Re-runs on every apply (timestamp trigger).
+- **`null_resource.packer_build`**: runs `scripts/build_image.sh`, which installs Packer, renders `image.pkr.hcl`, and triggers the build. Runs on the first apply, and again only when `packer_config.rebuild_image_token` changes.
 - **`data.external.packer_image_id`**: parses `packer_manifest.log` to extract the resource ID of the freshly built managed image.
+- **`terraform_data.image_id`**: records that image ID in state, so later plans read it from state instead of the build log.
 - **`null_resource.image_cleanup`** (when `cleanup_images_on_destroy = true`): destroy-time hook that runs `scripts/cleanup_image.sh` to delete the image from Azure.
 
 ## Prerequisites
@@ -74,12 +75,46 @@ module "private_runner_image" {
 | `os.update_os_before_install` | Run full OS update before installing the agent | `true` |
 | `os.user_script` | Extra shell script executed after agent install | `""` |
 | `packer_config.version` | Packer version bootstrapped by `scripts/setup.sh` | `"1.14.1"` |
+| `packer_config.rebuild_image_token` | Change to any new value to build a fresh image once | `""` |
 | `packer_config.cleanup_images_on_destroy` | Delete the image on `terraform destroy` | `true` |
 | `image_name_prefix` | Prefix for the generated image name | `"sg-runner"` |
 | `terraform.primary_version` | Default Terraform version pre-installed | `""` |
 | `terraform.additional_versions` | Extra Terraform versions to install | `[]` |
 | `opentofu.primary_version` | Default OpenTofu version pre-installed | `""` |
 | `opentofu.additional_versions` | Extra OpenTofu versions to install | `[]` |
+
+### When Packer Runs
+
+Building an image takes several minutes, so this module builds **once per state** and
+then reuses what it built:
+
+| Situation | Result |
+|-----------|--------|
+| First apply | Packer builds the image, and its ID is recorded in state |
+| Every plan/apply after that | No build, no diff — the image ID comes from state |
+| `rebuild_image_token` changed to a new value | Packer builds a new image, once |
+| State destroyed and re-applied | Packer builds again |
+
+```hcl
+# Force one fresh build (e.g. to pick up new Terraform/OpenTofu versions)
+packer_config = {
+  version             = "1.14.1"
+  rebuild_image_token = "2026-07-30-tofu-1.11"
+}
+```
+
+The token is deliberately a free-form string rather than an on/off flag: bump it to
+rebuild, then leave it alone. A boolean would build again the moment you unset it.
+
+The recorded image ID lives in `terraform_data.image_id`, not in `packer_manifest.log`,
+so plans stay stable on a fresh checkout, on a CI runner, or after the log is deleted.
+Because the ID no longer changes on every apply, the runner VM/VMSS is no longer
+replaced on every apply either.
+
+> **Note:** `packer_config.cleanup_images_on_destroy` (default `true`) only ever
+> touches the image this deployment built — on destroy, and on the rebuild that
+> supersedes it. Images belonging to other deployments are never deleted, since the
+> module never adopts an image it did not build.
 
 ### Configuration Examples
 
@@ -124,6 +159,7 @@ module "private_runner_image" {
 
   packer_config = {
     version                   = "1.14.1"
+    rebuild_image_token       = "2026-07-30-tofu-1.11"
     cleanup_images_on_destroy = true
   }
 
@@ -148,7 +184,7 @@ terraform plan
 terraform apply
 ```
 
-Each `apply` re-runs the Packer build (the resource has a `timestamp()` trigger), so version bumps in `terraform`/`opentofu`/`os` automatically produce a fresh image.
+The first `apply` runs the Packer build; every `apply` after that reuses the image ID recorded in state and does nothing. After changing `terraform`/`opentofu`/`os`/`network` settings, set `packer_config.rebuild_image_token` to a new value to build once with the new configuration (see [When Packer Runs](#when-packer-runs)).
 
 ### Cleanup
 
@@ -163,7 +199,7 @@ When `packer_config.cleanup_images_on_destroy = true` (default), the destroy pro
 ### Resource Organization
 
 - `image.pkr.hcl` — Packer template (azure-arm builder + provisioners).
-- `main.tf` — Terraform resources (RG, build, manifest parsing, cleanup).
+- `main.tf` — Terraform resources (RG, build, manifest parsing, recorded image ID, cleanup).
 - `locals.tf` — derived values (OS family, SSH username, image name, RG selection).
 - `variables.tf` — input variables.
 - `outputs.tf` — exported image metadata and cleanup commands.
@@ -186,8 +222,9 @@ Image name follows: `{image_name_prefix}-{os_family}-{os.sku}` where `os_family`
 2. **Packer install fails in `scripts/setup.sh`**
    - Confirm outbound HTTPS to `releases.hashicorp.com`. Behind a proxy, set `HTTPS_PROXY` in the runner environment as well as `network.proxy_url`.
 
-3. **`packer_manifest.log` empty / `image_id` is blank**
-   - The build failed before producing an artifact. Inspect the Terraform `local-exec` output and re-run the script manually with the same env vars to surface the Packer error.
+3. **`image_id` output is blank**
+   - The build failed before producing an artifact, so nothing was recorded in state. Inspect the Terraform `local-exec` output and re-run the script manually with the same env vars to surface the Packer error, then change `packer_config.rebuild_image_token` to retry the build.
+   - A missing or deleted `packer_manifest.log` does **not** blank the output: the ID is read from `terraform_data.image_id` in state.
 
 4. **Cleanup script can't find the image**
    - The image was already deleted manually or by a prior destroy. The script exits non-fatally; you can ignore it.
@@ -217,7 +254,7 @@ az image list --resource-group "$(terraform output -raw resource_group_name)" \
 | Output | Description |
 |--------|-------------|
 | `image_id` | Resource ID of the created Azure managed image |
-| `image_info` | Comprehensive image metadata (id, location, RG, OS family/SKU, timestamp, prefix, cleanup settings) |
+| `image_info` | Comprehensive image metadata (id, location, RG, OS family/SKU, image name, prefix, cleanup settings) |
 | `resource_group_name` | Resource group where the image is stored |
 | `cleanup_commands` | Azure CLI commands to inspect or manually delete the image |
 
@@ -232,7 +269,7 @@ az image list --resource-group "$(terraform output -raw resource_group_name)" \
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.0 |
+| terraform | >= 1.4.0 (`terraform_data`) |
 | azurerm | >= 3.0 |
 | null | >= 3.0 |
 | external | >= 2.0 |

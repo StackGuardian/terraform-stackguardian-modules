@@ -86,9 +86,13 @@
       "ui:description": "Packer version installed by the build script",
       "ui:placeholder": "1.14.1"
     },
+    "rebuild_image_token": {
+      "ui:description": "The image is built on the first deployment and reused on every run after that, so no build time is spent and the runner keeps the same image. Change this value to anything new (a date, a version tag) to build a fresh image once; leaving it unchanged never rebuilds.",
+      "ui:placeholder": "2026-07-30"
+    },
     "cleanup_images_on_destroy": {
       "ui:widget": "checkbox",
-      "ui:description": "**Warning:** Disabling this leaves orphaned managed images in the resource group when the workflow is destroyed. Re-enable to let Terraform delete the image on `destroy`."
+      "ui:description": "When enabled (the default), the managed image built by this deployment is deleted on destroy, and the superseded image is deleted whenever a rebuild is triggered. Images built by other deployments are never touched. **Warning:** disabling this leaves orphaned managed images in the resource group."
     }
   },
   "image_name_prefix": {

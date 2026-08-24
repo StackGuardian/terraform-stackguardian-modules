@@ -1,0 +1,6 @@
+# Packer build artifacts
+packer_manifest.log
+LICENSE.txt
+packer
+packer*.zip*
+*tfplan*

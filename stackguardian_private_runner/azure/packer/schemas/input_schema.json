@@ -107,6 +107,11 @@
           "default": "1.14.1",
           "minLength": 1
         },
+        "rebuild_image_token": {
+          "title": "Rebuild Image Token",
+          "type": "string",
+          "default": ""
+        },
         "cleanup_images_on_destroy": {
           "title": "Cleanup Images on Destroy",
           "type": "boolean",
@@ -115,6 +120,7 @@
       },
       "default": {
         "version": "1.14.1",
+        "rebuild_image_token": "",
         "cleanup_images_on_destroy": true
       },
       "additionalProperties": false

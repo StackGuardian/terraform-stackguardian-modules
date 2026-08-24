@@ -17,4 +17,9 @@ locals {
 
   # Network configuration (empty strings mean Packer creates temporary networking)
   use_existing_network = var.network.vnet_name != "" && var.network.subnet_name != ""
+
+  # The image built by this module, as recorded in state. Packer runs on the first
+  # apply and then only when packer_config.rebuild_image_token changes, so this
+  # value stays stable across re-plans.
+  image_id = terraform_data.image_id.output
 }

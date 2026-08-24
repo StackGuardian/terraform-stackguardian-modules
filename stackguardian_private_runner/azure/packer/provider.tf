@@ -1,5 +1,6 @@
 terraform {
-  required_version = ">= 1.0"
+  # terraform_data (used to record the built image ID in state) needs 1.4+
+  required_version = ">= 1.4.0"
 
   required_providers {
     azurerm = {
@@ -15,4 +16,8 @@ terraform {
       version = ">= 2.0"
     }
   }
+}
+
+provider "azurerm" {
+  features {}
 }

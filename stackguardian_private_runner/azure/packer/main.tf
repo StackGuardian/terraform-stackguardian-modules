@@ -15,6 +15,10 @@ resource "azurerm_resource_group" "packer" {
 /*-------------------------------------------+
  | Build Custom Image Using Packer           |
  +-------------------------------------------*/
+#
+# Created once per state, so Packer runs on the first apply only. Change
+# packer_config.rebuild_image_token to any new value to replace this resource and
+# build a fresh image; re-plans with an unchanged token do nothing.
 resource "null_resource" "packer_build" {
   provisioner "local-exec" {
     working_dir = path.module
@@ -45,7 +49,7 @@ resource "null_resource" "packer_build" {
   }
 
   triggers = {
-    timestamp = timestamp()
+    rebuild_token = var.packer_config.rebuild_image_token
   }
 
   depends_on = [azurerm_resource_group.packer]
@@ -54,26 +58,49 @@ resource "null_resource" "packer_build" {
 /*-------------------------------------------+
  | Parse the Image ID from Packer Output     |
  +-------------------------------------------*/
+#
+# Only meaningful right after a build. It returns an empty image ID when the log
+# is missing (fresh checkout, CI runner) instead of failing the plan, because the
+# recorded image ID is read from state via terraform_data.image_id below.
 data "external" "packer_image_id" {
   working_dir = path.module
   program = [
     "sh",
     "-c",
-    "grep 'artifact,0,id' packer_manifest.log | tail -1 | cut -d, -f6 | xargs -I{} echo '{\"image_id\": \"{}\"}'"
+    "image_id=$(grep 'artifact,0,id' packer_manifest.log 2>/dev/null | tail -1 | cut -d, -f6); printf '{\"image_id\": \"%s\"}' \"$image_id\""
   ]
 
   depends_on = [null_resource.packer_build]
 }
 
 /*-------------------------------------------+
+ | Record the Built Image ID in State        |
+ +-------------------------------------------*/
+#
+# input is only re-read when a build runs (replace_triggered_by); ignore_changes
+# keeps the recorded ID untouched by later plans, even if the build log is stale
+# or gone.
+resource "terraform_data" "image_id" {
+  input = data.external.packer_image_id.result["image_id"]
+
+  lifecycle {
+    ignore_changes       = [input]
+    replace_triggered_by = [null_resource.packer_build]
+  }
+}
+
+/*-------------------------------------------+
  | Conditional Image Cleanup Resource        |
  +-------------------------------------------*/
+#
+# Tracks the image this module built, so a destroy never deletes an image it did
+# not create. Re-keyed by a rebuild, which deletes the superseded image.
 resource "null_resource" "image_cleanup" {
   count = var.packer_config.cleanup_images_on_destroy ? 1 : 0
 
   # Store image information as triggers so they're available during destroy
   triggers = {
-    image_id            = data.external.packer_image_id.result["image_id"]
+    image_id            = local.image_id
     resource_group_name = local.resource_group_name
     script_path         = "${path.module}/scripts/cleanup_image.sh"
   }

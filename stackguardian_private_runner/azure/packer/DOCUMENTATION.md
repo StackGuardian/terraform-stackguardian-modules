@@ -4,11 +4,11 @@ Deploy this template on the StackGuardian platform to build a custom Azure manag
 
 ## Overview
 
-This template produces a reusable Azure managed image so your private runners boot fast with the agent, Terraform, and OpenTofu already installed. The image is built by HashiCorp Packer in your own Azure subscription, lands in a resource group you control, and is automatically removed when the workflow is destroyed.
+This template produces a reusable Azure managed image so your private runners boot fast with the agent, Terraform, and OpenTofu already installed. The image is built by HashiCorp Packer in your own Azure subscription, lands in a resource group you control, and is automatically removed when the workflow is destroyed. It is built on the first deployment only and reused on every run after that, so repeated runs cost no build time.
 
 ### What This Template Creates
 
-- **Azure Managed Image** — your custom Private Runner image, tagged with OS family and timestamp.
+- **Azure Managed Image** — your custom Private Runner image, tagged with OS family and timestamp. Built once, then recorded in state and reused.
 - **Resource Group** *(optional)* — created for you when `Create Resource Group` is enabled; otherwise the existing one is reused.
 - **Automatic cleanup hook** — deletes the image from Azure when the workflow is destroyed (can be disabled).
 
@@ -44,6 +44,7 @@ This template produces a reusable Azure managed image so your private runners bo
 | `os.update_os_before_install` | Run a full OS package update before installing the runner agent | `true` |
 | `os.user_script` | Optional shell script run on the build VM after the runner agent is installed | `""` |
 | `packer_config.version` | Packer version installed by the build script | `1.14.1` |
+| `packer_config.rebuild_image_token` | Change to any new value to build a fresh image once; leaving it unchanged never rebuilds | `""` |
 | `packer_config.cleanup_images_on_destroy` | Delete the managed image when the workflow is destroyed | `true` |
 | `image_name_prefix` | Prefix used for the generated image name | `sg-runner` |
 | `terraform.primary_version` | Default Terraform version available on the runner (leave empty to skip) | `""` |
@@ -53,9 +54,9 @@ This template produces a reusable Azure managed image so your private runners bo
 
 ## Important Notes
 
-**Image is rebuilt on every run**: The template is wired so that each apply produces a fresh image with a new timestamp. This is intentional — version bumps to Terraform, OpenTofu, the user script, or the OS automatically take effect on the next runner.
+**Image Reuse**: The image is built on the first deployment only. Its resource ID is recorded in state and reused on every run after that, so repeated runs cost no build time and the runner keeps the same image. To build a fresh image — after changing the OS, the user script, or the Terraform/OpenTofu versions — set *Rebuild Image Token* to any new value. Leaving the token unchanged never rebuilds.
 
-**Cleanup on destroy**: When `cleanup_images_on_destroy` is left at its default (`true`), destroying the workflow deletes the image from Azure. Disable it only if you need the image to survive workflow teardown — orphaned images will accumulate in the resource group otherwise.
+**Cleanup on destroy**: When `cleanup_images_on_destroy` is left at its default (`true`), destroying the workflow deletes the image this deployment built, and a rebuild deletes the image it supersedes. Images built by other deployments are never touched. Disable it only if you need the image to survive workflow teardown — orphaned images will accumulate in the resource group otherwise.
 
 **Existing VNet usage**: To pin the build VM to your own network, fill in **all three** of `network.vnet_name`, `network.subnet_name`, and `network.resource_group_name`. If any one is left blank, Packer falls back to creating temporary networking for the build.
 
@@ -65,8 +66,8 @@ This template produces a reusable Azure managed image so your private runners bo
 
 | Output | Description |
 |--------|-------------|
-| `image_id` | Resource ID of the created Azure managed image — pass this to the Azure runner template |
-| `image_info` | Image metadata: ID, location, resource group, OS family/SKU, build timestamp, name prefix, cleanup settings |
+| `image_id` | Resource ID of the Azure managed image built by this deployment and recorded in state — pass this to the Azure runner template |
+| `image_info` | Image metadata: ID, location, resource group, OS family/SKU, image name, name prefix, cleanup settings |
 | `resource_group_name` | Resource group where the image is stored |
 
 ## Security Features
