@@ -34,8 +34,14 @@ variable "aws_region" {
  | StackGuardian Runner Group Configuration  |
  +-------------------------------------------*/
 variable "runner_group_name" {
-  description = "The name of the StackGuardian runner group. Token and S3 bucket will be fetched automatically."
+  description = "The name of the StackGuardian runner group."
   type        = string
+}
+
+variable "runner_group_token" {
+  description = "The runner group token for registration (from runner_group module output)"
+  type        = string
+  sensitive   = true
 }
 
 variable "storage_backend_role_arn" {
