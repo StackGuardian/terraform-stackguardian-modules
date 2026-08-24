@@ -10,7 +10,7 @@ The autoscaler module provides intelligent scaling for StackGuardian Private Run
 
 - **Function App**: FlexConsumption plan with Python 3.11 runtime for autoscaling logic
 - **Storage Account**: Blob storage for autoscaler state (cooldown timestamps)
-- **Application Insights**: Monitoring, logging, and alerting
+- **Application Insights**: Monitoring, logging, and alerting (30-day retention by default)
 - **Role Assignments**: Managed identity with VMSS, storage, and network access
 
 ### Architecture
@@ -120,6 +120,10 @@ module "azure_autoscaler" {
 | `storage.account_tier` | Storage account performance tier | `Standard` |
 | `storage.account_replication_type` | Storage replication strategy (LRS, GRS, RAGRS, ZRS) | `LRS` |
 | `storage.account_url` | Explicit storage URL (for private endpoints) | `""` |
+| `storage.use_rbac` | Authenticate to storage with managed identity instead of connection strings | `false` |
+| `application_insights_retention_in_days` | Application Insights telemetry retention (30, 60, 90, 120, 180, 270, 365, 550, 730) | `30` |
+| `autoscaler_repo.url` | Git repository URL for the Function App source | `https://github.com/StackGuardian/sg-runner-autoscaler` |
+| `autoscaler_repo.branch` | Git branch for the Function App source | `main` |
 
 ### Configuration Examples
 
@@ -183,6 +187,13 @@ module "azure_autoscaler" {
   storage = {
     account_tier             = "Standard"
     account_replication_type = "GRS"
+  }
+
+  application_insights_retention_in_days = 90
+
+  autoscaler_repo = {
+    url    = "https://github.com/StackGuardian/sg-runner-autoscaler"
+    branch = "main"
   }
 }
 ```
@@ -248,6 +259,22 @@ Default behavior:
 - Scales in when 1 or fewer jobs are queued
 - 4-minute cooldown after scale-out
 - 5-minute cooldown after scale-in
+
+### Function Code Deployment
+
+The module clones `autoscaler_repo.url` at `autoscaler_repo.branch` and publishes
+it to the Function App via `scripts/deploy_function.sh`. The deployment re-runs
+whenever any of the following change:
+
+- The repository URL or branch
+- The commit currently at the tip of that branch (resolved with `git ls-remote`)
+- The contents of `scripts/deploy_function.sh`
+- The Function App itself (if it is recreated)
+
+Because the branch tip is resolved on every plan, pushing a new commit to the
+tracked branch is enough to make the next `tofu apply` redeploy the function code.
+The local machine running the apply needs `git`, `zip`, and an authenticated
+`az` CLI.
 
 ### Cleanup
 
@@ -538,8 +565,10 @@ az functionapp config appsettings set \
 | `provider.tf` | Azure, random, external, and null provider configuration |
 | `variables.tf` | Input variable definitions and validations |
 | `locals.tf` | Computed values, naming conventions, VMSS resource group resolution |
-| `function_autoscaler.tf` | Function App, App Service Plan, Application Insights, role assignments, code deployment |
+| `function_autoscaler.tf` | Function App, App Service Plan, Application Insights, code deployment |
+| `rbac.tf` | Role assignments for the Function App managed identity |
 | `storage.tf` | Storage Account and blob containers |
+| `scripts/deploy_function.sh` | Clones the autoscaler repo and publishes the zip package to the Function App |
 | `outputs.tf` | Module outputs |
 
 ### Resource Naming Convention

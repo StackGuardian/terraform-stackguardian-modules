@@ -10,7 +10,7 @@ This template creates an intelligent autoscaling system that monitors your Stack
 
 - **Function App** (FlexConsumption, Python 3.11) that checks job queue status every minute and scales runners accordingly
 - **Storage Account** for autoscaler state (cooldown timestamps) with TLS 1.2 enforced
-- **Application Insights** for monitoring, logging, and alerting on the autoscaler function
+- **Application Insights** for monitoring, logging, and alerting on the autoscaler function (30-day telemetry retention by default)
 - **Role Assignments** granting the Function App's managed identity scoped access to manage VMSS, storage, and networking
 
 ## Prerequisites
@@ -58,6 +58,9 @@ Before using this template, you need:
 | Replication Type | Replication strategy for the storage account | LRS |
 | Storage Account URL | Optional explicit storage account URL (for private endpoints) | (empty) |
 | Use RBAC (Managed Identity) | Use managed identity instead of connection strings for storage authentication | Disabled |
+| Application Insights Retention (days) | How long Application Insights keeps autoscaler telemetry (30, 60, 90, 120, 180, 270, 365, 550, 730) | 30 |
+| Repository URL | Git repository containing the autoscaler Function App source code | https://github.com/StackGuardian/sg-runner-autoscaler |
+| Branch | Git branch to deploy the autoscaler Function App code from | main |
 
 ## Important Notes
 
@@ -70,6 +73,8 @@ Before using this template, you need:
 **Private Endpoint Support**: For VNet-integrated deployments, set the Storage Account URL to your private endpoint URL (e.g., `https://mystorageaccount.privatelink.blob.core.windows.net`).
 
 **Storage Authentication**: Enable RBAC to authenticate to blob storage using the Function App's managed identity instead of connection strings. This is the recommended option for production deployments.
+
+**Function Code Deployment**: The template clones the configured repository and branch and publishes the code to the Function App. The tip commit of the branch is resolved on every plan, so a new commit on the tracked branch causes the next apply to redeploy the function code. Leave the repository settings at their defaults unless you are testing a fork or a feature branch.
 
 ## Outputs
 
@@ -88,5 +93,5 @@ Before using this template, you need:
 - Role assignments are scoped narrowly to the specific VMSS, storage account, and resource group (least privilege)
 - Storage account requires TLS 1.2 minimum
 - Private endpoint support for blob storage in VNet-integrated environments
-- StackGuardian API key is stored as a Function App setting (encrypted at rest)
+- StackGuardian API key is marked sensitive so it is redacted from plan output, and is stored as a Function App setting (encrypted at rest)
 - Application Insights provides centralized logging and alerting for audit and troubleshooting

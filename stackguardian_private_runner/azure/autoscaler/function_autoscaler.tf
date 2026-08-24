@@ -21,6 +21,7 @@ resource "azurerm_application_insights" "autoscaler" {
   resource_group_name = var.resource_group_name
   location            = var.azure_location
   application_type    = "other"
+  retention_in_days   = var.application_insights_retention_in_days
 
   tags = merge(local.common_tags, {
     Name = "${local.sanitized_prefix}-autoscaler-insights"
@@ -62,45 +63,32 @@ resource "azurerm_function_app_flex_consumption" "autoscaler" {
 /*-------------------------------------------+
  | Automatic Code Deployment                 |
  +-------------------------------------------*/
-# Clones the autoscaler repo and deploys using func CLI
-resource "null_resource" "deploy_function_code" {
-  depends_on = [azurerm_function_app_flex_consumption.autoscaler]
 
-  triggers = {
-    function_app_id = azurerm_function_app_flex_consumption.autoscaler.id
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      set -e
-      TEMP_DIR=$(mktemp -d)
-      git clone --depth 1 --branch SG-3410-shared-autoscaler https://github.com/StackGuardian/sg-runner-autoscaler.git "$TEMP_DIR/repo"
-      cd "$TEMP_DIR/repo"
-      cp azure_requirements.txt requirements.txt
-
-      # Create deployment package
-      zip -r "$TEMP_DIR/deploy.zip" . -x ".git/*"
-
-      # Deploy using Azure CLI
-      # Exit codes 1/3 = health check or SyncTrigger timeout after successful
-      # upload (known issue with Flex Consumption plans). Tolerate them; fail
-      # on anything else.
-      set +e
-      az functionapp deployment source config-zip \
-        --resource-group ${var.resource_group_name} \
-        --name ${nonsensitive(azurerm_function_app_flex_consumption.autoscaler.name)} \
-        --src "$TEMP_DIR/deploy.zip" \
-        --build-remote true \
-        --timeout 300
-      AZ_EXIT=$?
-      set -e
-      if [ "$AZ_EXIT" -ne 0 ] && [ "$AZ_EXIT" -ne 1 ] && [ "$AZ_EXIT" -ne 3 ]; then
-        echo "ERROR: Deployment failed with exit code $AZ_EXIT"
-        exit $AZ_EXIT
-      fi
-
-      rm -rf "$TEMP_DIR"
-    EOT
-  }
+# Fetch latest commit hash from remote repo to trigger redeploy on changes
+data "external" "repo_commit" {
+  program = [
+    "sh", "-c",
+    "echo \"{\\\"commit\\\": \\\"$(git ls-remote ${var.autoscaler_repo.url} ${var.autoscaler_repo.branch} | cut -f1)\\\"}\""
+  ]
 }
 
+# Clones the autoscaler repo and deploys the zip package via Azure CLI
+resource "terraform_data" "deploy_function_code" {
+  triggers_replace = [
+    azurerm_function_app_flex_consumption.autoscaler.id,
+    var.autoscaler_repo.url,
+    var.autoscaler_repo.branch,
+    data.external.repo_commit.result.commit,
+    filemd5("${path.module}/scripts/deploy_function.sh")
+  ]
+
+  provisioner "local-exec" {
+    command = "sh ${path.module}/scripts/deploy_function.sh"
+    environment = {
+      REPO_URL            = var.autoscaler_repo.url
+      REPO_BRANCH         = var.autoscaler_repo.branch
+      RESOURCE_GROUP_NAME = var.resource_group_name
+      FUNCTION_APP_NAME   = azurerm_function_app_flex_consumption.autoscaler.name
+    }
+  }
+}

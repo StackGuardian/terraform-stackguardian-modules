@@ -1,20 +1,23 @@
+# Extract SG org name from environment if not provided
 data "external" "env" {
   program = [
     "sh",
     "-c",
-    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\", \"sg_api_uri\": \"'$${SG_API_URI:-https://api.app.stackguardian.io}'\"}'"
+    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\"}'"
   ]
 }
 
 data "azurerm_client_config" "current" {}
 
 locals {
+  # StackGuardian configuration - use provided values or extract from environment
+  # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
   sg_org_name = (
-    var.stackguardian.org_name != ""
-    ? var.stackguardian.org_name
+    nonsensitive(var.stackguardian.org_name) != ""
+    ? nonsensitive(var.stackguardian.org_name)
     : data.external.env.result.sg_org_name
   )
-  sg_api_uri = var.stackguardian.api_uri
+  sg_api_uri = nonsensitive(var.stackguardian.api_uri)
 
   # Resource group for VMSS (defaults to main resource group if not specified)
   vmss_resource_group = (

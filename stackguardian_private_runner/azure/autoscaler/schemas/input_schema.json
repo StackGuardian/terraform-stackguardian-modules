@@ -217,6 +217,29 @@
           "default": false
         }
       }
+    },
+    "application_insights_retention_in_days": {
+      "title": "Application Insights Retention (days)",
+      "type": "integer",
+      "enum": [30, 60, 90, 120, 180, 270, 365, 550, 730],
+      "default": 30
+    },
+    "autoscaler_repo": {
+      "title": "Autoscaler Repository",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "title": "Repository URL",
+          "type": "string",
+          "default": "https://github.com/StackGuardian/sg-runner-autoscaler"
+        },
+        "branch": {
+          "title": "Branch",
+          "type": "string",
+          "default": "main"
+        }
+      }
     }
   },
   "required": ["stackguardian", "resource_group_name", "vmss"]

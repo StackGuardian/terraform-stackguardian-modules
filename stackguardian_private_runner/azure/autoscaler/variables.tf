@@ -22,6 +22,7 @@ variable "stackguardian" {
     api_uri  = optional(string, "https://api.app.stackguardian.io")
     org_name = optional(string, "")
   })
+  sensitive = true
 
   validation {
     condition     = can(regex("^sg[uo]_.*", var.stackguardian.api_key))
@@ -197,4 +198,36 @@ variable "storage" {
     condition     = contains(["LRS", "GRS", "RAGRS", "ZRS"], var.storage.account_replication_type)
     error_message = "The account_replication_type must be one of: LRS, GRS, RAGRS, ZRS."
   }
+}
+
+/*-----------------------------------+
+ | Monitoring Configuration          |
+ +-----------------------------------*/
+variable "application_insights_retention_in_days" {
+  description = <<EOT
+    Retention period (in days) for Application Insights telemetry.
+
+    Application Insights only accepts 30, 60, 90, 120, 180, 270, 365, 550 or
+    730, so 30 is the closest match to the 14-day CloudWatch retention used by
+    the AWS autoscaler.
+  EOT
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = contains([30, 60, 90, 120, 180, 270, 365, 550, 730], var.application_insights_retention_in_days)
+    error_message = "The application_insights_retention_in_days must be one of: 30, 60, 90, 120, 180, 270, 365, 550, 730."
+  }
+}
+
+/*-----------------------------------+
+ | Autoscaler Repository            |
+ +-----------------------------------*/
+variable "autoscaler_repo" {
+  description = "Configuration for the autoscaler Function App source repository"
+  type = object({
+    url    = optional(string, "https://github.com/StackGuardian/sg-runner-autoscaler")
+    branch = optional(string, "main")
+  })
+  default = {}
 }

@@ -8,7 +8,9 @@
     "vmss",
     "scaling",
     "override_names",
-    "storage"
+    "storage",
+    "application_insights_retention_in_days",
+    "autoscaler_repo"
   ],
   "stackguardian": {
     "ui:title": "StackGuardian Configuration",
@@ -137,6 +139,23 @@
     "use_rbac": {
       "ui:widget": "checkbox",
       "ui:description": "Use managed identity (RBAC) instead of connection strings for storage authentication"
+    }
+  },
+  "application_insights_retention_in_days": {
+    "ui:widget": "select",
+    "ui:description": "How long Application Insights keeps autoscaler telemetry. Application Insights only supports the listed values"
+  },
+  "autoscaler_repo": {
+    "ui:title": "Autoscaler Repository",
+    "ui:description": "Configure the source repository for the autoscaler Function App code (optional)",
+    "ui:order": ["url", "branch"],
+    "url": {
+      "ui:placeholder": "https://github.com/StackGuardian/sg-runner-autoscaler",
+      "ui:description": "Git repository URL containing the autoscaler Function App source code"
+    },
+    "branch": {
+      "ui:placeholder": "main",
+      "ui:description": "Git branch to use for the autoscaler Function App source code"
     }
   }
 }

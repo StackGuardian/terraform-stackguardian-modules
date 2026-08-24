@@ -3,22 +3,22 @@
  +---------------------------------*/
 output "function_app_name" {
   description = "The name of the Azure Function App that handles auto-scaling"
-  value       = nonsensitive(azurerm_function_app_flex_consumption.autoscaler.name)
+  value       = azurerm_function_app_flex_consumption.autoscaler.name
 }
 
 output "function_app_id" {
   description = "The ID of the Azure Function App"
-  value       = nonsensitive(azurerm_function_app_flex_consumption.autoscaler.id)
+  value       = azurerm_function_app_flex_consumption.autoscaler.id
 }
 
 output "function_app_default_hostname" {
   description = "The default hostname of the Azure Function App"
-  value       = nonsensitive(azurerm_function_app_flex_consumption.autoscaler.default_hostname)
+  value       = azurerm_function_app_flex_consumption.autoscaler.default_hostname
 }
 
 output "function_app_identity_principal_id" {
   description = "The Principal ID of the Function App's managed identity"
-  value       = nonsensitive(azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id)
+  value       = azurerm_function_app_flex_consumption.autoscaler.identity[0].principal_id
 }
 
 /*---------------------------------+
@@ -26,17 +26,17 @@ output "function_app_identity_principal_id" {
  +---------------------------------*/
 output "storage_account_name" {
   description = "The name of the Storage Account used for autoscaler state"
-  value       = nonsensitive(azurerm_storage_account.autoscaler.name)
+  value       = azurerm_storage_account.autoscaler.name
 }
 
 output "storage_account_id" {
   description = "The ID of the Storage Account"
-  value       = nonsensitive(azurerm_storage_account.autoscaler.id)
+  value       = azurerm_storage_account.autoscaler.id
 }
 
 output "storage_container_name" {
   description = "The name of the blob container for autoscaler state"
-  value       = nonsensitive(azurerm_storage_container.autoscaler_state.name)
+  value       = azurerm_storage_container.autoscaler_state.name
 }
 
 /*---------------------------------+
@@ -44,7 +44,7 @@ output "storage_container_name" {
  +---------------------------------*/
 output "application_insights_name" {
   description = "The name of the Application Insights instance"
-  value       = nonsensitive(azurerm_application_insights.autoscaler.name)
+  value       = azurerm_application_insights.autoscaler.name
 }
 
 output "application_insights_instrumentation_key" {
