@@ -6,7 +6,9 @@
     "cloud_provider",
     "aws_region",
     "azure_location",
+    "create_azure_resource_group",
     "azure_resource_group_name",
+    "create_blob_reader_role_assignment",
     "create_storage_backend",
     "existing_s3_bucket_name",
     "existing_azure_storage_account_name",
@@ -45,9 +47,17 @@
     "ui:placeholder": "westeurope",
     "ui:description": "The Azure region where storage resources will be deployed"
   },
+  "create_azure_resource_group": {
+    "ui:widget": "checkbox",
+    "ui:description": "Create a new Azure Resource Group for the storage account (Azure only). Disable to deploy into an existing resource group."
+  },
+  "create_blob_reader_role_assignment": {
+    "ui:widget": "checkbox",
+    "ui:description": "Grant the OIDC connector service principal 'Storage Blob Data Reader' on the storage account (Azure only). Disable when the identity running Terraform lacks role-assignment write permission; you must then create the assignment out of band."
+  },
   "azure_resource_group_name": {
-    "ui:placeholder": "my-resource-group",
-    "ui:description": "The name of the existing Azure Resource Group for the storage account"
+    "ui:placeholder": "(auto-generated when creating)",
+    "ui:description": "Optional name override when creating the resource group; required when using an existing resource group."
   },
   "create_storage_backend": {
     "ui:widget": "checkbox",

@@ -17,6 +17,7 @@ This template provisions everything required to run private runners against eith
 - **IAM Access Role** — Cross-account role with an external ID for secure platform access.
 
 **For Azure:**
+- **Azure Resource Group** — A new resource group to host the storage account and act as the canonical RG for downstream Azure templates (or use an existing one). Exported as `azure_resource_group_name`.
 - **Azure Storage Account + private "runner" container** — Storage for workflow outputs and artifacts (or an existing storage account).
 - **Azure AD application + service principal** — Identity for the OIDC connector, granted `Storage Blob Data Reader` on the storage account.
 
@@ -24,7 +25,7 @@ This template provisions everything required to run private runners against eith
 
 - A StackGuardian API key for your organization.
 - For AWS: AWS account credentials in your StackGuardian workspace with permissions to create S3 buckets and IAM roles.
-- For Azure: Azure account credentials in your StackGuardian workspace with permissions to create Storage Accounts, Azure AD applications, service principals, and role assignments — plus an **existing Azure Resource Group** to host the storage account.
+- For Azure: Azure account credentials in your StackGuardian workspace with permissions to create Resource Groups, Storage Accounts, Azure AD applications, service principals, and role assignments. By default the template creates a new Resource Group; disable **Create Azure Resource Group** to deploy into an existing one.
 
 ## Template Parameters
 
@@ -34,7 +35,7 @@ This template provisions everything required to run private runners against eith
 |-----------|-------------|------|
 | API Key | Your organization's API key on the StackGuardian Platform (`sgu_*`/`sgo_*`) or a secret reference (`${secret::SECRET_NAME}`) | Password |
 
-When **Cloud Provider** is set to **Azure** and **Create Storage Backend** is enabled, **Azure Resource Group Name** is also required.
+When **Cloud Provider** is set to **Azure**, the template creates a new Resource Group by default. Disable **Create Azure Resource Group** and provide **Azure Resource Group Name** to deploy into an existing one.
 
 ### Optional Parameters
 
@@ -45,7 +46,9 @@ When **Cloud Provider** is set to **Azure** and **Create Storage Backend** is en
 | Cloud Provider | Cloud provider for the storage backend (AWS or Azure) | AWS |
 | AWS Region | The target AWS Region for S3 bucket and IAM resources | eu-central-1 |
 | Azure Region | The Azure region where storage resources will be deployed | westeurope |
-| Azure Resource Group Name | Name of the existing Azure Resource Group for the storage account | — |
+| Create Azure Resource Group | Create a new Azure Resource Group for the storage account (Azure only) | Enabled |
+| Create Blob Reader Role Assignment | Grant the OIDC connector SP `Storage Blob Data Reader` on the storage account (Azure only). Disable when the deploying identity lacks role-assignment write permission | Enabled |
+| Azure Resource Group Name | Resource Group name. Optional override when creating; required when using an existing RG | — |
 | Create Storage Backend | Whether to create a new storage backend (S3 bucket for AWS, Storage Account for Azure) | Enabled |
 | Existing S3 Bucket Name | Name of an existing S3 bucket to use (AWS, when not creating new) | — |
 | Existing Azure Storage Account Name | Name of an existing Azure Storage Account to use (Azure, when not creating new) | — |
@@ -63,7 +66,7 @@ When **Cloud Provider** is set to **Azure** and **Create Storage Backend** is en
 
 **Cloud Provider**: The Cloud Provider toggle drives every other Azure / AWS option. Switching it after deployment will recreate cloud resources, so choose carefully up front.
 
-**Azure Resource Group**: The template **does not create an Azure Resource Group**. You must point Azure Resource Group Name at an existing one when creating a new Azure storage backend.
+**Azure Resource Group**: By default the template **creates a new Azure Resource Group** and exports its name as `azure_resource_group_name` for downstream Azure templates to consume. Disable **Create Azure Resource Group** if you prefer to deploy into an existing one.
 
 **API Key Security**: The API key is stored securely and used only to authenticate with the StackGuardian platform. It must be `sgu_*` (user key), `sgo_*` (organization key), or a `${secret::SECRET_NAME}` reference.
 
@@ -83,6 +86,9 @@ When **Cloud Provider** is set to **Azure** and **Create Storage Backend** is en
 | Connector Name | Name of the AWS or Azure connector integration |
 | S3 Bucket Name | Name of the storage bucket (AWS only) |
 | Storage Backend Role ARN | IAM role ARN required by AWS runner instances (AWS only) |
+| Azure Resource Group Name | Name of the Azure Resource Group (Azure only) — feed into downstream Azure templates |
+| Azure Resource Group Location | Location of the Azure Resource Group (Azure only) |
+| Azure Connector Service Principal Object ID | Object ID of the OIDC connector SP (Azure only) — use to create the role assignment out of band when disabled |
 | Azure Storage Account Name | Name of the Azure Storage Account (Azure only) |
 | Azure Storage Access Key | Access key for the Azure Storage Account (Azure only, sensitive) |
 

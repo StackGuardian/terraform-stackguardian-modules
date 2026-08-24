@@ -1,0 +1,126 @@
+{
+  "ui:order": [
+    "azure_location",
+    "resource_group_name",
+    "create_resource_group",
+    "vm_size",
+    "network",
+    "os",
+    "packer_config",
+    "image_name_prefix",
+    "terraform",
+    "opentofu"
+  ],
+  "azure_location": {
+    "ui:description": "The target Azure region to build the Private Runner image",
+    "ui:placeholder": "westeurope"
+  },
+  "resource_group_name": {
+    "ui:description": "The name of the resource group where the image will be stored",
+    "ui:placeholder": "sg-runner-images-rg"
+  },
+  "create_resource_group": {
+    "ui:widget": "checkbox",
+    "ui:description": "Create the resource group as part of this deployment. If disabled, the resource group must already exist."
+  },
+  "vm_size": {
+    "ui:description": "The Azure VM size used by Packer during the build (min 2 vCPU, 4GB RAM recommended)",
+    "ui:placeholder": "Standard_D2s_v3"
+  },
+  "network": {
+    "ui:title": "Network",
+    "ui:description": "Network configuration for the Packer build instance. Leave VNet/Subnet empty to let Packer create temporary networking.",
+    "vnet_name": {
+      "ui:description": "Name of an existing virtual network to use for the build VM",
+      "ui:placeholder": "vnet-***"
+    },
+    "subnet_name": {
+      "ui:description": "Name of an existing subnet inside the VNet above",
+      "ui:placeholder": "subnet-***"
+    },
+    "resource_group_name": {
+      "ui:description": "Resource group containing the existing VNet (if different from the image resource group)",
+      "ui:placeholder": "network-rg"
+    },
+    "proxy_url": {
+      "ui:description": "HTTP proxy URL forwarded to the build VM during image creation",
+      "ui:placeholder": "http://proxy.example.com:8080"
+    }
+  },
+  "os": {
+    "ui:title": "Operating System",
+    "ui:description": "Operating system configuration for the image",
+    "publisher": {
+      "ui:widget": "select",
+      "ui:description": "Image publisher. Currently supported: Canonical (Ubuntu) and RedHat (RHEL)."
+    },
+    "offer": {
+      "ui:description": "Marketplace image offer",
+      "ui:placeholder": "0001-com-ubuntu-server-jammy"
+    },
+    "sku": {
+      "ui:description": "Marketplace image SKU",
+      "ui:placeholder": "22_04-lts-gen2"
+    },
+    "version": {
+      "ui:description": "Marketplace image version (use \"latest\" to always pull the newest)",
+      "ui:placeholder": "latest"
+    },
+    "update_os_before_install": {
+      "ui:widget": "checkbox",
+      "ui:description": "Run a full OS package update before installing the runner agent"
+    },
+    "user_script": {
+      "ui:widget": "textarea",
+      "ui:options": {
+        "rows": 6
+      },
+      "ui:description": "Optional shell script executed on the build VM after the runner agent is installed. Useful for hardening, extra tooling, or custom CA certificates.",
+      "ui:placeholder": "#!/bin/bash\nset -e\n# custom provisioning\n"
+    }
+  },
+  "packer_config": {
+    "ui:title": "Packer Configuration",
+    "ui:description": "Packer build settings",
+    "version": {
+      "ui:description": "Packer version installed by the build script",
+      "ui:placeholder": "1.14.1"
+    },
+    "cleanup_images_on_destroy": {
+      "ui:widget": "checkbox",
+      "ui:description": "**Warning:** Disabling this leaves orphaned managed images in the resource group when the workflow is destroyed. Re-enable to let Terraform delete the image on `destroy`."
+    }
+  },
+  "image_name_prefix": {
+    "ui:description": "Prefix used for the generated image name (combined with OS family and SKU)",
+    "ui:placeholder": "sg-runner"
+  },
+  "terraform": {
+    "ui:title": "Terraform",
+    "ui:description": "Terraform binaries pre-installed on the image",
+    "primary_version": {
+      "ui:description": "Default Terraform version available on the runner (leave empty to skip)",
+      "ui:placeholder": "1.6.6"
+    },
+    "additional_versions": {
+      "ui:description": "Extra Terraform versions to install alongside the primary version",
+      "items": {
+        "ui:placeholder": "1.5.7"
+      }
+    }
+  },
+  "opentofu": {
+    "ui:title": "OpenTofu",
+    "ui:description": "OpenTofu binaries pre-installed on the image",
+    "primary_version": {
+      "ui:description": "Default OpenTofu version available on the runner (leave empty to skip)",
+      "ui:placeholder": "1.8.0"
+    },
+    "additional_versions": {
+      "ui:description": "Extra OpenTofu versions to install alongside the primary version",
+      "items": {
+        "ui:placeholder": "1.7.3"
+      }
+    }
+  }
+}

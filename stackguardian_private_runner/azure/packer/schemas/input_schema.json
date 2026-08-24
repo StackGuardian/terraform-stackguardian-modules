@@ -1,0 +1,179 @@
+{
+  "type": "object",
+  "properties": {
+    "azure_location": {
+      "title": "Azure Location",
+      "type": "string",
+      "default": "westeurope",
+      "minLength": 1
+    },
+    "resource_group_name": {
+      "title": "Resource Group Name",
+      "type": "string",
+      "minLength": 1
+    },
+    "create_resource_group": {
+      "title": "Create Resource Group",
+      "type": "boolean",
+      "default": false
+    },
+    "vm_size": {
+      "title": "Build VM Size",
+      "type": "string",
+      "default": "Standard_D2s_v3",
+      "minLength": 1
+    },
+    "network": {
+      "title": "Network",
+      "type": "object",
+      "properties": {
+        "vnet_name": {
+          "title": "Virtual Network Name",
+          "type": "string",
+          "default": ""
+        },
+        "subnet_name": {
+          "title": "Subnet Name",
+          "type": "string",
+          "default": ""
+        },
+        "resource_group_name": {
+          "title": "Network Resource Group Name",
+          "type": "string",
+          "default": ""
+        },
+        "proxy_url": {
+          "title": "HTTP Proxy URL",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "default": {
+        "vnet_name": "",
+        "subnet_name": "",
+        "resource_group_name": "",
+        "proxy_url": ""
+      },
+      "additionalProperties": false
+    },
+    "os": {
+      "title": "Operating System",
+      "type": "object",
+      "properties": {
+        "publisher": {
+          "title": "Publisher",
+          "type": "string",
+          "enum": ["Canonical", "RedHat"],
+          "default": "Canonical"
+        },
+        "offer": {
+          "title": "Offer",
+          "type": "string",
+          "minLength": 1,
+          "default": "0001-com-ubuntu-server-jammy"
+        },
+        "sku": {
+          "title": "SKU",
+          "type": "string",
+          "minLength": 1,
+          "default": "22_04-lts-gen2"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string",
+          "default": "latest"
+        },
+        "update_os_before_install": {
+          "title": "Update OS Before Install",
+          "type": "boolean",
+          "default": true
+        },
+        "user_script": {
+          "title": "User Script",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["publisher", "offer", "sku"],
+      "additionalProperties": false
+    },
+    "packer_config": {
+      "title": "Packer Configuration",
+      "type": "object",
+      "properties": {
+        "version": {
+          "title": "Packer Version",
+          "type": "string",
+          "default": "1.14.1",
+          "minLength": 1
+        },
+        "cleanup_images_on_destroy": {
+          "title": "Cleanup Images on Destroy",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "default": {
+        "version": "1.14.1",
+        "cleanup_images_on_destroy": true
+      },
+      "additionalProperties": false
+    },
+    "image_name_prefix": {
+      "title": "Image Name Prefix",
+      "type": "string",
+      "default": "sg-runner",
+      "minLength": 1
+    },
+    "terraform": {
+      "title": "Terraform",
+      "type": "object",
+      "properties": {
+        "primary_version": {
+          "title": "Primary Version",
+          "type": "string",
+          "default": ""
+        },
+        "additional_versions": {
+          "title": "Additional Versions",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "default": {
+        "primary_version": "",
+        "additional_versions": []
+      },
+      "additionalProperties": false
+    },
+    "opentofu": {
+      "title": "OpenTofu",
+      "type": "object",
+      "properties": {
+        "primary_version": {
+          "title": "Primary Version",
+          "type": "string",
+          "default": ""
+        },
+        "additional_versions": {
+          "title": "Additional Versions",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "default": {
+        "primary_version": "",
+        "additional_versions": []
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["resource_group_name"],
+  "additionalProperties": false
+}

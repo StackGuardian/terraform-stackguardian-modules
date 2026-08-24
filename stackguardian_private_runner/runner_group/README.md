@@ -19,17 +19,18 @@ The module creates everything required to host private runners against either AW
 - **IAM role + policy** scoped to the bucket; trust policy allows StackGuardian AWS accounts (`163602625436`, `476299211833`) and the caller's account, gated by an external ID (`{org_name}:{24-char-random}`).
 
 **Azure-only resources (when `cloud_provider = "azure"`):**
+- **Resource Group** to host the storage account and act as the canonical RG for downstream Azure modules (created when `create_azure_resource_group = true`, the default). Its name is exported as `azure_resource_group_name`.
 - **Storage Account + private `runner` blob container** with TLS 1.2 minimum and CORS limited to the StackGuardian platform origin (created when `create_storage_backend = true`).
 - **Azure AD application + service principal** for the OIDC connector.
 - **Federated identity credential** issued by the StackGuardian API URI for the org subject `/orgs/{org_name}`.
-- **`Storage Blob Data Reader` role assignment** scoped to the storage account.
+- **`Storage Blob Data Reader` role assignment** scoped to the storage account (created when `create_blob_reader_role_assignment = true`, the default — requires the Terraform identity to have `Microsoft.Authorization/roleAssignments/write`, e.g. `Owner` or `User Access Administrator`).
 
 ## Prerequisites
 
 - StackGuardian API key (`sgu_*` user key, `sgo_*` org key, or a `${secret::SECRET_NAME}` reference).
 - Terraform >= 1.0 or OpenTofu >= 1.7.
 - For AWS: AWS credentials with permissions to create S3 buckets and IAM roles.
-- For Azure: Azure credentials (CLI / SP) with permissions to create Storage Accounts, Azure AD applications, service principals, and role assignments. An **existing Azure Resource Group** is required when `create_storage_backend = true`.
+- For Azure: Azure credentials (CLI / SP) with permissions to create Resource Groups, Storage Accounts, Azure AD applications, service principals, and role assignments. By default the module creates a new Resource Group; set `create_azure_resource_group = false` and pass `azure_resource_group_name` to deploy into an existing one.
 
 ## Quick Start
 
@@ -60,8 +61,10 @@ stackguardian = {
   org_name = "your-org-name"
 }
 
-azure_location            = "westeurope"
-azure_resource_group_name = "my-resource-group"
+azure_location = "westeurope"
+# Optional — when omitted the module creates a new resource group named
+# "{effective_prefix}-rg-{subscription_id}" (lowercased, dashes).
+# azure_resource_group_name = "my-resource-group"
 ```
 
 ### Step 2: Deploy
@@ -102,8 +105,7 @@ module "runner_group" {
     api_key = "sgu_your_api_key"
   }
 
-  azure_location            = "westeurope"
-  azure_resource_group_name = "my-resource-group"
+  azure_location = "westeurope"
 }
 ```
 
@@ -115,7 +117,7 @@ module "runner_group" {
 |-----------|-------------|------|
 | `stackguardian.api_key` | StackGuardian API key (must start with `sgu_` or `sgo_`) | `string` (sensitive) |
 
-When `cloud_provider = "azure"` and `create_storage_backend = true`, `azure_resource_group_name` is also effectively required (the Storage Account creation will fail without an existing resource group).
+When `cloud_provider = "azure"`, the module creates a new Azure Resource Group by default. Set `create_azure_resource_group = false` and provide `azure_resource_group_name` to deploy into an existing resource group instead.
 
 ### Optional Parameters
 
@@ -126,7 +128,9 @@ When `cloud_provider = "azure"` and `create_storage_backend = true`, `azure_reso
 | `stackguardian.org_name` | Organization name; falls back to `SG_ORG_ID` env var | `""` |
 | `aws_region` | Target AWS region (used when `cloud_provider = "aws"`) | `eu-central-1` |
 | `azure_location` | Azure region (used when `cloud_provider = "azure"`) | `westeurope` |
-| `azure_resource_group_name` | Existing Azure Resource Group for the Storage Account | `""` |
+| `create_azure_resource_group` | Create a new Azure Resource Group for the storage account (Azure only) | `true` |
+| `create_blob_reader_role_assignment` | Grant the OIDC connector SP `Storage Blob Data Reader` on the storage account (Azure only). Disable when the runner SP lacks role-assignment write permission | `true` |
+| `azure_resource_group_name` | Resource Group name. Optional override when creating; required when using an existing RG | `""` |
 | `create_storage_backend` | Create a new storage backend (S3 bucket / Storage Account) | `true` |
 | `existing_s3_bucket_name` | Existing S3 bucket name (AWS, when `create_storage_backend = false`) | `""` |
 | `existing_azure_storage_account_name` | Existing Azure Storage Account name (Azure, when `create_storage_backend = false`) | `""` |
@@ -201,8 +205,9 @@ module "runner_group" {
     org_name = "my-organization"
   }
 
-  azure_location            = "germanywestcentral"
-  azure_resource_group_name = "rg-stackguardian"
+  azure_location              = "germanywestcentral"
+  create_azure_resource_group = true
+  azure_resource_group_name   = "rg-stackguardian" # optional name override for the new RG
 
   azure_storage = {
     account_tier             = "Standard"
@@ -231,6 +236,8 @@ module "runner_group" {
   }
 
   azure_location                            = "westeurope"
+  create_azure_resource_group               = false
+  azure_resource_group_name                 = "my-existing-rg"
   create_storage_backend                    = false
   existing_azure_storage_account_name       = "myexistingstorage"
   existing_azure_storage_account_access_key = var.azure_storage_key
@@ -309,11 +316,13 @@ Examples:
 4. **AWS — Permission denied on destroy**
    - Empty the bucket or set `force_destroy_storage_backend = true`.
 5. **Azure — Resource group not found**
-   - `azure_resource_group_name` must reference an **existing** resource group; the module does not create one.
+   - When `create_azure_resource_group = false`, `azure_resource_group_name` must reference an **existing** resource group. With the default `create_azure_resource_group = true`, the module creates the RG itself.
 6. **Azure — Existing storage account access key invalid**
    - When `create_storage_backend = false`, `existing_azure_storage_account_access_key` must be a primary or secondary key of `existing_azure_storage_account_name`.
 7. **Azure — Insufficient privileges to register an Azure AD application**
    - The OIDC connector creates an Azure AD application + SP. The caller needs Application.ReadWrite.OwnedBy or equivalent.
+8. **Azure — `AuthorizationFailed` on `Microsoft.Authorization/roleAssignments/write`**
+   - The Terraform identity lacks permission to create role assignments. Either grant it `Owner` / `User Access Administrator` at the subscription or RG scope, or set `create_blob_reader_role_assignment = false` and create the role assignment out of band using `azure_connector_service_principal_object_id` and `azure_storage_account_name`.
 
 ### Debugging Commands
 
@@ -342,6 +351,9 @@ terraform apply
 | `s3_bucket_arn` | ARN of the S3 bucket (AWS only) |
 | `storage_backend_role_arn` | ARN of the IAM role for storage backend access (AWS only) |
 | `storage_backend_role_name` | Name of the IAM role (AWS only) |
+| `azure_resource_group_name` | Azure Resource Group name (Azure only) — pass to downstream `azure/*` modules |
+| `azure_resource_group_location` | Azure Resource Group location (Azure only) |
+| `azure_connector_service_principal_object_id` | Object ID of the OIDC connector service principal (Azure only) — use to create the role assignment out of band when `create_blob_reader_role_assignment = false` |
 | `azure_storage_account_name` | Azure Storage Account name (Azure only) |
 | `azure_storage_access_key` | Azure Storage Account primary access key (Azure only, sensitive) |
 | `cloud_provider` | The cloud provider used for the storage backend |

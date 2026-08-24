@@ -1,0 +1,178 @@
+{
+  "ui:order": [
+    "stackguardian",
+    "azure_location",
+    "resource_group_name",
+    "runner_group_name",
+    "runner_group_token",
+    "storage_backend_identity_id",
+    "vm_image_id",
+    "vm_size",
+    "network",
+    "os_disk",
+    "firewall",
+    "runner_startup_timeout",
+    "override_names"
+  ],
+  "stackguardian": {
+    "ui:title": "StackGuardian Platform",
+    "ui:description": "Connection details used by the runner to register itself with the StackGuardian platform.",
+    "ui:order": ["api_uri", "api_key", "org_name"],
+    "api_uri": {
+      "ui:widget": "select",
+      "ui:description": "Region of the StackGuardian control plane your organization runs in."
+    },
+    "api_key": {
+      "ui:placeholder": "sgu_*** or ${secret::SECRET_NAME}",
+      "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})."
+    },
+    "org_name": {
+      "ui:placeholder": "demo-org",
+      "ui:description": "Override the StackGuardian organization name. Leave blank to derive it from the API key."
+    }
+  },
+  "azure_location": {
+    "ui:placeholder": "westeurope",
+    "ui:description": "Azure region where the VM and supporting resources are deployed."
+  },
+  "resource_group_name": {
+    "ui:placeholder": "rg-stackguardian-runner",
+    "ui:description": "Name of the existing Azure Resource Group where resources will be created."
+  },
+  "runner_group_name": {
+    "ui:description": "Name of the StackGuardian runner group this instance will register against (output of the runner_group module)."
+  },
+  "runner_group_token": {
+    "ui:placeholder": "${secret::RUNNER_GROUP_TOKEN}",
+    "ui:description": "Registration token for the runner group (output of the runner_group module). Use a secret reference."
+  },
+  "storage_backend_identity_id": {
+    "ui:placeholder": "/subscriptions/.../userAssignedIdentities/...",
+    "ui:description": "Resource ID of the User-Assigned Managed Identity used by the runner to access the storage backend (output of the runner_group module)."
+  },
+  "vm_image_id": {
+    "ui:placeholder": "/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Compute/images/{name}",
+    "ui:description": "Custom Azure image ID with docker, cron, jq, and sg-runner pre-installed (typically built via the sibling Packer module)."
+  },
+  "vm_size": {
+    "ui:placeholder": "Standard_D4s_v3",
+    "ui:description": "VM SKU. Minimum 4 vCPU and 8 GB RAM recommended."
+  },
+  "network": {
+    "ui:title": "Network",
+    "ui:description": "Either supply existing VNet/Subnet IDs or create a new VNet and Subnet.",
+    "ui:order": [
+      "create_network",
+      "vnet_id",
+      "subnet_id",
+      "vnet_address_space",
+      "subnet_address_prefix",
+      "associate_public_ip",
+      "create_network_infrastructure",
+      "proxy_url",
+      "additional_nsg_ids"
+    ],
+    "create_network": {
+      "ui:widget": "radio",
+      "ui:options": { "inline": true },
+      "ui:description": "Create a new VNet and Subnet for the runner. When false, you must provide existing VNet and Subnet IDs."
+    },
+    "vnet_id": {
+      "ui:placeholder": "/subscriptions/.../virtualNetworks/...",
+      "ui:description": "Resource ID of an existing Virtual Network."
+    },
+    "subnet_id": {
+      "ui:placeholder": "/subscriptions/.../subnets/...",
+      "ui:description": "Resource ID of an existing Subnet within the VNet above."
+    },
+    "vnet_address_space": {
+      "ui:description": "CIDR blocks for the new VNet.",
+      "items": { "ui:placeholder": "10.0.0.0/16" }
+    },
+    "subnet_address_prefix": {
+      "ui:placeholder": "10.0.1.0/24",
+      "ui:description": "CIDR for the new subnet inside the VNet address space."
+    },
+    "associate_public_ip": {
+      "ui:widget": "radio",
+      "ui:options": { "inline": true },
+      "ui:description": "Assign a public IP to the VM. Disable for fully private deployments."
+    },
+    "create_network_infrastructure": {
+      "ui:widget": "radio",
+      "ui:options": { "inline": true },
+      "ui:description": "Create a NAT Gateway with public IP and associate it with the (created) subnet for outbound internet access."
+    },
+    "proxy_url": {
+      "ui:placeholder": "http://proxy.internal:3128",
+      "ui:description": "Optional HTTP proxy URL for private network deployments."
+    },
+    "additional_nsg_ids": {
+      "ui:description": "Additional NSG resource IDs to associate with the NIC.",
+      "items": { "ui:placeholder": "/subscriptions/.../networkSecurityGroups/..." }
+    }
+  },
+  "os_disk": {
+    "ui:title": "OS Disk",
+    "ui:description": "OS disk configuration for the VM.",
+    "ui:order": ["caching", "storage_account_type", "disk_size_gb"],
+    "caching": { "ui:widget": "select" },
+    "storage_account_type": { "ui:widget": "select" },
+    "disk_size_gb": {
+      "ui:description": "OS disk size in GB. Minimum 30."
+    }
+  },
+  "firewall": {
+    "ui:title": "Firewall & SSH",
+    "ui:description": "SSH access and additional inbound rules for the NSG attached to the VM.",
+    "ui:order": [
+      "admin_username",
+      "generate_ssh_key",
+      "ssh_public_key",
+      "ssh_access_rules",
+      "additional_inbound_rules"
+    ],
+    "admin_username": {
+      "ui:placeholder": "azureuser",
+      "ui:description": "Linux admin user on the VM."
+    },
+    "generate_ssh_key": {
+      "ui:widget": "radio",
+      "ui:options": { "inline": true },
+      "ui:description": "**Warning:** when true, an RSA keypair is generated and the private key is stored in Terraform state and exposed as a sensitive output. Prefer providing your own ssh_public_key."
+    },
+    "ssh_public_key": {
+      "ui:widget": "textarea",
+      "ui:options": { "rows": 3 },
+      "ui:placeholder": "ssh-rsa AAAA... user@host",
+      "ui:description": "SSH public key authorized to log in as the admin user."
+    },
+    "ssh_access_rules": {
+      "ui:description": "Map of friendly names to source CIDRs allowed to reach port 22 (e.g. office: 1.2.3.4/32)."
+    },
+    "additional_inbound_rules": {
+      "ui:description": "Map of named NSG inbound rules. Keys are rule names; values configure priority, protocol, ports and source CIDRs."
+    }
+  },
+  "runner_startup_timeout": {
+    "ui:description": "Maximum seconds to wait for Docker to start before shutting down the instance."
+  },
+  "override_names": {
+    "ui:title": "Resource Naming",
+    "ui:description": "Customize the prefix used for naming Azure resources created by this module.",
+    "ui:order": ["global_prefix", "include_org_in_prefix", "org_name"],
+    "global_prefix": {
+      "ui:placeholder": "SG_RUNNER",
+      "ui:description": "Prefix used for naming all Azure resources created by this module."
+    },
+    "include_org_in_prefix": {
+      "ui:widget": "radio",
+      "ui:options": { "inline": true },
+      "ui:description": "When true, appends the org name to the prefix (e.g. SG_RUNNER_demo-org)."
+    },
+    "org_name": {
+      "ui:placeholder": "demo-org",
+      "ui:description": "Organization name to include in the prefix when include_org_in_prefix is true."
+    }
+  }
+}

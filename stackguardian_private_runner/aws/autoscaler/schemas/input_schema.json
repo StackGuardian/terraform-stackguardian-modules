@@ -1,6 +1,5 @@
 {
   "type": "object",
-  "additionalProperties": false,
   "properties": {
     "stackguardian": {
       "title": "StackGuardian Configuration",

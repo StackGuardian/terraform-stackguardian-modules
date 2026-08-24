@@ -1,46 +1,35 @@
-# StackGuardian Private Runner - Packer Image Builder (Azure)
+# StackGuardian Private Runner Image Builder - Azure Module
 
-Build custom Azure Managed Images for StackGuardian Private Runner deployments with pre-installed dependencies and configurable tooling.
+Terraform module that builds a custom Azure managed image preloaded with the StackGuardian Private Runner agent, Terraform, and OpenTofu, using HashiCorp Packer driven from a `null_resource` `local-exec`.
 
 ## Overview
 
-This Terraform module automates the creation of custom Azure Managed Images using HashiCorp Packer. The resulting image includes Docker, Terraform, OpenTofu, and StackGuardian runner components, providing an optimized base image for Private Runner deployments.
+This module provisions an Azure managed image that the sibling `azure_runner` autoscaler module (or any VM/VMSS) can boot directly. Packer is invoked from Terraform, the build runs against either a temporary or an existing VNet/subnet, and the resulting image ID is parsed back out of the Packer manifest and exposed as a Terraform output. Optionally, the module can also create the destination resource group and clean up the image on `terraform destroy`.
 
 ### What Gets Created
 
-- **Azure Managed Image**: Pre-configured image with all dependencies
-- **Packer Build VM**: Temporary VM used during the build process (automatically terminated)
-- **Resource Group** (optional): When `create_resource_group = true`
-
-### What Gets Installed on the Image
-
-- Docker (container runtime)
-- jq (JSON processor)
-- wget, unzip, curl
-- cron (task scheduling)
-- Terraform (optional, configurable versions)
-- OpenTofu (optional, configurable versions)
-- StackGuardian Runner (sg-runner binary)
+- **`azurerm_resource_group`** (optional, count-gated by `create_resource_group`): destination resource group for the image.
+- **`null_resource.packer_build`**: runs `scripts/build_image.sh`, which installs Packer, renders `image.pkr.hcl`, and triggers the build. Re-runs on every apply (timestamp trigger).
+- **`data.external.packer_image_id`**: parses `packer_manifest.log` to extract the resource ID of the freshly built managed image.
+- **`null_resource.image_cleanup`** (when `cleanup_images_on_destroy = true`): destroy-time hook that runs `scripts/cleanup_image.sh` to delete the image from Azure.
 
 ## Prerequisites
 
-- **Azure Subscription**: With Contributor permissions to create VMs and images
-- **Azure CLI**: Authenticated (`az login`)
-- **Terraform**: Version 1.0 or later
-- **Network Access**: Packer creates temporary networking by default, or use an existing VNet/subnet
+- An Azure subscription and credentials available to the runner (one of: `az login`, `ARM_*` service-principal env vars, or managed identity).
+- Permission to create managed images in the target resource group (and to create the resource group itself, if `create_resource_group = true`).
+- Outbound network access from the build VM to package mirrors (Ubuntu archive / RHEL repos, HashiCorp/OpenTofu releases). If the network is locked down, supply `network.proxy_url`.
+- `sh`, `curl`, and `unzip` available on the machine running Terraform — `scripts/setup.sh` uses them to bootstrap Packer (default version `1.14.1`).
 
 ## Quick Start
 
-### Step 1: Configure Variables
+### Step 1: Configure Azure credentials
 
-Create a `terraform.tfvars` file:
-
-```hcl
-azure_location      = "westeurope"
-resource_group_name = "my-image-rg"
+```bash
+az login
+az account set --subscription "<your-subscription-id>"
 ```
 
-### Step 2: Deploy
+### Step 2: Apply the module
 
 ```bash
 terraform init
@@ -48,20 +37,14 @@ terraform plan
 terraform apply
 ```
 
-### Step 3: Retrieve Image ID
-
-```bash
-terraform output image_id
-```
-
 ### Basic Configuration Example
 
 ```hcl
-module "packer_image" {
-  source = "./azure/packer"
+module "private_runner_image" {
+  source = "./packer"
 
-  azure_location      = "westeurope"
-  resource_group_name = "my-image-rg"
+  resource_group_name   = "sg-runner-images-rg"
+  create_resource_group = true
 }
 ```
 
@@ -77,273 +60,173 @@ module "packer_image" {
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `azure_location` | Azure region for image creation | `westeurope` |
-| `create_resource_group` | Create the resource group (if false, must already exist) | `false` |
-| `vm_size` | Azure VM size for the build process | `Standard_D2s_v3` |
-| `os.publisher` | OS publisher (`Canonical` or `RedHat`) | `Canonical` |
-| `os.offer` | OS offer | `0001-com-ubuntu-server-jammy` |
-| `os.sku` | OS SKU | `22_04-lts-gen2` |
-| `os.version` | OS version | `latest` |
-| `os.update_os_before_install` | Update OS packages before installation | `true` |
-| `os.user_script` | Custom script to run during provisioning | `""` |
-| `packer_config.version` | Packer version to use | `1.14.1` |
-| `packer_config.cleanup_images_on_destroy` | Auto-cleanup image on terraform destroy | `true` |
-| `image_name_prefix` | Prefix for the generated image name | `sg-runner` |
-| `terraform.primary_version` | Primary Terraform version to install | `""` |
-| `terraform.additional_versions` | Additional Terraform versions to install | `[]` |
-| `opentofu.primary_version` | Primary OpenTofu version to install | `""` |
-| `opentofu.additional_versions` | Additional OpenTofu versions to install | `[]` |
-| `network.vnet_name` | Existing VNet name (empty = Packer creates temporary networking) | `""` |
-| `network.subnet_name` | Existing subnet name | `""` |
-| `network.resource_group_name` | Resource group of the existing VNet | `""` |
+| `azure_location` | Target Azure region for the build | `"westeurope"` |
+| `create_resource_group` | Create the resource group as part of this deployment | `false` |
+| `vm_size` | Packer build VM size (min 2 vCPU / 4GB RAM) | `"Standard_D2s_v3"` |
+| `network.vnet_name` | Existing VNet to attach the build VM to | `""` (Packer creates temp networking) |
+| `network.subnet_name` | Existing subnet inside the VNet above | `""` |
+| `network.resource_group_name` | Resource group containing the existing VNet | `""` |
+| `network.proxy_url` | HTTP proxy URL forwarded to the build VM | `""` |
+| `os.publisher` | Image publisher — `Canonical` or `RedHat` | `"Canonical"` |
+| `os.offer` | Marketplace image offer | `"0001-com-ubuntu-server-jammy"` |
+| `os.sku` | Marketplace image SKU | `"22_04-lts-gen2"` |
+| `os.version` | Marketplace image version | `"latest"` |
+| `os.update_os_before_install` | Run full OS update before installing the agent | `true` |
+| `os.user_script` | Extra shell script executed after agent install | `""` |
+| `packer_config.version` | Packer version bootstrapped by `scripts/setup.sh` | `"1.14.1"` |
+| `packer_config.cleanup_images_on_destroy` | Delete the image on `terraform destroy` | `true` |
+| `image_name_prefix` | Prefix for the generated image name | `"sg-runner"` |
+| `terraform.primary_version` | Default Terraform version pre-installed | `""` |
+| `terraform.additional_versions` | Extra Terraform versions to install | `[]` |
+| `opentofu.primary_version` | Default OpenTofu version pre-installed | `""` |
+| `opentofu.additional_versions` | Extra OpenTofu versions to install | `[]` |
 
 ### Configuration Examples
 
-#### Basic Configuration (Ubuntu Default)
+#### Basic Configuration
 
 ```hcl
-module "packer_image" {
-  source = "./azure/packer"
+module "private_runner_image" {
+  source = "./packer"
 
-  azure_location      = "westeurope"
-  resource_group_name = "my-image-rg"
+  resource_group_name   = "sg-runner-images-rg"
+  create_resource_group = true
 }
 ```
 
-#### Ubuntu with Multiple Terraform Versions
+#### Advanced Configuration
 
 ```hcl
-module "packer_image" {
-  source = "./azure/packer"
+module "private_runner_image" {
+  source = "./packer"
 
-  azure_location      = "westeurope"
-  resource_group_name = "my-image-rg"
+  azure_location        = "northeurope"
+  resource_group_name   = "sg-runner-images-rg"
+  create_resource_group = false
+  vm_size               = "Standard_D4s_v3"
+  image_name_prefix     = "sg-runner-prod"
 
-  os = {
-    publisher                = "Canonical"
-    offer                    = "0001-com-ubuntu-server-jammy"
-    sku                      = "22_04-lts-gen2"
-    update_os_before_install = true
+  network = {
+    vnet_name           = "shared-vnet"
+    subnet_name         = "build-subnet"
+    resource_group_name = "shared-network-rg"
+    proxy_url           = "http://proxy.internal:8080"
   }
-
-  terraform = {
-    primary_version     = "1.5.7"
-    additional_versions = ["1.4.6", "1.6.0", "1.7.0"]
-  }
-
-  opentofu = {
-    primary_version = "1.8.0"
-  }
-}
-```
-
-#### RHEL with Existing Network
-
-```hcl
-module "packer_image" {
-  source = "./azure/packer"
-
-  azure_location      = "westeurope"
-  resource_group_name = "my-image-rg"
-  vm_size             = "Standard_D4s_v3"
 
   os = {
     publisher                = "RedHat"
     offer                    = "RHEL"
-    sku                      = "9_3"
+    sku                      = "9-lvm-gen2"
+    version                  = "latest"
     update_os_before_install = true
-  }
-
-  network = {
-    vnet_name           = "my-existing-vnet"
-    subnet_name         = "my-build-subnet"
-    resource_group_name = "my-network-rg"
+    user_script              = file("${path.module}/hardening.sh")
   }
 
   packer_config = {
     version                   = "1.14.1"
-    cleanup_images_on_destroy = false
+    cleanup_images_on_destroy = true
   }
-}
-```
 
-#### Custom User Script
+  terraform = {
+    primary_version     = "1.6.6"
+    additional_versions = ["1.5.7"]
+  }
 
-```hcl
-module "packer_image" {
-  source = "./azure/packer"
-
-  azure_location      = "westeurope"
-  resource_group_name = "my-image-rg"
-
-  os = {
-    publisher   = "Canonical"
-    offer       = "0001-com-ubuntu-server-jammy"
-    sku         = "22_04-lts-gen2"
-    user_script = <<-EOF
-      #!/bin/bash
-      # Install additional tools
-      sudo apt-get install -y git
-
-      # Configure custom settings
-      echo "export CUSTOM_VAR=value" >> ~/.bashrc
-    EOF
+  opentofu = {
+    primary_version     = "1.8.0"
+    additional_versions = ["1.7.3"]
   }
 }
 ```
 
 ## Usage
 
-### Building the Image
-
 ```bash
-# Initialize Terraform
 terraform init
-
-# Preview changes
+terraform validate
 terraform plan
-
-# Build the image
 terraform apply
 ```
 
-### Using the Image
-
-After creation, use the image ID with the Azure Single Runner module:
-
-```bash
-# Get the image ID
-IMAGE_ID=$(terraform output -raw image_id)
-
-# Deploy runners using this image
-cd ../azure_runner
-terraform apply -var="vm_image_id=$IMAGE_ID"
-```
+Each `apply` re-runs the Packer build (the resource has a `timestamp()` trigger), so version bumps in `terraform`/`opentofu`/`os` automatically produce a fresh image.
 
 ### Cleanup
 
 ```bash
-# Destroy and cleanup image (if cleanup_images_on_destroy = true)
 terraform destroy
 ```
 
-For manual cleanup:
-
-```bash
-# List the image
-terraform output -json cleanup_commands | jq -r '.list_image'
-
-# Delete the image
-terraform output -json cleanup_commands | jq -r '.delete_image'
-
-# List all images with prefix
-terraform output -json cleanup_commands | jq -r '.list_all'
-```
+When `packer_config.cleanup_images_on_destroy = true` (default), the destroy provisioner runs `scripts/cleanup_image.sh` and deletes the managed image from Azure. If disabled, the image will remain in the resource group and must be deleted manually (see `cleanup_commands` output).
 
 ## Architecture
 
 ### Resource Organization
 
-| File | Purpose |
-|------|---------|
-| `main.tf` | Packer build orchestration, image cleanup logic |
-| `variables.tf` | Input variable definitions and validation |
-| `outputs.tf` | Output values (image ID, info, cleanup commands) |
-| `locals.tf` | OS family detection, SSH username mapping, image naming |
-| `provider.tf` | Azure and utility provider configuration |
-| `image.pkr.hcl` | Packer HCL template for Azure image creation |
-| `scripts/build_image.sh` | Shell script to execute Packer |
-| `scripts/setup.sh` | Image provisioning script (package installation) |
+- `image.pkr.hcl` — Packer template (azure-arm builder + provisioners).
+- `main.tf` — Terraform resources (RG, build, manifest parsing, cleanup).
+- `locals.tf` — derived values (OS family, SSH username, image name, RG selection).
+- `variables.tf` — input variables.
+- `outputs.tf` — exported image metadata and cleanup commands.
+- `provider.tf` — provider requirements.
+- `scripts/setup.sh` — installs Packer at `packer_config.version`.
+- `scripts/build_image.sh` — orchestrates the build and writes `packer_manifest.log`.
+- `scripts/cleanup_image.sh` — destroy-time image deletion.
 
-### Build Flow
+### Resource Naming Convention
 
-```
-terraform apply
-    |
-    v
-[Execute Packer] --> null_resource.packer_build
-    |                     |
-    |                     v
-    |              scripts/build_image.sh
-    |                     |
-    |                     v
-    |              image.pkr.hcl (Packer template)
-    |                     |
-    |                     v
-    |              scripts/setup.sh (on Azure VM)
-    |
-    v
-[Parse Image ID] --> data.external.packer_image_id
-    |
-    v
-[Output Image ID]
-```
-
-### Image Naming Convention
-
-Images are named following the pattern:
-```
-{image_name_prefix}-{os_family}-{os_sku}-{timestamp}
-```
-
-Examples:
-- `sg-runner-ubuntu-22_04-lts-gen2-20240115-1430`
-- `sg-runner-rhel-9_3-20240115-1430`
+Image name follows: `{image_name_prefix}-{os_family}-{os.sku}` where `os_family` is `ubuntu` for `Canonical` and `rhel` for `RedHat`. A timestamp suffix is appended by Packer at build time.
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Packer Build Fails**
-   - Check network connectivity (Packer creates temporary networking by default)
-   - If using existing VNet, verify subnet has internet access
-   - Review `packer_manifest.log` for detailed errors
+1. **`az` CLI / Azure auth not available**
+   - Run `az login`, or export `ARM_CLIENT_ID` / `ARM_CLIENT_SECRET` / `ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` before `terraform apply`.
 
-2. **Image Cleanup Fails**
-   - Verify Azure CLI credentials (`az login`)
-   - Check if the image is in use by a VM or VMSS
+2. **Packer install fails in `scripts/setup.sh`**
+   - Confirm outbound HTTPS to `releases.hashicorp.com`. Behind a proxy, set `HTTPS_PROXY` in the runner environment as well as `network.proxy_url`.
 
-3. **Terraform/OpenTofu Not Installed**
-   - Ensure version strings are valid (e.g., `1.5.7`, not `v1.5.7`)
-   - Check network access to download URLs
+3. **`packer_manifest.log` empty / `image_id` is blank**
+   - The build failed before producing an artifact. Inspect the Terraform `local-exec` output and re-run the script manually with the same env vars to surface the Packer error.
 
-4. **Permission Denied**
-   - Verify Azure CLI has Contributor role on the subscription or resource group
-   - Ensure the service principal can create VMs and images
+4. **Cleanup script can't find the image**
+   - The image was already deleted manually or by a prior destroy. The script exits non-fatally; you can ignore it.
+
+5. **Existing VNet/Subnet not used**
+   - All three of `network.vnet_name`, `network.subnet_name`, and `network.resource_group_name` must be set; otherwise Packer falls back to creating temporary networking.
 
 ### Debugging Commands
 
 ```bash
-# View Packer build logs
-cat packer_manifest.log
+# Tail the latest build output
+tail -f packer_manifest.log
 
-# Check image status
-az image show --ids $(terraform output -raw image_id)
+# Re-run the build script manually
+sh scripts/build_image.sh
 
-# List all images with prefix
-az image list --resource-group <rg> \
+# Inspect the produced image
+az image show --ids "$(terraform output -raw image_id)"
+
+# List all images produced by this prefix
+az image list --resource-group "$(terraform output -raw resource_group_name)" \
   --query "[?starts_with(name, 'sg-runner')].{name:name, id:id}" -o table
-
-# Enable Terraform debug logging
-export TF_LOG=DEBUG
-terraform apply
 ```
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `image_id` | The resource ID of the created Azure Managed Image |
-| `image_info` | Comprehensive image metadata (location, OS, timestamps, cleanup settings) |
-| `resource_group_name` | The resource group name where the image is stored |
-| `cleanup_commands` | Azure CLI commands for manual image cleanup |
+| `image_id` | Resource ID of the created Azure managed image |
+| `image_info` | Comprehensive image metadata (id, location, RG, OS family/SKU, timestamp, prefix, cleanup settings) |
+| `resource_group_name` | Resource group where the image is stored |
+| `cleanup_commands` | Azure CLI commands to inspect or manually delete the image |
 
 ## Security Considerations
 
-- **OS Updates**: Recommended to enable `update_os_before_install` for security patches
-- **Automatic Cleanup**: Configurable automatic image cleanup on destroy
-- **Temporary Resources**: Build VM is automatically terminated after image creation
-- **Network Isolation**: Packer creates temporary networking by default, or use an existing private VNet for enterprise environments
+- Image stays inside the customer's subscription and resource group — nothing is published to a shared gallery.
+- No inbound ports are exposed; Packer uses ephemeral SSH credentials over the (temporary or supplied) subnet.
+- HTTP proxy support via `network.proxy_url` for restricted egress environments.
+- `os.user_script` allows custom hardening, CA cert injection, or extra tooling without forking the module.
 
 ## Requirements
 
@@ -356,13 +239,9 @@ terraform apply
 
 ## Next Steps
 
-After building your image:
-
-1. **Deploy Private Runners**: Use the [Azure Single Runner](../azure_runner/) module with the created image ID
-2. **Configure Runner Group**: Set up StackGuardian runner group using the `runner_group` module
-3. **Set Up Autoscaling**: Deploy the [Azure Autoscaler](../autoscaler/) for automatic scaling
+Pass `module.private_runner_image.image_id` into the sibling `azure_runner` module (or your own VMSS) to boot StackGuardian private runners from the freshly built image.
 
 ## Support
 
-- [StackGuardian Documentation](https://docs.stackguardian.io)
-- [GitHub Issues](https://github.com/StackGuardian/terraform-stackguardian-modules/issues)
+- StackGuardian docs: <https://docs.stackguardian.io>
+- Module source / issues: this repository

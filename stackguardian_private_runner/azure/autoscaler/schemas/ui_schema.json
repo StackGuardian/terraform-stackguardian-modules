@@ -1,0 +1,142 @@
+{
+  "ui:title": "StackGuardian Runner Autoscaler - Azure",
+  "ui:description": "Deploy an Azure Function-based autoscaler that monitors StackGuardian job queues and scales a VM Scale Set up or down based on workload demand.",
+  "ui:order": [
+    "stackguardian",
+    "azure_location",
+    "resource_group_name",
+    "vmss",
+    "scaling",
+    "override_names",
+    "storage"
+  ],
+  "stackguardian": {
+    "ui:title": "StackGuardian Configuration",
+    "ui:description": "Configure your StackGuardian platform connection",
+    "ui:order": ["api_uri", "api_key", "org_name"],
+    "api_uri": {
+      "ui:widget": "select",
+      "ui:description": "Select your StackGuardian platform region"
+    },
+    "api_key": {
+      "ui:placeholder": "sgu_*** or sgo_*** or ${secret::SECRET_NAME}",
+      "ui:description": "Your organization's API key (sgo_*/sgu_*) or a secret reference (${secret::SECRET_NAME})"
+    },
+    "org_name": {
+      "ui:placeholder": "your-org-name",
+      "ui:description": "Your organization name on the StackGuardian Platform (extracted from environment if empty)"
+    }
+  },
+  "azure_location": {
+    "ui:widget": "select",
+    "ui:placeholder": "Select Azure Region",
+    "ui:description": "The Azure region where autoscaler resources will be deployed"
+  },
+  "resource_group_name": {
+    "ui:placeholder": "my-resource-group",
+    "ui:description": "The name of the existing Azure Resource Group where autoscaler resources will be deployed"
+  },
+  "vmss": {
+    "ui:title": "VM Scale Set",
+    "ui:description": "Configure the existing VM Scale Set to be managed by the autoscaler",
+    "ui:order": ["name", "resource_group_name"],
+    "name": {
+      "ui:placeholder": "my-runner-vmss",
+      "ui:description": "Name of the existing VM Scale Set running StackGuardian runner instances"
+    },
+    "resource_group_name": {
+      "ui:placeholder": "vmss-resource-group",
+      "ui:description": "Resource group containing the VM Scale Set (defaults to the autoscaler resource group if empty)"
+    }
+  },
+  "override_names": {
+    "ui:title": "Resource Naming Configuration",
+    "ui:description": "Customize resource names (optional)",
+    "ui:order": ["global_prefix", "include_org_in_prefix", "runner_group_name"],
+    "global_prefix": {
+      "ui:placeholder": "SG_RUNNER",
+      "ui:description": "Prefix used for naming all Azure resources created by this module"
+    },
+    "include_org_in_prefix": {
+      "ui:widget": "checkbox",
+      "ui:description": "When enabled, appends organization name to the global prefix (e.g., SG_RUNNER_demo-org)"
+    },
+    "runner_group_name": {
+      "ui:placeholder": "my-runner-group",
+      "ui:description": "Override the default StackGuardian runner group name (output from runner_group module)"
+    }
+  },
+  "scaling": {
+    "ui:title": "Scaling Configuration",
+    "ui:description": "Configure auto-scaling thresholds and behavior",
+    "ui:order": [
+      "min_runners",
+      "max_runners",
+      "desired_runners",
+      "scale_out_threshold",
+      "scale_in_threshold",
+      "scale_out_step",
+      "scale_in_step",
+      "scale_out_cooldown_duration",
+      "scale_in_cooldown_duration",
+      "schedule_cron"
+    ],
+    "min_runners": {
+      "ui:description": "Minimum number of runners to maintain"
+    },
+    "max_runners": {
+      "ui:description": "Maximum number of runners the autoscaler can provision"
+    },
+    "desired_runners": {
+      "ui:description": "Optional initial capacity. Leave empty to let the autoscaler choose between min and max on first run"
+    },
+    "scale_out_threshold": {
+      "ui:description": "Number of queued jobs to trigger scale-out"
+    },
+    "scale_in_threshold": {
+      "ui:description": "Number of queued jobs below which to trigger scale-in"
+    },
+    "scale_out_step": {
+      "ui:description": "Number of instances to add when scaling out"
+    },
+    "scale_in_step": {
+      "ui:description": "Number of instances to remove when scaling in"
+    },
+    "scale_out_cooldown_duration": {
+      "ui:description": "Minutes to wait after scale-out before scaling again (minimum: 4)"
+    },
+    "scale_in_cooldown_duration": {
+      "ui:description": "Minutes to wait after scale-in before scaling again"
+    },
+    "schedule_cron": {
+      "ui:placeholder": "0 */1 * * * *",
+      "ui:description": "NCRONTAB expression that drives the Function App timer trigger (every minute by default)"
+    }
+  },
+  "storage": {
+    "ui:title": "Storage Backend",
+    "ui:description": "Storage configuration for autoscaler state (cooldown timestamps)",
+    "ui:order": [
+      "account_tier",
+      "account_replication_type",
+      "account_url",
+      "use_rbac"
+    ],
+    "account_tier": {
+      "ui:widget": "select",
+      "ui:description": "Performance tier of the storage account"
+    },
+    "account_replication_type": {
+      "ui:widget": "select",
+      "ui:description": "Replication strategy for the storage account"
+    },
+    "account_url": {
+      "ui:placeholder": "https://mystorageaccount.privatelink.blob.core.windows.net",
+      "ui:description": "Optional explicit storage account URL (for private endpoints / VNet-integrated deployments)"
+    },
+    "use_rbac": {
+      "ui:widget": "checkbox",
+      "ui:description": "Use managed identity (RBAC) instead of connection strings for storage authentication"
+    }
+  }
+}

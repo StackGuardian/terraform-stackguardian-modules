@@ -1,6 +1,5 @@
 {
   "type": "object",
-  "additionalProperties": false,
   "properties": {
     "stackguardian": {
       "title": "StackGuardian Configuration",
@@ -220,13 +219,22 @@
               ],
               "default": "westeurope"
             },
+            "create_azure_resource_group": {
+              "title": "Create Azure Resource Group",
+              "type": "boolean",
+              "default": true
+            },
+            "create_blob_reader_role_assignment": {
+              "title": "Create Blob Reader Role Assignment",
+              "type": "boolean",
+              "default": true
+            },
             "azure_resource_group_name": {
               "title": "Azure Resource Group Name",
               "type": "string",
-              "minLength": 1
+              "default": ""
             }
           },
-          "required": ["azure_resource_group_name"],
           "dependencies": {
             "create_storage_backend": {
               "oneOf": [
