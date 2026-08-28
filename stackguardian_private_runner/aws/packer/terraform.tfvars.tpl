@@ -109,6 +109,10 @@ os = {
 # The AMI is built on the first apply and reused on every following plan.
 # To build a new one, change rebuild_ami_token to any new value (a date, a tool
 # version, anything). Leaving it unchanged never rebuilds.
+# Prefix of the generated AMI name; the default matches AMIs built by earlier
+# versions of this module.
+# ami_name_prefix = "SG-RUNNER-ami"
+
 # packer_config = {
 #   version           = "1.14.1"
 #   rebuild_ami_token = ""  # e.g. "2026-07-30" or "tofu-1.11" to force a rebuild

@@ -126,3 +126,24 @@ variable "opentofu" {
     additional_versions = []
   }
 }
+
+/*---------------------------+
+ | Runner Script Settings    |
+ +---------------------------*/
+variable "sg_runner" {
+  description = <<EOT
+    StackGuardian runner script installation configuration.
+    Set pre_release to true to bake the newest pre-release of the sg-runner
+    script into the image instead of the latest stable release. When no
+    pre-release exists, the build falls back to the latest stable release.
+    Changing this alone does not rebuild an existing image - also change
+    packer_config.rebuild_image_token.
+  EOT
+  type = object({
+    pre_release = optional(bool, false)
+  })
+  default = {
+    pre_release = false
+  }
+}
+

@@ -1,4 +1,15 @@
 #!/bin/sh
+#
+# Shared image provisioning script for the AWS and Azure Packer builds.
+# Both aws/packer/ami.pkr.hcl and azure/packer/image.pkr.hcl run this file.
+#
+# There are deliberately no cloud branches here: everything that used to differ
+# between the two copies is driven by OS_FAMILY (which OS the image is built on)
+# or SSH_USERNAME (the image's admin user), both supplied by the caller.
+#
+# Environment supplied by the Packer provisioner:
+#   OS_FAMILY, SSH_USERNAME, UPDATE_OS, PROXY_URL, PRIVATE_NETWORK,
+#   TERRAFORM_VERSION(S), OPENTOFU_VERSION(S), SG_RUNNER_PRE_RELEASE, USER_SCRIPT
 
 set -e
 
@@ -85,6 +96,22 @@ _apt_dependencies() { #{{{
 }
 #}}}: _apt_dependencies
 
+_yum_dependencies() { #{{{
+  if [ "$UPDATE_OS" = "true" ]; then
+    if [ -n "$PROXY_URL" ]; then
+      echo "proxy=$PROXY_URL" | sudo tee -a /etc/yum.conf
+    fi
+    sudo yum update -y
+  fi
+  sudo yum install -y \
+    docker \
+    unzip \
+    cronie \
+    gnupg2 \
+    wget
+}
+#}}}: _yum_dependencies
+
 _dnf_dependencies() { #{{{
   if [ "$UPDATE_OS" = "true" ]; then
     if [ -n "$PROXY_URL" ]; then
@@ -129,7 +156,15 @@ _wget_wrapper() { #{{{
   output_file="${2:-"${url##*/}"}"
 
   echo ">> Downloading ${url}.."
-  wget -q "$url" -O "$output_file"
+
+  # Retry and time out on private networks, where a dropped packet otherwise
+  # hangs the build until Packer's own timeout.
+  if [ "$PRIVATE_NETWORK" = "true" ]; then
+    wget -q --timeout=60 --tries=3 --retry-connrefused "$url" -O "$output_file"
+  else
+    wget -q "$url" -O "$output_file"
+  fi
+
   echo ">> Saved to ${output_file}."
 }
 #}}}: _wget_wrapper
@@ -410,14 +445,21 @@ _user_script_wrapper() { #{{{
 #}}}: _user_script_wrapper
 
 _handle_os_package_installation() { #{{{
+  # SSH_USERNAME is the image's admin user - "ubuntu", "ec2-user" or
+  # "azureuser" depending on the base image, and overridable by the caller.
+  # It used to be hardcoded per cloud, which silently ignored that override.
   if [ "$OS_FAMILY" = "ubuntu" ]; then
     _apt_dependencies
     _systemctl_enable "cron" "docker"
-    _usermod_add_to_group "docker" "ubuntu"
+    _usermod_add_to_group "docker" "$SSH_USERNAME"
+  elif [ "$OS_FAMILY" = "amazon" ]; then
+    _yum_dependencies
+    _systemctl_enable "crond" "docker"
+    _usermod_add_to_group "docker" "$SSH_USERNAME"
   elif [ "$OS_FAMILY" = "rhel" ]; then
     _dnf_dependencies
     _systemctl_enable "crond" "docker"
-    _usermod_add_to_group "docker" "azureuser"
+    _usermod_add_to_group "docker" "$SSH_USERNAME"
   else
     echo "ERROR: Unsupported OS_FAMILY: $OS_FAMILY"
     exit 1

@@ -9,7 +9,8 @@
     "packer_config",
     "image_name_prefix",
     "terraform",
-    "opentofu"
+    "opentofu",
+    "sg_runner"
   ],
   "azure_location": {
     "ui:description": "The target Azure region to build the Private Runner image",
@@ -125,6 +126,13 @@
       "items": {
         "ui:placeholder": "1.7.3"
       }
+    }
+  },
+  "sg_runner": {
+    "ui:title": "StackGuardian Runner",
+    "pre_release": {
+      "ui:widget": "checkbox",
+      "ui:description": "Bake the newest sg-runner pre-release into the image instead of the latest stable release."
     }
   }
 }

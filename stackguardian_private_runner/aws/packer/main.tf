@@ -26,28 +26,34 @@ data "aws_ami" "this" {
 # build a fresh AMI; re-plans with an unchanged token do nothing.
 resource "null_resource" "packer_build" {
   provisioner "local-exec" {
-    command     = "sh ${path.module}/scripts/build_ami.sh"
+    command     = "sh ../../packer/scripts/build.sh"
     working_dir = path.module
     environment = {
-      BASE_AMI                                = data.aws_ami.this.id
-      OS_FAMILY                               = var.os.family
-      OS_VERSION                              = var.os.family != "amazon" ? var.os.version : ""
-      UPDATE_OS                               = var.os.update_os_before_install
-      PACKER_VERSION                          = var.packer_config.version
-      REGION                                  = var.aws_region
-      SSH_USERNAME                            = local.ssh_usernames[var.os.family]
-      PUBLIC_SUBNET_ID                        = var.network.public_subnet_id
-      PRIVATE_SUBNET_ID                       = var.network.private_subnet_id
-      PROXY_URL                               = var.network.proxy_url
-      USER_SCRIPT                             = var.os.user_script
-      TERRAFORM_VERSION                       = var.terraform.primary_version
-      TERRAFORM_VERSIONS                      = join(" ", var.terraform.additional_versions)
-      OPENTOFU_VERSION                        = var.opentofu.primary_version
-      OPENTOFU_VERSIONS                       = join(" ", var.opentofu.additional_versions)
-      SG_RUNNER_PRE_RELEASE                   = var.sg_runner.pre_release
-      VPC_ID                                  = var.network.vpc_id
-      DEREGISTRATION_PROTECTION_ENABLED       = var.packer_config.deregistration_protection.enabled
-      DEREGISTRATION_PROTECTION_WITH_COOLDOWN = var.packer_config.deregistration_protection.with_cooldown
+      # Drives the shared build script itself
+      PACKER_VERSION  = var.packer_config.version
+      PACKER_TEMPLATE = "./ami.pkr.hcl"
+
+      # Packer reads PKR_VAR_<name> natively, so these reach ami.pkr.hcl
+      # without the build script having to know the per-cloud variable list.
+      PKR_VAR_base_ami                                = data.aws_ami.this.id
+      PKR_VAR_ami_name_prefix                         = var.ami_name_prefix
+      PKR_VAR_os_family                               = var.os.family
+      PKR_VAR_os_version                              = var.os.family != "amazon" ? var.os.version : ""
+      PKR_VAR_update_os_before_install                = var.os.update_os_before_install
+      PKR_VAR_region                                  = var.aws_region
+      PKR_VAR_ssh_username                            = local.ssh_usernames[var.os.family]
+      PKR_VAR_public_subnet_id                        = var.network.public_subnet_id
+      PKR_VAR_private_subnet_id                       = var.network.private_subnet_id
+      PKR_VAR_proxy_url                               = var.network.proxy_url
+      PKR_VAR_user_script                             = var.os.user_script
+      PKR_VAR_terraform_version                       = var.terraform.primary_version
+      PKR_VAR_terraform_versions                      = join(" ", var.terraform.additional_versions)
+      PKR_VAR_opentofu_version                        = var.opentofu.primary_version
+      PKR_VAR_opentofu_versions                       = join(" ", var.opentofu.additional_versions)
+      PKR_VAR_sg_runner_pre_release                   = var.sg_runner.pre_release
+      PKR_VAR_vpc_id                                  = var.network.vpc_id
+      PKR_VAR_deregistration_protection_enabled       = var.packer_config.deregistration_protection.enabled
+      PKR_VAR_deregistration_protection_with_cooldown = var.packer_config.deregistration_protection.with_cooldown
     }
   }
 

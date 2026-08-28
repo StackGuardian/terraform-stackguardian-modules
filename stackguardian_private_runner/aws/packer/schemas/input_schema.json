@@ -228,6 +228,12 @@
       },
       "additionalProperties": false
     },
+    "ami_name_prefix": {
+      "title": "AMI Name Prefix",
+      "type": "string",
+      "default": "SG-RUNNER-ami",
+      "minLength": 1
+    },
     "terraform": {
       "title": "Terraform Installation",
       "type": "object",

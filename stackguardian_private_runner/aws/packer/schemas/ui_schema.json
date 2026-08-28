@@ -7,6 +7,7 @@
     "os",
     "instance_type",
     "packer_config",
+    "ami_name_prefix",
     "terraform",
     "opentofu",
     "sg_runner"
@@ -132,5 +133,9 @@
       "ui:widget": "checkbox",
       "ui:description": "Install the newest sg-runner pre-release instead of the latest stable release. Falls back to the latest stable release when no pre-release is published. Intended for testing upcoming runner changes; keep disabled for production. Changing this on an existing deployment only takes effect once a new AMI is built, so also change the Rebuild AMI Token."
     }
+  },
+  "ami_name_prefix": {
+    "ui:placeholder": "SG-RUNNER-ami",
+    "ui:description": "Prefix of the generated AMI name. The default matches AMIs built by earlier versions."
   }
 }

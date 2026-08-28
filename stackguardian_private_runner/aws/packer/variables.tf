@@ -94,6 +94,22 @@ variable "packer_config" {
 /*---------------------------------+
  | Terraform Installation Settings |
  +---------------------------------*/
+variable "ami_name_prefix" {
+  description = <<EOT
+    Prefix of the generated AMI name. The full name is
+    {ami_name_prefix}-{os.family}{os.version}-{timestamp}.
+    Left at its default, names match what earlier versions of this module
+    produced, so existing AMIs keep being discovered.
+  EOT
+  type        = string
+  default     = "SG-RUNNER-ami"
+
+  validation {
+    condition     = trimspace(var.ami_name_prefix) != ""
+    error_message = "ami_name_prefix must not be empty."
+  }
+}
+
 variable "terraform" {
   description = "Terraform installation configuration"
   type = object({

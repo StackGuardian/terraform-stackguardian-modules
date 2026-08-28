@@ -1,4 +1,14 @@
 #!/bin/sh
+#
+# Shared Packer build driver for the AWS and Azure image builds.
+# Both aws/packer/main.tf and azure/packer/main.tf run this file with
+# working_dir set to their own module directory.
+#
+# Inputs (environment):
+#   PACKER_VERSION   version of Packer to download
+#   PACKER_TEMPLATE  template to init and build, relative to the module dir
+#   PKR_VAR_*        every Packer input variable; Packer reads these natively,
+#                    so this script never has to know the per-cloud var list
 
 set -e
 
@@ -97,36 +107,23 @@ _download_packer() { #{{{
 #}}}: _download_packer
 
 main() { #{{{
+  if [ -z "$PACKER_TEMPLATE" ]; then
+    echo "ERROR: PACKER_TEMPLATE is not set."
+    exit 1
+  fi
+
   _download_packer
 
-  $PACKER_EXECUTABLE init ./ami.pkr.hcl
+  $PACKER_EXECUTABLE init "$PACKER_TEMPLATE"
   $PACKER_EXECUTABLE build \
-    -var "base_ami=$BASE_AMI" \
-    -var "os_family=$OS_FAMILY" \
-    -var "os_version=$OS_VERSION" \
-    -var "update_os_before_install=$UPDATE_OS" \
-    -var "region=$REGION" \
-    -var "ssh_username=$SSH_USERNAME" \
-    -var "public_subnet_id=$PUBLIC_SUBNET_ID" \
-    -var "private_subnet_id=$PRIVATE_SUBNET_ID" \
-    -var "proxy_url=$PROXY_URL" \
-    -var "terraform_version=$TERRAFORM_VERSION" \
-    -var "terraform_versions=$TERRAFORM_VERSIONS" \
-    -var "opentofu_version=$OPENTOFU_VERSION" \
-    -var "opentofu_versions=$OPENTOFU_VERSIONS" \
-    -var "sg_runner_pre_release=${SG_RUNNER_PRE_RELEASE:-false}" \
-    -var "user_script=$USER_SCRIPT" \
-    -var "vpc_id=$VPC_ID" \
-    -var "deregistration_protection_enabled=$DEREGISTRATION_PROTECTION_ENABLED" \
-    -var "deregistration_protection_with_cooldown=$DEREGISTRATION_PROTECTION_WITH_COOLDOWN" \
     -machine-readable \
-    ./ami.pkr.hcl | tee packer_manifest.log
+    "$PACKER_TEMPLATE" | tee packer_manifest.log
 
   # tee masks Packer's exit status, so check for the artifact line instead.
   # Terraform records the build as done as soon as this script succeeds, so a
   # silent failure here would stick until the rebuild token is changed.
   if ! grep -q 'artifact,0,id' packer_manifest.log; then
-    echo "ERROR: Packer build produced no AMI. See the output above."
+    echo "ERROR: Packer build produced no image. See the output above."
     exit 1
   fi
 }

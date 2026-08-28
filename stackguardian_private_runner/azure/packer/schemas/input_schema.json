@@ -63,7 +63,10 @@
         "publisher": {
           "title": "Publisher",
           "type": "string",
-          "enum": ["Canonical", "RedHat"],
+          "enum": [
+            "Canonical",
+            "RedHat"
+          ],
           "default": "Canonical"
         },
         "offer": {
@@ -94,7 +97,11 @@
           "default": ""
         }
       },
-      "required": ["publisher", "offer", "sku"],
+      "required": [
+        "publisher",
+        "offer",
+        "sku"
+      ],
       "additionalProperties": false
     },
     "packer_config": {
@@ -178,8 +185,22 @@
         "additional_versions": []
       },
       "additionalProperties": false
+    },
+    "sg_runner": {
+      "title": "StackGuardian Runner",
+      "type": "object",
+      "properties": {
+        "pre_release": {
+          "title": "Use Pre-release",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
     }
   },
-  "required": ["resource_group_name"],
+  "required": [
+    "resource_group_name"
+  ],
   "additionalProperties": false
 }

@@ -6,6 +6,7 @@ variable "image_offer" {}
 variable "image_sku" {}
 variable "image_version" {}
 variable "image_name_prefix" {}
+variable "sg_runner_pre_release" { default = "false" }
 variable "os_family" {}
 variable "ssh_username" {}
 variable "update_os_before_install" {}
@@ -67,15 +68,18 @@ build {
 
   # Install dependencies and StackGuardian runner
   provisioner "shell" {
-    script = "scripts/setup.sh"
+    script = "../../packer/scripts/setup.sh"
     environment_vars = [
       "OS_FAMILY=${var.os_family}",
+      "SSH_USERNAME=${var.ssh_username}",
       "UPDATE_OS=${var.update_os_before_install}",
       "TERRAFORM_VERSION=${var.terraform_version}",
       "TERRAFORM_VERSIONS=${var.terraform_versions}",
       "OPENTOFU_VERSION=${var.opentofu_version}",
       "OPENTOFU_VERSIONS=${var.opentofu_versions}",
+      "SG_RUNNER_PRE_RELEASE=${var.sg_runner_pre_release}",
       "USER_SCRIPT=${var.user_script}",
+      "PRIVATE_NETWORK=${var.vnet_name != "" ? "true" : "false"}",
       "PROXY_URL=${var.proxy_url}"
     ]
   }

@@ -11,7 +11,7 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 ### What Gets Created
 
 - **`azurerm_resource_group`** (optional, count-gated by `create_resource_group`): destination resource group for the image.
-- **`null_resource.packer_build`**: runs `scripts/build_image.sh`, which installs Packer, renders `image.pkr.hcl`, and triggers the build. Runs on the first apply, and again only when `packer_config.rebuild_image_token` changes.
+- **`null_resource.packer_build`**: runs the shared `../../packer/scripts/build.sh`, which installs Packer, then inits and builds `image.pkr.hcl`. Runs on the first apply, and again only when `packer_config.rebuild_image_token` changes.
 - **`data.external.packer_image_id`**: parses `packer_manifest.log` to extract the resource ID of the freshly built managed image.
 - **`terraform_data.image_id`**: records that image ID in state, so later plans read it from state instead of the build log.
 - **`null_resource.image_cleanup`** (when `cleanup_images_on_destroy = true`): destroy-time hook that runs `scripts/cleanup_image.sh` to delete the image from Azure.
@@ -21,7 +21,7 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 - An Azure subscription and credentials available to the runner (one of: `az login`, `ARM_*` service-principal env vars, or managed identity).
 - Permission to create managed images in the target resource group (and to create the resource group itself, if `create_resource_group = true`).
 - Outbound network access from the build VM to package mirrors (Ubuntu archive / RHEL repos, HashiCorp/OpenTofu releases). If the network is locked down, supply `network.proxy_url`.
-- `sh`, `curl`, and `unzip` available on the machine running Terraform — `scripts/setup.sh` uses them to bootstrap Packer (default version `1.14.1`).
+- `sh`, `curl`, and `unzip` available on the machine running Terraform — `../../packer/scripts/build.sh` uses them to bootstrap Packer (default version `1.14.1`).
 
 ## Quick Start
 
@@ -76,10 +76,11 @@ module "private_runner_image" {
 | `os.version` | Marketplace image version | `"latest"` |
 | `os.update_os_before_install` | Run full OS update before installing the agent | `true` |
 | `os.user_script` | Extra shell script executed after agent install | `""` |
-| `packer_config.version` | Packer version bootstrapped by `scripts/setup.sh` | `"1.14.1"` |
+| `packer_config.version` | Packer version bootstrapped by `../../packer/scripts/build.sh` | `"1.14.1"` |
 | `packer_config.rebuild_image_token` | Change to any new value to build a fresh image once | `""` |
 | `packer_config.cleanup_images_on_destroy` | Delete the image on `terraform destroy` | `true` |
 | `image_name_prefix` | Prefix for the generated image name | `"sg-runner"` |
+| `sg_runner.pre_release` | Install the newest sg-runner pre-release instead of the latest stable release (falls back to stable when none exists) | `false` |
 | `terraform.primary_version` | Default Terraform version pre-installed | `""` |
 | `terraform.additional_versions` | Extra Terraform versions to install | `[]` |
 | `opentofu.primary_version` | Default OpenTofu version pre-installed | `""` |
@@ -206,9 +207,9 @@ When `packer_config.cleanup_images_on_destroy = true` (default), the destroy pro
 - `variables.tf` — input variables.
 - `outputs.tf` — exported image metadata and cleanup commands.
 - `provider.tf` — provider requirements.
-- `scripts/setup.sh` — installs Packer at `packer_config.version`.
-- `scripts/build_image.sh` — orchestrates the build and writes `packer_manifest.log`.
-- `scripts/cleanup_image.sh` — destroy-time image deletion.
+- `../../packer/scripts/build.sh` — shared: installs Packer at `packer_config.version`, runs the build, writes `packer_manifest.log`.
+- `../../packer/scripts/setup.sh` — shared: provisions the image (Docker, jq, cron, sg-runner, Terraform/OpenTofu).
+- `scripts/cleanup_image.sh` — destroy-time image deletion (Azure-specific).
 
 ### Resource Naming Convention
 
@@ -221,7 +222,7 @@ Image name follows: `{image_name_prefix}-{os_family}-{os.sku}` where `os_family`
 1. **`az` CLI / Azure auth not available**
    - Run `az login`, or export `ARM_CLIENT_ID` / `ARM_CLIENT_SECRET` / `ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` before `terraform apply`.
 
-2. **Packer install fails in `scripts/setup.sh`**
+2. **Packer install fails in `../../packer/scripts/build.sh`**
    - Confirm outbound HTTPS to `releases.hashicorp.com`. Behind a proxy, set `HTTPS_PROXY` in the runner environment as well as `network.proxy_url`.
 
 3. **`image_id` output is blank**
@@ -241,7 +242,7 @@ Image name follows: `{image_name_prefix}-{os_family}-{os.sku}` where `os_family`
 tail -f packer_manifest.log
 
 # Re-run the build script manually
-sh scripts/build_image.sh
+PACKER_TEMPLATE=./image.pkr.hcl PACKER_VERSION=1.14.1 sh ../../packer/scripts/build.sh
 
 # Inspect the produced image
 az image show --ids "$(terraform output -raw image_id)"

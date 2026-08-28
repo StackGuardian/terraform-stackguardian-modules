@@ -111,6 +111,7 @@ module "packer_ami" {
 | `packer_config.deregistration_protection.with_cooldown` | Enable 24-hour cooldown period | `false` |
 | `packer_config.delete_snapshots` | Delete EBS snapshots during cleanup | `true` |
 | `packer_config.cleanup_amis_on_destroy` | Deregister this deployment's AMI on terraform destroy | `true` |
+| `ami_name_prefix` | Prefix for the generated AMI name | `"SG-RUNNER-ami"` |
 | `terraform.primary_version` | Primary Terraform version to install | `""` |
 | `terraform.additional_versions` | Additional Terraform versions | `[]` |
 | `opentofu.primary_version` | Primary OpenTofu version to install | `""` |
@@ -339,9 +340,9 @@ terraform output -json cleanup_commands | jq -r '.delete_snapshots'
 | `locals.tf` | AMI selection mappings, SSH username configuration |
 | `provider.tf` | AWS and utility provider configuration |
 | `ami.pkr.hcl` | Packer template for AMI creation |
-| `scripts/build_ami.sh` | Shell script to execute Packer |
-| `scripts/setup.sh` | AMI provisioning script |
-| `scripts/cleanup_amis.sh` | AMI cleanup automation |
+| `../../packer/scripts/build.sh` | Shared: installs Packer and runs the build |
+| `../../packer/scripts/setup.sh` | Shared: image provisioning script |
+| `scripts/cleanup_amis.sh` | AMI cleanup automation (AWS-specific) |
 
 ### Build Flow
 
@@ -357,13 +358,13 @@ terraform apply
     |                  rebuild_ami_token changes
     |                     |
     |                     v
-    |              scripts/build_ami.sh
+    |              ../../packer/scripts/build.sh
     |                     |
     |                     v
     |              ami.pkr.hcl (Packer template)
     |                     |
     |                     v
-    |              scripts/setup.sh (on EC2)
+    |              ../../packer/scripts/setup.sh (on EC2)
     |
     v
 [Parse AMI ID] --> data.external.packer_ami_id (reads packer_manifest.log)

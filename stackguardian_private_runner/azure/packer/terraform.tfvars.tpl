@@ -15,6 +15,12 @@ create_resource_group = false
 # <prefix>-<os_family>-<sku>-<timestamp>, e.g. sg-runner-ubuntu-22_04-lts-gen2-1712345678
 image_name_prefix = "sg-runner"
 
+# Bake the newest sg-runner pre-release into the image instead of the latest
+# stable release. Falls back to stable when no pre-release exists.
+# sg_runner = {
+#   pre_release = false
+# }
+
 /*------------------------------+
  | Image Build Network Settings |
  +------------------------------*/

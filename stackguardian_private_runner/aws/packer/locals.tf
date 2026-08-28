@@ -26,7 +26,7 @@ locals {
  +-------------------*/
 locals {
   # Name given to AMIs built by this module (see ami.pkr.hcl)
-  runner_ami_name_pattern = "SG-RUNNER-ami-${var.os.family}${var.os.family != "amazon" ? var.os.version : ""}-*"
+  runner_ami_name_pattern = "${var.ami_name_prefix}-${var.os.family}${var.os.family != "amazon" ? var.os.version : ""}-*"
 
   # The AMI built by this module, as recorded in state. Packer runs on the first
   # apply and then only when packer_config.rebuild_ami_token changes, so this
