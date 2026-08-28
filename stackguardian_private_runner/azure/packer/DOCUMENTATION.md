@@ -30,6 +30,7 @@ This template produces a reusable Azure managed image so your private runners bo
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `existing_image_id` | Hand back a managed image you already have instead of building one. When set, nothing is built and every other parameter below is ignored | `""` |
 | `azure_location` | The target Azure region to build the Private Runner image | `westeurope` |
 | `create_resource_group` | Create the resource group as part of this deployment. If disabled, it must already exist. | `false` |
 | `vm_size` | The Azure VM size used by Packer during the build (min 2 vCPU, 4GB RAM recommended) | `Standard_D2s_v3` |
@@ -51,8 +52,13 @@ This template produces a reusable Azure managed image so your private runners bo
 | `terraform.additional_versions` | Extra Terraform versions to install alongside the primary version | `[]` |
 | `opentofu.primary_version` | Default OpenTofu version available on the runner (leave empty to skip) | `""` |
 | `opentofu.additional_versions` | Extra OpenTofu versions to install alongside the primary version | `[]` |
+| `sg_runner.pre_release` | Bake the newest sg-runner pre-release into the image instead of the latest stable release (falls back to stable when none is published) | `false` |
 
 ## Important Notes
+
+**Skipping the Build**: Set `existing_image_id` to reuse an image you already have. The template then creates nothing at all — no build VM, no Packer download, no cleanup on destroy — and reports that image as its `image_id` output. The image must live in `azure_location` and already carry Docker, cron, jq and sg-runner; nothing is checked before the VM tries to boot from it. Set it on a fresh deployment: adding it to one that already built an image tears down the build records, and the cleanup deletes the image that was built.
+
+**sg-runner Release Channel**: The image installs the latest stable sg-runner release by default. Set `sg_runner.pre_release` to bake in the newest pre-release instead — useful for validating upcoming runner changes, not recommended for production. If no pre-release is published, the build falls back to the latest stable release. On an existing deployment the change only takes effect once a new image is built, so set `packer_config.rebuild_image_token` to a new value as well.
 
 **Image Reuse**: The image is built on the first deployment only. Its resource ID is recorded in state and reused on every run after that, so repeated runs cost no build time and the runner keeps the same image. To build a fresh image — after changing the OS, the user script, or the Terraform/OpenTofu versions — set *Rebuild Image Token* to any new value. Leaving the token unchanged never rebuilds.
 

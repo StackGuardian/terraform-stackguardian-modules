@@ -8,9 +8,8 @@ StackGuardian platform.
 This template provisions everything required to run private runners on Azure: a runner
 group on the StackGuardian platform, a resource group and storage account for workflow
 artifacts, and an Entra ID identity that lets StackGuardian reach them over OIDC — no
-long-lived secret is stored on the platform. Default tags ("StackGuardian Private
-Runner", the runner group name, and the organization name) are applied automatically to
-the StackGuardian resources.
+long-lived secret is stored on the platform. Tags are applied automatically to the
+StackGuardian resources — see **Tags** below.
 
 Deploying on AWS instead? Use the **StackGuardian Runner Group - AWS** template.
 
@@ -62,10 +61,9 @@ required.
 | Azure Storage — Replication Type | Replication strategy (LRS / GRS / RAGRS / ZRS) | LRS |
 | Existing Azure Storage Account Name | Name of an existing Storage Account to use (when not creating new) | — |
 | Existing Azure Storage Account Access Key | Access key for that account (sensitive) | — |
-| Global Prefix | Prefix used for naming all resources | SG_RUNNER |
-| Include Organization Name in Prefix | Append the org name to the prefix (e.g. `SG_RUNNER_demo-org`) | Disabled |
-| Runner Group Name Override | Custom name for the runner group | Auto-generated |
-| Connector Name Override | Custom name for the Azure connector | Auto-generated |
+| Global Prefix | Prefix for the runner group and connector names. Leave empty to omit it | SG_RUNNER |
+| Runner Group Name | Name half of the runner group; the full name is `{prefix}-{name}` | 6-character random string |
+| Connector Name | Name half of the connector | Same as the runner group |
 | Maximum Runners | Maximum number of runners allowed in the group | 3 |
 
 ## Important Notes
@@ -89,10 +87,21 @@ a `${secret::SECRET_NAME}` reference.
 point to an existing one. When using an existing account, ensure it has the appropriate
 permissions and CORS configuration, and a private container named `runner`.
 
-**Resource Naming**: By default, resources use the pattern
-`SG_RUNNER-{type}-{subscription_id}`. Azure naming rules force some sanitization — the
-prefix is lowercased and underscores become dashes, and the storage account name is
-truncated to fit the 24-character global limit.
+**Resource Naming**: The runner group and the connector are named `{prefix}-{name}`, or
+just `{name}` when **Global Prefix** is empty. Leave **Runner Group Name** empty and the
+name half is a 6-character random string, which is all the uniqueness a runner group
+needs. Set it when you want a stable, project-specific name. The connector shares the
+runner group's name — they live in separate API namespaces, so there is nothing to clash
+with. The subscription ID used to sit in these names and cost 36 characters; it is a tag
+now. The Azure resources keep their own scheme, and Azure naming rules force some
+sanitization — the prefix is lowercased and underscores become dashes, and the storage
+account name is truncated to fit the 24-character global limit.
+
+**Tags**: The platform models tags as a flat list of strings — there are no keys — capped
+at 10. The runner group and the connector both get `StackGuardian Private Runner`,
+`Managed by IaC`, `azure`, the subscription ID, the **Global Prefix**, and the region. The
+organization name and the runner group's own name are deliberately not tagged: a runner
+group only ever lives in one org, and its name is not information a tag adds.
 
 **Data Retention**: The Azure Storage Account is destroyed along with its contents on
 `terraform destroy` — back up anything you need first.

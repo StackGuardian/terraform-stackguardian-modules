@@ -7,9 +7,8 @@ StackGuardian platform.
 
 This template provisions everything required to run private runners on AWS: a runner
 group on the StackGuardian platform, a private S3 bucket for workflow artifacts, and a
-cross-account IAM role that lets StackGuardian and your runners reach it. Default tags
-("StackGuardian Private Runner", the runner group name, and the organization name) are
-applied automatically to the StackGuardian resources.
+cross-account IAM role that lets StackGuardian and your runners reach it. Tags are
+applied automatically to the StackGuardian resources — see **Tags** below.
 
 Deploying on Azure instead? Use the **StackGuardian Runner Group - Azure** template.
 
@@ -46,10 +45,9 @@ Deploying on Azure instead? Use the **StackGuardian Runner Group - Azure** templ
 | Create Storage Backend | Whether to create a new S3 bucket | Enabled |
 | Existing S3 Bucket Name | Name of an existing S3 bucket to use (when not creating new) | — |
 | Force Destroy Storage Backend | Delete all data in the S3 bucket on destroy (use with caution) | Disabled |
-| Global Prefix | Prefix used for naming all resources | SG_RUNNER |
-| Include Organization Name in Prefix | Append the org name to the prefix (e.g. `SG_RUNNER_demo-org`) | Disabled |
-| Runner Group Name Override | Custom name for the runner group | Auto-generated |
-| Connector Name Override | Custom name for the AWS connector | Auto-generated |
+| Global Prefix | Prefix for the runner group and connector names. Leave empty to omit it | SG_RUNNER |
+| Runner Group Name | Name half of the runner group; the full name is `{prefix}-{name}` | 6-character random string |
+| Connector Name | Name half of the connector | Same as the runner group |
 | Maximum Runners | Maximum number of runners allowed in the group | 3 |
 
 ## Important Notes
@@ -62,9 +60,21 @@ a `${secret::SECRET_NAME}` reference.
 an existing one. When using an existing bucket, ensure it has the appropriate permissions
 and CORS configuration.
 
-**Resource Naming**: By default, resources use the pattern
-`SG_RUNNER-{type}-{account_id}`. Customize via the naming options if you need stable,
-project-specific names.
+**Resource Naming**: The runner group and the connector are named `{prefix}-{name}`, or
+just `{name}` when **Global Prefix** is empty. Leave **Runner Group Name** empty and the
+name half is a 6-character random string, which is all the uniqueness a runner group
+needs. Set it when you want a stable, project-specific name. The connector shares the
+runner group's name — they live in separate API namespaces, so there is nothing to clash
+with. The AWS resources keep their own scheme: the IAM role is
+`{prefix}-private-runner-s3-role` and the S3 bucket is
+`{8-char-random}-private-runner-storage-backend`.
+
+**Tags**: The platform models tags as a flat list of strings — there are no keys — capped
+at 10. The runner group and the connector both get `StackGuardian Private Runner`,
+`Managed by IaC`, `aws`, the AWS account ID, the **Global Prefix**, and the region. The
+account ID is a tag rather than part of the name. The organization name and the runner
+group's own name are deliberately not tagged: a runner group only ever lives in one org,
+and its name is not information a tag adds.
 
 **Data Retention**: **Force Destroy Storage Backend** deletes all bucket contents on
 destroy. Leave it disabled to protect your data.

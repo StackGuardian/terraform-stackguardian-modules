@@ -44,6 +44,7 @@ The image is built **once**. Packer runs on the first apply, the resulting image
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| existing_image_id | Reuse a managed image you already have; nothing is built and every other parameter here is ignored | `""` |
 | azure_location | Azure region where the image is built | `westeurope` |
 | create_resource_group | Create the resource group (if false, it must already exist) | `false` |
 | vm_size | VM size used for the Packer build VM | `Standard_D2s_v3` |
@@ -65,6 +66,7 @@ The image is built **once**. Packer runs on the first apply, the resulting image
 | terraform.additional_versions | Additional Terraform versions to install | `[]` |
 | opentofu.primary_version | Primary OpenTofu version to install | `""` |
 | opentofu.additional_versions | Additional OpenTofu versions to install | `[]` |
+| sg_runner.pre_release | Bake the newest sg-runner pre-release into the image instead of the latest stable release | `false` |
 
 There is no `ssh_username` input — the build user is derived from `os.publisher` (`ubuntu` for Canonical, `azureuser` for RedHat).
 
@@ -104,11 +106,14 @@ Create a StackGuardian Runner Group with an Azure Blob Storage backend and an En
 | azure_storage.account_tier | Storage Account performance tier | `Standard` |
 | azure_storage.account_replication_type | Replication strategy (LRS, GRS, RAGRS, ZRS) | `LRS` |
 | create_blob_reader_role_assignment | Grant the connector service principal `Storage Blob Data Reader` | `true` |
-| override_names.global_prefix | Prefix for naming all resources | `SG_RUNNER` |
-| override_names.include_org_in_prefix | Append organization name to prefix | `false` |
-| override_names.runner_group_name | Override the runner group name | (auto-generated) |
-| override_names.connector_name | Override the connector name | (auto-generated) |
+| override_names.global_prefix | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
+| override_names.runner_group_name | Name half of the runner group; the full name is `{prefix}-{name}` | (6-char random) |
+| override_names.connector_name | Name half of the connector | (the runner group's name) |
 | max_runners | Maximum number of runners allowed in the group | `3` |
+
+The subscription ID is not part of these names — it is one of the tags applied to the
+runner group and the connector, alongside `StackGuardian Private Runner`,
+`Managed by IaC`, `azure`, the prefix, and the region.
 
 ### Outputs
 

@@ -36,6 +36,7 @@ Before deploying this template:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| Existing AMI ID | Hand back an AMI you already have instead of building one. When set, nothing is built and every other parameter below is ignored | Empty |
 | Instance Type | EC2 instance type for the Packer build process (minimum 2 vCPU, 4GB RAM recommended) | `t3.medium` |
 | OS Family | Base operating system: Amazon Linux 2, Ubuntu, or RHEL | Amazon Linux 2 |
 | OS Version | Specific OS version (required for Ubuntu/RHEL, e.g., "22.04" or "9.6") | Empty |
@@ -48,6 +49,7 @@ Before deploying this template:
 | Deregistration Protection - With Cooldown | 24-hour waiting period before allowing deregistration | Disabled |
 | Delete Snapshots | Delete EBS snapshots during cleanup | Enabled |
 | Cleanup AMIs on Destroy | Auto-cleanup AMI on stack destroy | Enabled |
+| AMI Name Prefix | Prefix of the generated AMI name; the full name is `{prefix}-{os_family}{os_version}-{timestamp}` | `SG-RUNNER-ami` |
 | Primary Terraform Version | Main Terraform version to install as `/bin/terraform` | Empty |
 | Additional Terraform Versions | Extra Terraform versions (installed as `/bin/terraform{version}`) | Empty |
 | Primary OpenTofu Version | Main OpenTofu version to install as `/bin/tofu` | Empty |
@@ -66,6 +68,8 @@ Before deploying this template:
 **sg-runner Release Channel**: The AMI installs the latest stable sg-runner release by default. Enable *Use Pre-release* to bake in the newest pre-release instead — useful for validating upcoming runner changes, not recommended for production. If no pre-release is published, the build falls back to the latest stable release. On an existing deployment the change only takes effect once a new AMI is built, so set *Rebuild AMI Token* to a new value as well.
 
 **AMI Protection**: Deregistration protection is enabled by default to prevent accidental deletion. If cooldown is also enabled, you must wait 24 hours after disabling protection before the AMI can be deregistered.
+
+**Skipping the Build**: Set *Existing AMI ID* to reuse an AMI you already have. The template then creates nothing at all — no build instance, no Packer download, no cleanup on destroy — and reports that AMI as its `ami_id` output. The AMI must live in the selected region and already carry Docker, cron, jq and sg-runner; nothing is checked before the runner tries to boot from it. Set it on a fresh deployment: adding it to one that already built an AMI tears down the build records, and the cleanup deregisters the AMI that was built.
 
 **AMI Reuse**: The AMI is built on the first deployment only. Its ID is recorded in state and reused on every run after that, so repeated runs cost no build time and the runner keeps the same image. To build a fresh AMI — after changing the OS, the user script, or the Terraform/OpenTofu versions — set *Rebuild AMI Token* to any new value. Leaving the token unchanged never rebuilds.
 
