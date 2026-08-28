@@ -80,6 +80,26 @@ variable "create_role_assignments" {
 /*---------------------------+
  | Image Build Settings      |
  +---------------------------*/
+variable "vm_image_id" {
+  description = <<EOT
+    Existing managed image the runner VM boots instead of building one.
+    Leave it empty to run the Packer module and build an image; set it to an
+    image you already built (for example the image_id output of an earlier
+    apply, or of the azure/packer example) and the build is skipped entirely -
+    every other image build input below is then ignored.
+    The image has to carry docker, cron, jq and sg-runner, and live in
+    azure_location.
+    Example: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Compute/images/{name}
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.vm_image_id == "" || can(regex("^/subscriptions/", var.vm_image_id))
+    error_message = "vm_image_id must be empty (build an image with Packer) or a valid Azure resource ID starting with '/subscriptions/'."
+  }
+}
+
 variable "packer_vm_size" {
   description = "VM size for the Packer build instance"
   type        = string
@@ -130,6 +150,21 @@ variable "packer_config" {
     version                   = optional(string, "1.14.1")
     rebuild_image_token       = optional(string, "")
     cleanup_images_on_destroy = optional(bool, true)
+  })
+  default = {}
+}
+
+variable "sg_runner" {
+  description = <<EOT
+    StackGuardian runner script installation configuration.
+    Set pre_release to true to bake the newest sg-runner pre-release into the
+    image instead of the latest stable release; it falls back to the latest
+    stable release when no pre-release exists.
+    Changing this alone does not rebuild an existing image - also change
+    packer_config.rebuild_image_token.
+  EOT
+  type = object({
+    pre_release = optional(bool, false)
   })
   default = {}
 }
@@ -188,18 +223,33 @@ variable "runner_startup_timeout" {
  +-------------------*/
 variable "network" {
   description = <<EOT
-    VNet and subnet created for the runner VM.
+    Existing VNet and subnet the runner VM attaches to. This example never creates
+    networking - point it at a subnet you already have.
 
-    - service_endpoints: Azure VNet service endpoints enabled on the subnet
-      (e.g. ["Microsoft.Storage"]), routing that traffic over the Azure backbone
-      instead of the public internet.
+    - vnet_name / subnet_name: names of the existing VNet and subnet
+    - resource_group_name: resource group holding that VNet
+    - associate_public_ip: attach a static public IP to the runner. Keep it true
+      unless the subnet already has its own route to the internet (NAT gateway,
+      Azure Firewall, ExpressRoute) - the runner must reach the StackGuardian API.
+
+    Service endpoints, NAT gateways and proxies belong to the subnet you bring:
+    configure them there, or use the azure/azure_runner module directly.
   EOT
   type = object({
-    vnet_address_space    = optional(list(string), ["10.0.0.0/16"])
-    subnet_address_prefix = optional(string, "10.0.1.0/24")
-    service_endpoints     = optional(list(string), [])
+    vnet_name           = string
+    subnet_name         = string
+    resource_group_name = string
+    associate_public_ip = optional(bool, true)
   })
-  default = {}
+
+  validation {
+    condition = alltrue([
+      trimspace(var.network.vnet_name) != "",
+      trimspace(var.network.subnet_name) != "",
+      trimspace(var.network.resource_group_name) != "",
+    ])
+    error_message = "network.vnet_name, network.subnet_name and network.resource_group_name are all required - this example attaches to an existing VNet and subnet."
+  }
 }
 
 /*-------------------+

@@ -15,24 +15,30 @@ stackguardian = {
 
 # --- Required: AWS network ---
 aws_region       = "eu-central-1"
-vpc_id           = "vpc-0123456789abcdef0"
-public_subnet_id = "subnet-0123456789abcdef0"
-
-# Security groups of any VPC *interface endpoints* the runner must reach
-# (STS, EC2, SSM, ECR, ...). The module adds an inbound HTTPS (443) rule to each
-# one, allowing traffic from the runner's security group.
-#
-# Leave empty for a VPC with a normal internet path. If your VPC resolves AWS
-# APIs through interface endpoints and you leave this empty, the runner will
-# hang on plan with no obvious error - the endpoint silently drops its traffic.
-vpc_endpoint_security_group_ids = []
+network = {
+  vpc_id    = "vpc-0123456789abcdef0"
+  subnet_id = "subnet-0123456789abcdef0"
+  #
+  # Set to false when the subnet already provides outbound internet access.
+  # associate_public_ip = true
+  #
+  # Security groups of any VPC *interface endpoints* the runner must reach
+  # (STS, EC2, SSM, ECR). If your VPC resolves AWS APIs through interface
+  # endpoints and you leave this empty, the runner will hang on plan with no
+  # obvious error - the endpoint silently drops its traffic.
+  # vpc_endpoint_security_group_ids = ["sg-0123456789abcdef0"]
+}
 
 # --- Optional: Resource naming ---
+#
+# The runner group and connector are named {global_prefix}-{runner_group_name}.
+# Leave runner_group_name empty and a short random suffix is generated, e.g.
+# SG_RUNNER-k3m9xz. The cloud account ID and region are recorded as tags.
 # override_names = {
 #   global_prefix         = "SG_RUNNER"
-#   include_org_in_prefix = false
-#   runner_group_name     = ""  # default: "<prefix>-runner-group-<account_id>"
-#   connector_name        = ""  # default: "<prefix>-private-runner-backend-<account_id>"
+#   include_org_in_prefix = false  # affects the EC2/ASG names only, not the runner group
+#   runner_group_name     = ""  # default: a 6-char random suffix
+#   connector_name        = ""  # default: same as the runner group name
 # }
 
 # --- Optional: Runner group ---
@@ -40,7 +46,16 @@ vpc_endpoint_security_group_ids = []
 # force_destroy_storage_backend = false  # true also deletes S3 contents on destroy
 
 # --- Optional: AMI build ---
+#
+# Already have a runner AMI? Set ami_id and nothing below is built or used -
+# no Packer, no build instance, no destroy-time AMI cleanup. It has to live in
+# aws_region and carry docker, cron, jq and sg-runner. Set it on a fresh
+# deployment; see the README before adding it to a deployment that already
+# built an AMI.
+# ami_id = "ami-0123456789abcdef0"
+#
 # packer_instance_type = "t3.medium"
+# ami_name_prefix      = "SG-RUNNER-ami"
 #
 # Packer builds the AMI on the first apply only. Later plans reuse it, so the
 # runner keeps the same image. To build a new one, change the token below to

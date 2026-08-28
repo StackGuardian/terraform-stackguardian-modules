@@ -6,9 +6,10 @@ This example wires the three building-block modules together into one root modul
 so you configure a handful of values once instead of running three deployments and
 hand-copying outputs between them.
 
-> Deploying a **single runner** on a newly created VNet with a public IP. For an
-> autoscaled fleet, use the `azure/vmss` and `azure/autoscaler` modules directly -
-> see the [top-level README](../../../README.md).
+> Deploying a **single runner** into a VNet and subnet you already have. This
+> example never creates networking. For an autoscaled fleet, use the `azure/vmss`
+> and `azure/autoscaler` modules directly - see the
+> [top-level README](../../../README.md).
 
 ## Contents
 
@@ -51,8 +52,8 @@ hand-copying outputs between them.
                                     ▼
   module.packer      ┌──────────────────────────────┐
   ──────────────────►│  Packer build (first apply)  │
-                     │  • temp build VM + temp      │
-                     │    networking (auto-removed) │
+  (skipped when      │  • temp build VM + temp      │
+   vm_image_id set)  │    networking (auto-removed) │
                      │  • managed image: Docker,    │
                      │    jq, cron, sg-runner, and  │
                      │    optional Terraform/Tofu   │
@@ -72,18 +73,23 @@ hand-copying outputs between them.
   module.azure_runner
                      ┌──────────────────────────────┐
                      │  Runner VM                   │
-                     │  • VNet + subnet             │
+                     │  • NIC in your existing      │
+                     │    subnet (looked up, not    │
+                     │    created)                  │
                      │  • NSG (all egress, no       │
                      │    ingress unless SSH is     │
                      │    configured)               │
-                     │  • static public IP + NIC    │
+                     │  • static public IP, unless  │
+                     │    you turn it off           │
                      │  • the managed identity      │
                      │    attached to the VM        │
                      └──────────────────────────────┘
 ```
 
 Everything lands in **one resource group**, created by the runner group module and
-reused by the other two, so a single `destroy` removes the whole deployment.
+reused by the other two, so a single `destroy` removes the whole deployment. Your
+VNet and subnet are not part of it - they are read, never managed, and a `destroy`
+leaves them untouched.
 
 The runner registers itself with the StackGuardian platform on first boot using the
 runner group token, then starts polling for work.
@@ -93,18 +99,21 @@ runner group token, then starts polling for work.
 | Requirement | Notes |
 |-------------|-------|
 | **OpenTofu >= 1.4** (or Terraform >= 1.4) | The packer module uses `terraform_data` |
-| **Packer** | Downloaded automatically by the build script at the configured version |
+| **Packer** | Downloaded automatically by the build script at the configured version - not needed when you pass `vm_image_id` |
 | **Azure CLI, logged in** | The Packer build and the image cleanup script shell out to `az` |
 | **Azure credentials** | Via `az login` or `ARM_*` environment variables |
 | **StackGuardian API key** | Org-scoped key with permission to create runner groups and connectors |
 | **An SSH public key** | Password auth is always disabled on the VM |
+| **An existing VNet and subnet** | This example attaches to them; it does not create networking |
 
 ### Azure Permissions
 
 The identity running this needs, at minimum:
 
 - **Contributor** on the subscription or target scope - resource groups, storage
-  accounts, images, VMs, VNets, NSGs, public IPs, managed identities
+  accounts, images, VMs, NSGs, public IPs, managed identities
+- **Read** on the target VNet, plus `Microsoft.Network/virtualNetworks/subnets/join/action`
+  on the subnet, so the runner's NIC can be placed in it
 - **User Access Administrator** (or equivalent) for the two role assignments. If you
   do not have it, set `create_role_assignments = false` and create them out of band -
   see [The Storage Backend Identity](#the-storage-backend-identity)
@@ -120,7 +129,8 @@ cp terraform.tfvars.tpl terraform.tfvars
 $EDITOR terraform.tfvars
 ```
 
-At minimum you must set `stackguardian.api_key` and `stackguardian.org_name`. Set
+At minimum you must set `stackguardian.api_key`, `stackguardian.org_name`, and the
+`network` block naming the VNet and subnet to attach to. Set
 `firewall.ssh_public_key` too unless you want a generated key sitting in state.
 
 **2. Initialize**
@@ -162,6 +172,9 @@ minute or two of the VM booting.
 |----------|------|-------------|
 | `stackguardian.api_key` | `string` | StackGuardian API key (sensitive) |
 | `stackguardian.org_name` | `string` | StackGuardian organization name |
+| `network.vnet_name` | `string` | Name of the existing VNet |
+| `network.subnet_name` | `string` | Name of the existing subnet inside it |
+| `network.resource_group_name` | `string` | Resource group holding that VNet |
 
 Everything else has a default. `firewall.ssh_public_key` is not formally required
 only because `firewall.generate_ssh_key` defaults to `true`.
@@ -170,17 +183,19 @@ only because `firewall.generate_ssh_key` defaults to `true`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `azure_location` | `westeurope` | Region for all Azure resources |
+| `azure_location` | `westeurope` | Region for all Azure resources - must match the region of the VNet you attach to |
 | `stackguardian.api_uri` | `https://api.app.stackguardian.io` | Platform endpoint - see note below |
 | `azure_resource_group_name` | `""` | Name of the shared resource group; derived from the prefix when empty |
 | `firewall.ssh_public_key` | `""` | Your SSH public key; avoids a generated key in state |
 | `firewall.ssh_access_rules` | `{}` | CIDRs allowed to reach port 22; nothing is open by default |
 | `runner_vm_size` | `Standard_D4s_v3` | Runner VM size |
 | `packer_vm_size` | `Standard_D2s_v3` | Build VM size |
+| `vm_image_id` | `""` | Existing managed image to boot instead of building one - see [Bringing your own image](#bringing-your-own-image) |
 | `max_runners` | `3` | Max runners in the runner group |
 | `override_names.global_prefix` | `SG_RUNNER` | Prefix for created resource names |
 | `runner_startup_timeout` | `300` | Seconds to wait for Docker before self-shutdown |
 | `create_role_assignments` | `true` | Set `false` when you cannot write role assignments |
+| `network.associate_public_ip` | `true` | Set `false` when the subnet already has its own route to the internet |
 
 > **`api_uri` must be one of three known values.** The runner group module maps the
 > API host to its matching web-console host to build the console URL and the storage
@@ -201,9 +216,11 @@ only because `firewall.generate_ssh_key` defaults to `true`.
 | `opentofu.primary_version` | `""` | Installed as `/bin/tofu` |
 | `opentofu.additional_versions` | `[]` | Installed as `/bin/tofu<version>` |
 | `image_name_prefix` | `sg-runner` | Prefix of the generated image name |
+| `sg_runner.pre_release` | `false` | Bake the newest sg-runner pre-release instead of the latest stable release |
 
 Every one of these is baked into the image at build time, so changing any of them
-on an existing deployment has **no effect until you trigger a rebuild**.
+on an existing deployment has **no effect until you trigger a rebuild**. All of
+them are ignored when `vm_image_id` is set, since nothing is built.
 
 Confirm your `os` combination exists in the target region before applying:
 
@@ -247,33 +264,94 @@ every apply**. A rebuild does replace it, since the VM's source image changes.
 > image this deployment built - on destroy, and on the rebuild that supersedes it.
 > Images from other deployments are never deleted.
 
+### Bringing your own image
+
+Set `vm_image_id` and no image is built at all:
+
+```hcl
+vm_image_id = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Compute/images/<name>"
+```
+
+The packer module then creates nothing - no build VM, no build, no destroy-time
+cleanup - and hands that image straight to the runner VM. Packer itself is never
+downloaded, and every build input (`os`, `terraform`, `opentofu`, `sg_runner`,
+`packer_config`, `image_name_prefix`, `packer_vm_size`, `packer_network`) is
+ignored. The `image_id` output still reports what the VM booted from either way.
+
+Use it to reuse one image across several deployments, to pin a known-good image,
+or to run the [`azure/packer` example](../packer/README.md) separately and feed
+its `image_id` output in here.
+
+The image has to live in `azure_location` and carry docker, cron, jq and
+sg-runner - the same contents
+[`azure/packer`](../../../azure/packer/README.md) bakes in. A missing dependency
+is not caught at plan time; the runner just fails to register.
+
+> **Set it on a fresh deployment.** Adding `vm_image_id` to a deployment that
+> already built an image tears down the build records, and the destroy-time
+> cleanup deletes the image that was built - including when that is the very
+> image you are passing in. To hand an existing deployment its own image, drop
+> the cleanup resource from state first:
+> `tofu state rm module.packer.null_resource.image_cleanup[0]`.
+
 ## Networking
 
-This example creates a **new VNet and subnet** for the runner and attaches a static
-public IP, relying on Azure's default outbound route for internet access. Packer, by
-default, builds on its own throwaway VNet that it removes when the build finishes.
+This example **attaches to an existing VNet and subnet**. It looks them up by name
+with `data.azurerm_virtual_network` / `data.azurerm_subnet` and places the runner's
+NIC in that subnet - nothing about your network is managed by this state, and
+`destroy` leaves it as it was.
+
+```hcl
+network = {
+  vnet_name           = "my-vnet"
+  subnet_name         = "runner-subnet"
+  resource_group_name = "my-network-rg"
+}
+```
+
+The only network resources created are the ones bound to the VM itself: a NIC, an
+NSG, and - unless you turn it off - a static public IP.
+
+> **`azure_location` must match the VNet's region.** A NIC can only join a subnet in
+> its own region, and a VM can only boot from a managed image in its own region - so
+> the whole deployment follows the network you attach to. The example checks this
+> during plan; Azure itself would only report it as a misleading
+> `InvalidResourceReference ... was not found` on the NIC, after the image build.
+
+### Outbound Access
+
+The runner must reach the StackGuardian API and package mirrors. Either:
+
+- leave `network.associate_public_ip = true` (the default) and let the public IP
+  provide the route, or
+- set it to `false` when the subnet already has its own path out: a NAT gateway,
+  Azure Firewall, or ExpressRoute.
+
+With no public IP and no route of your own, the runner boots, fails to register, and
+shuts itself down after `runner_startup_timeout`.
+
+### What Belongs on Your Subnet
+
+Anything network-level is yours to configure on the subnet you bring:
+
+| Need | Where it goes |
+|------|---------------|
+| Service endpoints (e.g. `Microsoft.Storage` for a locked-down storage account) | On your subnet |
+| NAT gateway or firewall for private egress | On your subnet |
+| HTTP proxy (`proxy_url`) | Not exposed here - use `azure/azure_runner` directly |
 
 The runner's NSG allows **all egress** and **no ingress**. SSH is opened only if you
 set `firewall.ssh_access_rules`.
 
-### Service Endpoints
+### The Packer Build VM
 
-If you lock the storage account down to specific subnets, or you want the runner's
-blob traffic to stay on the Azure backbone rather than crossing the public internet:
-
-```hcl
-network = {
-  service_endpoints = ["Microsoft.Storage"]
-}
-```
-
-These apply to the subnet this example creates. The default is `[]`, which is fine
-for the default storage account configuration (`public_network_access_enabled = true`
-with no network rules).
+Packer builds the image on a **throwaway VM with its own temporary networking**,
+which it removes when the build finishes. That networking is created and destroyed
+by Packer during the build, not tracked in this state.
 
 ### Building Inside an Existing VNet
 
-If the build VM must sit in your network - a proxy-only environment, or a policy
+If the build VM must sit in your network too - a proxy-only environment, or a policy
 that forbids ad-hoc VNets:
 
 ```hcl
@@ -284,6 +362,10 @@ packer_network = {
   proxy_url           = "http://proxy.example.com:8080"
 }
 ```
+
+> With `packer_network` set, Packer connects to the build VM over its **private IP**
+> and assigns no public one, so wherever you run `tofu apply` needs a route into that
+> subnet. Leave it empty unless you have one.
 
 ## The Storage Backend Identity
 
@@ -329,11 +411,12 @@ their own.
 | `storage_account_name` | Storage account backing the runner group |
 | `storage_backend_identity_id` | Resource ID of the runner's managed identity |
 | `storage_backend_identity_principal_id` | Principal ID, for out-of-band role assignment |
-| `image_id` | Managed image built by Packer and recorded in state |
+| `image_id` | Managed image the runner VM booted from - built by Packer, or the `vm_image_id` passed in |
 | `vm_id` / `vm_name` | Runner VM resource ID and name |
 | `vm_public_ip` / `vm_private_ip` | Runner IPs |
 | `network_security_group_id` | Runner NSG ID |
-| `ssh_command` | Ready-to-paste SSH command |
+| `subnet_id` | Existing subnet the runner NIC was attached to |
+| `ssh_command` | Ready-to-paste SSH command; uses the private IP when no public IP is attached |
 | `ssh_private_key` | Generated private key (sensitive), when `generate_ssh_key` is true |
 
 The runner group token is deliberately **not** exposed as a root output. It is
@@ -416,9 +499,14 @@ resources including the resource group.
 | Plan fails validating `api_uri` | `stackguardian.api_uri` is not one of the three supported values |
 | Plan fails validating `firewall` | Neither `ssh_public_key` nor `generate_ssh_key` is set |
 | Packer fails immediately | `az login` not done, no outbound path from the build subnet, or missing permissions |
+| Plan fails reading the VNet or subnet | `network.vnet_name`, `subnet_name`, or `resource_group_name` does not match an existing resource, or the identity lacks read access |
+| `Resource postcondition failed` on the VNet | `azure_location` is not the VNet's region - set it to the region the message names |
+| `InvalidResourceReference ... was not found` creating the NIC | The subnet exists but is in another region; the postcondition above normally catches this first |
+| `LinkedAuthorizationFailed` creating the NIC | Missing `Microsoft.Network/virtualNetworks/subnets/join/action` on the target subnet |
 | `No image recorded` on output | The build produced no image ID - check `../../../azure/packer/packer_manifest.log` |
 | Packer never re-runs | Working as designed; bump `rebuild_image_token` |
 | `AuthorizationFailed` creating role assignments | Set `create_role_assignments = false` and create them out of band |
+| Plan wants to create a role assignment that already exists | Azure RBAC reads are eventually consistent, so a refresh shortly after creation can 404 and drop the assignment from state. Do not apply - it fails with `RoleAssignmentExists`. Re-add it with `tofu import '<address>' '<assignment id>'` |
 | Runner shuts itself down after boot | Docker did not start within `runner_startup_timeout` - `custom_data` calls `shutdown -h now` on timeout |
 | Runner never appears in the console | Token or org name wrong; check `/var/log/sg_runner_startup.log` |
 | Runner registers but jobs fail on state access | Role assignment missing or still propagating |
@@ -434,10 +522,11 @@ tofu apply -replace=module.packer.null_resource.packer_build
 
 This example trades flexibility for a short path to a working runner:
 
-- **Public IP only.** `create_network_infrastructure` (NAT gateway), `proxy_url`,
-  and attaching to an existing VNet/subnet are supported by `azure/azure_runner` but
-  are not exposed here. Use the module directly when you need a private subnet, NAT
-  gateway, or proxy.
+- **Bring your own network.** The example attaches to an existing VNet and subnet
+  and has no option to create one. `create_network` (new VNet/subnet),
+  `create_network_infrastructure` (NAT gateway), and `proxy_url` are all supported by
+  `azure/azure_runner` but are not exposed here - use the module directly when you
+  need them.
 - **Single runner.** No autoscaling; `max_runners` caps the runner group, not the
   VM count.
 - **azurerm pinned to 4.x.** The `azure/*` modules use `azurerm_subnet.service_endpoints`,

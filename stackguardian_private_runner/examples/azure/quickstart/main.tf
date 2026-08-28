@@ -51,7 +51,13 @@ module "runner_group" {
 
   stackguardian = var.stackguardian
 
-  override_names = var.override_names
+  # The runner group module names only the platform records, so it takes the
+  # naming fields and not include_org_in_prefix (which the VM modules still use).
+  override_names = {
+    global_prefix     = var.override_names.global_prefix
+    runner_group_name = var.override_names.runner_group_name
+    connector_name    = var.override_names.connector_name
+  }
 
   # Create the resource group here and reuse it for the image and the VM, so the
   # whole deployment lands in one place and one destroy removes it.
@@ -68,9 +74,15 @@ module "runner_group" {
 # -------------------------------------------------------
 # Module 2: Packer Managed Image Builder
 #   Builds the image with sg-runner, Docker, Terraform, etc.
+#   Passing var.vm_image_id skips the build: the module then
+#   creates nothing and hands that image straight back.
+#   (The module owns the skip because it declares its own
+#   provider, which rules out count on the module call.)
 # -------------------------------------------------------
 module "packer" {
   source = "../../../azure/packer"
+
+  existing_image_id = var.vm_image_id
 
   azure_location = var.azure_location
   vm_size        = var.packer_vm_size
@@ -79,12 +91,14 @@ module "packer" {
   resource_group_name   = module.runner_group.azure_resource_group_name
   create_resource_group = false
 
-  # Empty vnet/subnet: Packer creates and tears down its own temporary networking
+  # The build VM is throwaway: by default Packer creates and destroys its own
+  # temporary networking for it. Set packer_network to build in an existing subnet.
   network = var.packer_network
 
   os                = var.os
   packer_config     = var.packer_config
   image_name_prefix = var.image_name_prefix
+  sg_runner         = var.sg_runner
   terraform         = var.terraform
   opentofu          = var.opentofu
 }
@@ -114,8 +128,35 @@ resource "azurerm_role_assignment" "storage_backend" {
 }
 
 # -------------------------------------------------------
+# Existing Network
+#   This example attaches the runner to a VNet and subnet
+#   you already have; it never creates networking.
+# -------------------------------------------------------
+data "azurerm_virtual_network" "runner" {
+  name                = var.network.vnet_name
+  resource_group_name = var.network.resource_group_name
+
+  # The VM, its NIC, and the managed image it boots from all have to sit in the
+  # same region as the subnet. Azure reports a region mismatch as a misleading
+  # "resource not found" 400 on the NIC, halfway through the apply and after the
+  # image build - so catch it during plan instead.
+  lifecycle {
+    postcondition {
+      condition     = replace(lower(self.location), " ", "") == replace(lower(var.azure_location), " ", "")
+      error_message = "VNet ${var.network.vnet_name} is in ${self.location}, but azure_location is ${var.azure_location}. Set azure_location to the VNet's region, or attach to a VNet in ${var.azure_location}."
+    }
+  }
+}
+
+data "azurerm_subnet" "runner" {
+  name                 = var.network.subnet_name
+  virtual_network_name = data.azurerm_virtual_network.runner.name
+  resource_group_name  = var.network.resource_group_name
+}
+
+# -------------------------------------------------------
 # Module 3: Single Runner VM
-#   Deploys the private runner from the image built above,
+#   Deploys the private runner from the image of Module 2,
 #   using the runner group config from Module 1
 # -------------------------------------------------------
 module "azure_runner" {
@@ -138,12 +179,12 @@ module "azure_runner" {
     include_org_in_prefix = var.override_names.include_org_in_prefix
   }
 
+  # create_network stays at its default of false: the module attaches the NIC to
+  # the subnet below instead of provisioning a VNet of its own.
   network = {
-    create_network        = true
-    vnet_address_space    = var.network.vnet_address_space
-    subnet_address_prefix = var.network.subnet_address_prefix
-    service_endpoints     = var.network.service_endpoints
-    associate_public_ip   = true
+    vnet_id             = data.azurerm_virtual_network.runner.id
+    subnet_id           = data.azurerm_subnet.runner.id
+    associate_public_ip = var.network.associate_public_ip
   }
 
   os_disk                = var.os_disk

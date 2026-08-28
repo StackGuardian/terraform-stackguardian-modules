@@ -43,7 +43,7 @@ output "storage_backend_identity_principal_id" {
  | Image Outputs                   |
  +---------------------------------*/
 output "image_id" {
-  description = "Managed image built by Packer and recorded in state"
+  description = "Managed image the runner VM booted from - built by Packer, or the vm_image_id that was passed in"
   value       = module.packer.image_id
 }
 
@@ -75,9 +75,18 @@ output "network_security_group_id" {
   value       = module.azure_runner.network_security_group_id
 }
 
+output "subnet_id" {
+  description = "Existing subnet the runner NIC was attached to"
+  value       = data.azurerm_subnet.runner.id
+}
+
 output "ssh_command" {
-  description = "Ready-to-use SSH command, once firewall.ssh_access_rules opens port 22"
-  value       = "ssh ${var.firewall.admin_username}@${module.azure_runner.vm_public_ip}"
+  description = <<EOT
+    Ready-to-use SSH command, once firewall.ssh_access_rules opens port 22.
+    Falls back to the private IP when network.associate_public_ip is false, in
+    which case you need a path into the subnet (VPN, bastion, ExpressRoute).
+  EOT
+  value       = "ssh ${var.firewall.admin_username}@${coalesce(module.azure_runner.vm_public_ip, module.azure_runner.vm_private_ip)}"
 }
 
 output "ssh_private_key" {

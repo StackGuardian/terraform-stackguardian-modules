@@ -36,7 +36,23 @@ firewall = {
   # }
 }
 
+# --- Required: Existing network ---
+# This example attaches the runner to a VNet and subnet you already have; it
+# never creates networking. The subnet needs outbound access to the
+# StackGuardian API, either through the public IP below or through its own
+# route (NAT gateway, Azure Firewall, ExpressRoute).
+network = {
+  vnet_name           = "my-vnet"
+  subnet_name         = "runner-subnet"
+  resource_group_name = "my-network-rg"
+  #
+  # Set to false when the subnet already provides outbound internet access.
+  # associate_public_ip = true
+}
+
 # --- Optional: Azure placement ---
+# Must be the same region as the VNet above: the NIC joins its subnet and the
+# VM boots from an image built in this region.
 # azure_location = "westeurope"
 #
 # One resource group holds the storage backend, the managed image, and the VM.
@@ -44,11 +60,15 @@ firewall = {
 # azure_resource_group_name = ""
 
 # --- Optional: Resource naming ---
+#
+# The runner group and connector are named {global_prefix}-{runner_group_name}.
+# Leave runner_group_name empty and a short random suffix is generated, e.g.
+# SG_RUNNER-k3m9xz. The cloud account ID and region are recorded as tags.
 # override_names = {
 #   global_prefix         = "SG_RUNNER"
-#   include_org_in_prefix = false
-#   runner_group_name     = ""  # default: "<prefix>-runner-group-<subscription_id>"
-#   connector_name        = ""  # default: "<prefix>-private-runner-backend-<subscription_id>"
+#   include_org_in_prefix = false  # affects the VM/NSG names only, not the runner group
+#   runner_group_name     = ""  # default: a 6-char random suffix
+#   connector_name        = ""  # default: same as the runner group name
 # }
 
 # --- Optional: Runner group and storage backend ---
@@ -65,8 +85,23 @@ firewall = {
 # create_role_assignments = true
 
 # --- Optional: Image build ---
+#
+# Already have a runner image? Set vm_image_id and nothing below is built or
+# used - no Packer, no build VM, no destroy-time image cleanup. It has to live
+# in azure_location and carry docker, cron, jq and sg-runner. Set it on a fresh
+# deployment; see the README before adding it to a deployment that already
+# built an image.
+# vm_image_id = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Compute/images/<name>"
+#
 # packer_vm_size    = "Standard_D2s_v3"
 # image_name_prefix = "sg-runner"
+#
+# Bake the newest sg-runner pre-release into the image instead of the latest
+# stable release; falls back to stable when none exists. Needs a rebuild to
+# take effect - bump rebuild_image_token too.
+# sg_runner = {
+#   pre_release = false
+# }
 #
 # Packer builds the image on the first apply only. Later plans reuse it, so the
 # runner keeps the same image. To build a new one, change the token below to
@@ -114,15 +149,3 @@ firewall = {
 # Seconds to wait for Docker to come up before the VM shuts itself down.
 # Raise it if a custom user_script makes first boot slow.
 # runner_startup_timeout = 300
-
-# --- Optional: Network ---
-# A new VNet and subnet are created for the runner, with a public IP attached.
-#
-# service_endpoints routes the listed Azure services over the Azure backbone
-# instead of the public internet. Add "Microsoft.Storage" if your storage
-# account restricts public network access.
-# network = {
-#   vnet_address_space    = ["10.0.0.0/16"]
-#   subnet_address_prefix = "10.0.1.0/24"
-#   service_endpoints     = []
-# }
