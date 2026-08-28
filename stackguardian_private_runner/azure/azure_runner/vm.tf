@@ -63,7 +63,10 @@ resource "azurerm_linux_virtual_machine" "this" {
     Name = local.vm_name
   })
 
-  lifecycle {
-    create_before_destroy = true
-  }
+  # No create_before_destroy here on purpose. The VM name, the OS disk name and
+  # the NIC are all singular, and a NIC can only ever be attached to one VM, so
+  # standing a replacement up alongside the original is impossible - Azure
+  # rejects it with "a resource with the ID ... already exists" before the
+  # original is ever torn down. Replacements are destroy-then-create, which
+  # means the runner is briefly offline while it is rebuilt.
 }
