@@ -29,8 +29,6 @@ locals {
 
   subscription_id = data.azurerm_client_config.current.subscription_id
 
-  effective_prefix = var.override_names.global_prefix
-
   # Platform naming: {prefix}-{name}, or just {name} when no prefix is set.
   # The name half is yours to pick; left empty it is a random suffix, which is
   # all the uniqueness a runner group needs. The subscription ID used to sit
@@ -42,8 +40,8 @@ locals {
   )
 
   runner_group_name = (
-    local.effective_prefix != ""
-    ? "${local.effective_prefix}-${local.runner_group_base}"
+    var.override_names.global_prefix != ""
+    ? "${var.override_names.global_prefix}-${local.runner_group_base}"
     : local.runner_group_base
   )
 
@@ -56,20 +54,20 @@ locals {
   )
 
   connector_name = (
-    local.effective_prefix != ""
-    ? "${local.effective_prefix}-${local.connector_base}"
+    var.override_names.global_prefix != ""
+    ? "${var.override_names.global_prefix}-${local.connector_base}"
     : local.connector_base
   )
 
   # Bare values - the platform's tags are a flat list of strings with no keys.
   platform_tags = compact([
     local.subscription_id,
-    local.effective_prefix,
+    var.override_names.global_prefix,
     var.azure_location,
   ])
 
-  # Azure storage locals — derive from effective_prefix so org name flows into resource names
-  sanitized_prefix = replace(lower(local.effective_prefix), "_", "-")
+  # Azure resource names derive from the prefix, sanitized to Azure's rules
+  sanitized_prefix = replace(lower(var.override_names.global_prefix), "_", "-")
 
   # Storage account names must be globally unique, 3-24 chars, lowercase alphanumeric only
   storage_account_prefix = substr("stgbackend${replace(local.sanitized_prefix, "-", "")}", 0, 16)

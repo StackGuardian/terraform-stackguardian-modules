@@ -72,7 +72,7 @@ variable "azure_resource_group_name" {
   description = <<EOT
     Name of the Azure Resource Group used by the module.
 
-    - When create_azure_resource_group = true (default), this is an optional override for the new resource group's name. If left empty, the name is derived from the module's effective_prefix and subscription ID.
+    - When create_azure_resource_group = true (default), this is an optional override for the new resource group's name. If left empty, the name is derived from override_names.global_prefix and the subscription ID.
     - When create_azure_resource_group = false, this must be the name of an existing resource group to deploy the storage account into.
   EOT
   type        = string

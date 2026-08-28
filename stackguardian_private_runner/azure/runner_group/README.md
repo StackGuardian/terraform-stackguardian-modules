@@ -127,7 +127,7 @@ Azure resources keep their own scheme, since Azure naming rules force sanitizati
 - Resource group: `{sanitized_prefix}-rg-{subscription_id}`
 - Storage account: `stgbackend{prefix}` truncated to 16 chars + an 8-char random suffix
   (the 24-char, lowercase-alphanumeric global limit)
-- Entra ID application: `{effective_prefix}-sg-connector`
+- Entra ID application: `{global_prefix}-sg-connector`
 
 
 ### Tags

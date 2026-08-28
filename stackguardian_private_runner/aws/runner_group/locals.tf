@@ -27,8 +27,6 @@ locals {
   }
   sg_app_uri = local.sg_app_uris[local.sg_api_uri]
 
-  effective_prefix = var.override_names.global_prefix
-
   # Platform naming: {prefix}-{name}, or just {name} when no prefix is set.
   # The name half is yours to pick; left empty it is a random suffix, which is
   # all the uniqueness a runner group needs. The account ID used to sit here -
@@ -40,8 +38,8 @@ locals {
   )
 
   runner_group_name = (
-    local.effective_prefix != ""
-    ? "${local.effective_prefix}-${local.runner_group_base}"
+    var.override_names.global_prefix != ""
+    ? "${var.override_names.global_prefix}-${local.runner_group_base}"
     : local.runner_group_base
   )
 
@@ -54,15 +52,15 @@ locals {
   )
 
   connector_name = (
-    local.effective_prefix != ""
-    ? "${local.effective_prefix}-${local.connector_base}"
+    var.override_names.global_prefix != ""
+    ? "${var.override_names.global_prefix}-${local.connector_base}"
     : local.connector_base
   )
 
   # Bare values - the platform's tags are a flat list of strings with no keys.
   platform_tags = compact([
     data.aws_caller_identity.current.account_id,
-    local.effective_prefix,
+    var.override_names.global_prefix,
     var.aws_region,
   ])
 

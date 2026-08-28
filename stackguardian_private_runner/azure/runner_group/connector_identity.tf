@@ -2,7 +2,7 @@
 # The connector itself is created by the shared runner_group module from these IDs.
 
 resource "azuread_application" "connector" {
-  display_name = "${local.effective_prefix}-sg-connector"
+  display_name = "${var.override_names.global_prefix}-sg-connector"
 
   owners = [data.azurerm_client_config.current.object_id]
 }
@@ -15,7 +15,7 @@ resource "azuread_service_principal" "connector" {
 
 resource "azuread_application_federated_identity_credential" "connector" {
   application_id = azuread_application.connector.id
-  display_name   = "${local.effective_prefix}-sg-oidc"
+  display_name   = "${var.override_names.global_prefix}-sg-oidc"
   issuer         = local.sg_api_uri
   subject        = "/orgs/${local.sg_org_name}"
   audiences      = [local.sg_api_uri]

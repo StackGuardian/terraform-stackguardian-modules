@@ -99,7 +99,7 @@ which is all the uniqueness a runner group needs.
 The account ID is **not** in the name — it is a tag.
 
 AWS resources keep their own scheme:
-- IAM role: `{effective_prefix}-private-runner-s3-role`
+- IAM role: `{global_prefix}-private-runner-s3-role`
 - S3 bucket: `{8-char-random}-private-runner-storage-backend`
 
 
