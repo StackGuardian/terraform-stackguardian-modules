@@ -81,21 +81,44 @@ module "runner_group" {
 | `create_storage_backend` | Create a new S3 bucket | `true` |
 | `existing_s3_bucket_name` | Existing bucket name (when `create_storage_backend = false`) | `""` |
 | `force_destroy_storage_backend` | Force destroy the bucket on `destroy` — deletes all objects | `false` |
-| `override_names.global_prefix` | Prefix for all resource names | `SG_RUNNER` |
-| `override_names.include_org_in_prefix` | Append the org name to the prefix (e.g. `SG_RUNNER_demo-org`) | `false` |
-| `override_names.runner_group_name` | Override the runner group name | (auto-generated) |
-| `override_names.connector_name` | Override the connector name | (auto-generated) |
+| `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
+| `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
+| `override_names.connector_name` | Name half of the connector | (runner group's name) |
 | `max_runners` | Maximum runners allowed in the group | `3` |
 
 ### Naming
 
-With defaults, resources are named from `{effective_prefix}` (the `global_prefix`,
-optionally suffixed with the org name) and the AWS account ID:
+The runner group and the connector are named `{global_prefix}-{name}`, or just
+`{name}` when `global_prefix` is empty. `name` is whatever you pass as
+`override_names.runner_group_name`; left empty it is a 6-character random string,
+which is all the uniqueness a runner group needs.
 
-- Runner group: `{effective_prefix}-runner-group-{account_id}`
-- Connector: `{effective_prefix}-private-runner-backend-{account_id}`
+- Runner group: `{global_prefix}-{name}` — e.g. `SG_RUNNER-k3m9xz`
+- Connector: same name as the runner group (separate API namespaces, so no clash)
+
+The account ID is **not** in the name — it is a tag.
+
+AWS resources keep their own scheme:
 - IAM role: `{effective_prefix}-private-runner-s3-role`
 - S3 bucket: `{8-char-random}-private-runner-storage-backend`
+
+
+### Tags
+
+The platform models tags as a flat list of strings — there are no keys — capped at
+10. Both the runner group and the connector get:
+
+| Tag | Example |
+|-----|---------|
+| Purpose marker | `StackGuardian Private Runner` |
+| Provisioner | `Managed by IaC` |
+| Cloud | `aws` |
+| Account ID | `123456789012` |
+| Naming prefix | `SG_RUNNER` |
+| Region | `eu-central-1` |
+
+The org name and the runner group name are deliberately not tagged: a runner group
+only ever lives in one org, and its own name is not information a tag adds.
 
 ## Outputs
 

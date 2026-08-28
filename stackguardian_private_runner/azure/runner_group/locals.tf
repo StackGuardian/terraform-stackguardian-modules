@@ -29,25 +29,44 @@ locals {
 
   subscription_id = data.azurerm_client_config.current.subscription_id
 
-  # Computed prefix with optional org name
-  effective_prefix = (
-    var.override_names.include_org_in_prefix && local.sg_org_name != ""
-    ? "${var.override_names.global_prefix}_${local.sg_org_name}"
-    : var.override_names.global_prefix
-  )
+  effective_prefix = var.override_names.global_prefix
 
-  # Resource naming
-  runner_group_name = (
+  # Platform naming: {prefix}-{name}, or just {name} when no prefix is set.
+  # The name half is yours to pick; left empty it is a random suffix, which is
+  # all the uniqueness a runner group needs. The subscription ID used to sit
+  # here and cost 36 characters - it is a tag now.
+  runner_group_base = (
     var.override_names.runner_group_name != ""
     ? var.override_names.runner_group_name
-    : "${local.effective_prefix}-runner-group-${local.subscription_id}"
+    : random_string.name_suffix.result
+  )
+
+  runner_group_name = (
+    local.effective_prefix != ""
+    ? "${local.effective_prefix}-${local.runner_group_base}"
+    : local.runner_group_base
+  )
+
+  # The connector is created 1:1 with the runner group and shares its name -
+  # they live in separate API namespaces (/integrations/ vs runnergroups/).
+  connector_base = (
+    var.override_names.connector_name != ""
+    ? var.override_names.connector_name
+    : local.runner_group_base
   )
 
   connector_name = (
-    var.override_names.connector_name != ""
-    ? var.override_names.connector_name
-    : "${local.effective_prefix}-private-runner-backend-${local.subscription_id}"
+    local.effective_prefix != ""
+    ? "${local.effective_prefix}-${local.connector_base}"
+    : local.connector_base
   )
+
+  # Bare values - the platform's tags are a flat list of strings with no keys.
+  platform_tags = compact([
+    local.subscription_id,
+    local.effective_prefix,
+    var.azure_location,
+  ])
 
   # Azure storage locals — derive from effective_prefix so org name flows into resource names
   sanitized_prefix = replace(lower(local.effective_prefix), "_", "-")

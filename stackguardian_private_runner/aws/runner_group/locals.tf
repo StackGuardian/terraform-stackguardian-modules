@@ -27,25 +27,44 @@ locals {
   }
   sg_app_uri = local.sg_app_uris[local.sg_api_uri]
 
-  # Computed prefix with optional org name
-  effective_prefix = (
-    var.override_names.include_org_in_prefix && local.sg_org_name != ""
-    ? "${var.override_names.global_prefix}_${local.sg_org_name}"
-    : var.override_names.global_prefix
-  )
+  effective_prefix = var.override_names.global_prefix
 
-  # Resource naming
-  runner_group_name = (
+  # Platform naming: {prefix}-{name}, or just {name} when no prefix is set.
+  # The name half is yours to pick; left empty it is a random suffix, which is
+  # all the uniqueness a runner group needs. The account ID used to sit here -
+  # it is a tag now.
+  runner_group_base = (
     var.override_names.runner_group_name != ""
     ? var.override_names.runner_group_name
-    : "${local.effective_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
+    : random_string.name_suffix.result
+  )
+
+  runner_group_name = (
+    local.effective_prefix != ""
+    ? "${local.effective_prefix}-${local.runner_group_base}"
+    : local.runner_group_base
+  )
+
+  # The connector is created 1:1 with the runner group and shares its name -
+  # they live in separate API namespaces (/integrations/ vs runnergroups/).
+  connector_base = (
+    var.override_names.connector_name != ""
+    ? var.override_names.connector_name
+    : local.runner_group_base
   )
 
   connector_name = (
-    var.override_names.connector_name != ""
-    ? var.override_names.connector_name
-    : "${local.effective_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
+    local.effective_prefix != ""
+    ? "${local.effective_prefix}-${local.connector_base}"
+    : local.connector_base
   )
+
+  # Bare values - the platform's tags are a flat list of strings with no keys.
+  platform_tags = compact([
+    data.aws_caller_identity.current.account_id,
+    local.effective_prefix,
+    var.aws_region,
+  ])
 
   # S3 bucket name / ARN
   s3_bucket_name = (

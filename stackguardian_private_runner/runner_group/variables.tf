@@ -29,6 +29,25 @@ variable "connector_name" {
   type        = string
 }
 
+variable "tags" {
+  description = <<EOT
+    Extra tags for the runner group and the connector, appended to the ones this
+    module always sets ("StackGuardian Private Runner", "Managed by IaC", and
+    the cloud name). The calling module passes cloud-specific values here -
+    account or subscription ID, region, and the naming prefix.
+
+    The platform models tags as a flat list of strings, not key/value pairs, and
+    allows at most 10 in total.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.tags) <= 7
+    error_message = "At most 7 extra tags: the platform caps tags at 10 and this module already sets 3."
+  }
+}
+
 variable "max_runners" {
   description = "Maximum number of runners allowed in the runner group"
   type        = number

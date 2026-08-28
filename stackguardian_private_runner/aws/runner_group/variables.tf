@@ -64,18 +64,23 @@ variable "aws_region" {
 
 variable "override_names" {
   description = <<EOT
-    Configuration for overriding default resource names.
+    Naming for the StackGuardian runner group and connector.
 
-    - global_prefix: Prefix used for naming all resources created by this module
-    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
-    - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {effective_prefix}-runner-group-{account_id}
-    - connector_name: Override the default StackGuardian connector name. If not provided, uses {effective_prefix}-private-runner-backend-{account_id}
+    Both are named {global_prefix}-{name}, or just {name} when global_prefix is
+    empty. The cloud account ID and the prefix are recorded as tags
+    rather than baked into the name.
+
+    - global_prefix: Prefix for the runner group and connector names. Set to ""
+      to omit it entirely.
+    - runner_group_name: Name half of the runner group. Generated as a short
+      random string when left empty.
+    - connector_name: Name half of the connector. Defaults to the runner group's,
+      so the pair share a name - they live in separate API namespaces.
   EOT
   type = object({
-    global_prefix         = string
-    include_org_in_prefix = optional(bool, false)
-    runner_group_name     = optional(string, "")
-    connector_name        = optional(string, "")
+    global_prefix     = string
+    runner_group_name = optional(string, "")
+    connector_name    = optional(string, "")
   })
   default = {
     global_prefix = "SG_RUNNER"

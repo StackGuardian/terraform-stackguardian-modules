@@ -33,7 +33,9 @@
           "default": ""
         }
       },
-      "required": ["api_key"]
+      "required": [
+        "api_key"
+      ]
     },
     "aws_region": {
       "title": "AWS Region",
@@ -83,25 +85,25 @@
         "global_prefix": {
           "title": "Global Prefix",
           "type": "string",
-          "default": "SG_RUNNER"
-        },
-        "include_org_in_prefix": {
-          "title": "Include Organization Name in Prefix",
-          "type": "boolean",
-          "default": false
+          "default": "SG_RUNNER",
+          "description": "Prefix for the runner group and connector names. Leave empty to omit it."
         },
         "runner_group_name": {
-          "title": "Runner Group Name Override",
+          "title": "Runner Group Name",
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Name half of the runner group. A short random string is generated when empty."
         },
         "connector_name": {
-          "title": "Connector Name Override",
+          "title": "Connector Name",
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Name half of the connector. Defaults to the runner group's name."
         }
       },
-      "required": ["global_prefix"],
+      "required": [
+        "global_prefix"
+      ],
       "additionalProperties": false
     },
     "max_runners": {
@@ -116,7 +118,11 @@
       "oneOf": [
         {
           "properties": {
-            "create_storage_backend": { "enum": [true] },
+            "create_storage_backend": {
+              "enum": [
+                true
+              ]
+            },
             "force_destroy_storage_backend": {
               "title": "Force Destroy Storage Backend",
               "type": "boolean",
@@ -126,17 +132,25 @@
         },
         {
           "properties": {
-            "create_storage_backend": { "enum": [false] },
+            "create_storage_backend": {
+              "enum": [
+                false
+              ]
+            },
             "existing_s3_bucket_name": {
               "title": "Existing S3 Bucket Name",
               "type": "string",
               "minLength": 1
             }
           },
-          "required": ["existing_s3_bucket_name"]
+          "required": [
+            "existing_s3_bucket_name"
+          ]
         }
       ]
     }
   },
-  "required": ["stackguardian"]
+  "required": [
+    "stackguardian"
+  ]
 }

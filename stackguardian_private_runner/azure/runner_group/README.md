@@ -103,24 +103,49 @@ When `create_azure_resource_group = false`, `azure_resource_group_name` becomes 
 | `azure_storage.account_tier` | Storage Account performance tier (`Standard` / `Premium`) | `Standard` |
 | `azure_storage.account_replication_type` | Replication strategy (`LRS` / `GRS` / `RAGRS` / `ZRS`) | `LRS` |
 | `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader` | `true` |
-| `override_names.global_prefix` | Prefix for all resource names | `SG_RUNNER` |
-| `override_names.include_org_in_prefix` | Append the org name to the prefix (e.g. `SG_RUNNER_demo-org`) | `false` |
-| `override_names.runner_group_name` | Override the runner group name | (auto-generated) |
-| `override_names.connector_name` | Override the connector name | (auto-generated) |
+| `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
+| `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
+| `override_names.connector_name` | Name half of the connector | (runner group's name) |
 | `max_runners` | Maximum runners allowed in the group | `3` |
 
 ### Naming
 
-With defaults, resources are named from `{effective_prefix}` (the `global_prefix`,
-optionally suffixed with the org name) and the subscription ID. Azure resource naming
-rules force some sanitization — the prefix is lowercased and underscores become dashes:
+The runner group and the connector are named `{global_prefix}-{name}`, or just
+`{name}` when `global_prefix` is empty. `name` is whatever you pass as
+`override_names.runner_group_name`; left empty it is a 6-character random string,
+which is all the uniqueness a runner group needs.
 
-- Runner group: `{effective_prefix}-runner-group-{subscription_id}`
-- Connector: `{effective_prefix}-private-runner-backend-{subscription_id}`
+- Runner group: `{global_prefix}-{name}` — e.g. `SG_RUNNER-k3m9xz`
+- Connector: same name as the runner group (separate API namespaces, so no clash)
+
+The subscription ID is **not** in the name — it is a tag. It used to cost 36 of the
+name's characters while telling you nothing you could not read off the tags.
+
+Azure resources keep their own scheme, since Azure naming rules force sanitization
+(the prefix is lowercased and underscores become dashes):
+
 - Resource group: `{sanitized_prefix}-rg-{subscription_id}`
 - Storage account: `stgbackend{prefix}` truncated to 16 chars + an 8-char random suffix
   (the 24-char, lowercase-alphanumeric global limit)
 - Entra ID application: `{effective_prefix}-sg-connector`
+
+
+### Tags
+
+The platform models tags as a flat list of strings — there are no keys — capped at
+10. Both the runner group and the connector get:
+
+| Tag | Example |
+|-----|---------|
+| Purpose marker | `StackGuardian Private Runner` |
+| Provisioner | `Managed by IaC` |
+| Cloud | `azure` |
+| Subscription ID | `a97621d8-9158-4681-81b6-38b1222afba4` |
+| Naming prefix | `SG_RUNNER` |
+| Region | `germanywestcentral` |
+
+The org name and the runner group name are deliberately not tagged: a runner group
+only ever lives in one org, and its own name is not information a tag adds.
 
 ## Outputs
 

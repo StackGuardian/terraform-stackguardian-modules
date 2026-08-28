@@ -33,7 +33,9 @@
           "default": ""
         }
       },
-      "required": ["api_key"]
+      "required": [
+        "api_key"
+      ]
     },
     "azure_location": {
       "title": "Azure Region",
@@ -125,25 +127,25 @@
         "global_prefix": {
           "title": "Global Prefix",
           "type": "string",
-          "default": "SG_RUNNER"
-        },
-        "include_org_in_prefix": {
-          "title": "Include Organization Name in Prefix",
-          "type": "boolean",
-          "default": false
+          "default": "SG_RUNNER",
+          "description": "Prefix for the runner group and connector names. Leave empty to omit it."
         },
         "runner_group_name": {
-          "title": "Runner Group Name Override",
+          "title": "Runner Group Name",
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Name half of the runner group. A short random string is generated when empty."
         },
         "connector_name": {
-          "title": "Connector Name Override",
+          "title": "Connector Name",
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Name half of the connector. Defaults to the runner group's name."
         }
       },
-      "required": ["global_prefix"],
+      "required": [
+        "global_prefix"
+      ],
       "additionalProperties": false
     },
     "max_runners": {
@@ -158,7 +160,11 @@
       "oneOf": [
         {
           "properties": {
-            "create_storage_backend": { "enum": [true] },
+            "create_storage_backend": {
+              "enum": [
+                true
+              ]
+            },
             "azure_storage": {
               "title": "Azure Storage Configuration",
               "type": "object",
@@ -166,13 +172,21 @@
                 "account_tier": {
                   "title": "Account Tier",
                   "type": "string",
-                  "enum": ["Standard", "Premium"],
+                  "enum": [
+                    "Standard",
+                    "Premium"
+                  ],
                   "default": "Standard"
                 },
                 "account_replication_type": {
                   "title": "Replication Type",
                   "type": "string",
-                  "enum": ["LRS", "GRS", "RAGRS", "ZRS"],
+                  "enum": [
+                    "LRS",
+                    "GRS",
+                    "RAGRS",
+                    "ZRS"
+                  ],
                   "default": "LRS"
                 }
               },
@@ -182,7 +196,11 @@
         },
         {
           "properties": {
-            "create_storage_backend": { "enum": [false] },
+            "create_storage_backend": {
+              "enum": [
+                false
+              ]
+            },
             "existing_azure_storage_account_name": {
               "title": "Existing Azure Storage Account Name",
               "type": "string",
@@ -202,5 +220,7 @@
       ]
     }
   },
-  "required": ["stackguardian"]
+  "required": [
+    "stackguardian"
+  ]
 }

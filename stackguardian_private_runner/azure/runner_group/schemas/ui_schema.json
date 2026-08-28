@@ -17,7 +17,11 @@
   "stackguardian": {
     "ui:title": "StackGuardian Configuration",
     "ui:description": "Configure your StackGuardian platform connection",
-    "ui:order": ["api_uri", "api_key", "org_name"],
+    "ui:order": [
+      "api_uri",
+      "api_key",
+      "org_name"
+    ],
     "api_uri": {
       "ui:widget": "select",
       "ui:description": "Select your StackGuardian platform region"
@@ -54,7 +58,10 @@
   "azure_storage": {
     "ui:title": "Azure Storage Configuration",
     "ui:description": "Configure Azure Storage Account settings",
-    "ui:order": ["account_tier", "account_replication_type"],
+    "ui:order": [
+      "account_tier",
+      "account_replication_type"
+    ],
     "account_tier": {
       "ui:widget": "select",
       "ui:description": "Performance tier of the storage account"
@@ -75,22 +82,22 @@
   "override_names": {
     "ui:title": "Resource Naming Configuration",
     "ui:description": "Customize resource names (optional)",
-    "ui:order": ["global_prefix", "include_org_in_prefix", "runner_group_name", "connector_name"],
+    "ui:order": [
+      "global_prefix",
+      "runner_group_name",
+      "connector_name"
+    ],
     "global_prefix": {
       "ui:placeholder": "SG_RUNNER",
-      "ui:description": "Prefix for naming all resources"
-    },
-    "include_org_in_prefix": {
-      "ui:widget": "checkbox",
-      "ui:description": "When enabled, prefix becomes {global_prefix}_{org_name} (e.g., SG_RUNNER_demo-org)"
+      "ui:description": "Prefix for the runner group and connector names. Leave empty to omit it."
     },
     "runner_group_name": {
       "ui:placeholder": "(auto-generated)",
-      "ui:description": "Override the runner group name. If empty, uses {effective_prefix}-runner-group-{subscription_id}"
+      "ui:description": "Name half of the runner group; the full name is {prefix}-{name}. A short random string is generated when empty."
     },
     "connector_name": {
       "ui:placeholder": "(auto-generated)",
-      "ui:description": "Override the connector name. If empty, uses {effective_prefix}-private-runner-backend-{subscription_id}"
+      "ui:description": "Name half of the connector. Defaults to the runner group's name."
     }
   },
   "max_runners": {
