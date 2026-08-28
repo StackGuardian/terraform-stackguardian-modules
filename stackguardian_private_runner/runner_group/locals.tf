@@ -1,73 +1,26 @@
-data "external" "env" {
-  program = [
-    "sh",
-    "-c",
-    "echo '{\"sg_org_name\": \"'$${SG_ORG_ID##*/}'\"}'"
-  ]
-}
-
-data "aws_caller_identity" "current" {}
-
 locals {
-  # StackGuardian configuration
-  # Use nonsensitive() for non-secret fields to prevent sensitivity propagation
-  sg_org_name = (
-    nonsensitive(var.stackguardian.org_name) != ""
-    ? nonsensitive(var.stackguardian.org_name)
-    : data.external.env.result.sg_org_name
-  )
-  sg_api_uri = nonsensitive(var.stackguardian.api_uri)
+  # Storage backend discriminator
+  is_aws   = var.storage_backend.type == "aws_s3"
+  is_azure = var.storage_backend.type == "azure_blob_storage"
 
-  # Web console URL per platform region. Kept as an explicit map because the
-  # console host is not derivable from the API host in every region.
-  sg_app_uris = {
-    "https://api.app.stackguardian.io"    = "https://app.stackguardian.io"
-    "https://api.us.stackguardian.io"     = "https://us.stackguardian.io"
-    "https://testapi.qa.stackguardian.io" = "https://dash.qa.stackguardian.io"
-  }
-  sg_app_uri = local.sg_app_uris[local.sg_api_uri]
+  aws_backend   = var.storage_backend.aws
+  azure_backend = var.storage_backend.azure
 
-  # Computed prefix with optional org name
-  effective_prefix = (
-    var.override_names.include_org_in_prefix && local.sg_org_name != ""
-    ? "${var.override_names.global_prefix}_${local.sg_org_name}"
-    : var.override_names.global_prefix
-  )
-
-  # Resource naming
-  runner_group_name = (
-    var.override_names.runner_group_name != ""
-    ? var.override_names.runner_group_name
-    : "${local.effective_prefix}-runner-group-${data.aws_caller_identity.current.account_id}"
-  )
-
-  connector_name = (
-    var.override_names.connector_name != ""
-    ? var.override_names.connector_name
-    : "${local.effective_prefix}-private-runner-backend-${data.aws_caller_identity.current.account_id}"
-  )
-
-  # Default tags (not editable by user)
-  default_tags = [
-    "StackGuardian Private Runner",
-    local.runner_group_name,
-    local.sg_org_name
-  ]
-
-  # S3 bucket name (created or existing)
-  s3_bucket_name = (
-    var.create_storage_backend
-    ? aws_s3_bucket.this[0].bucket
-    : var.existing_s3_bucket_name
-  )
-
-  s3_bucket_arn = (
-    var.create_storage_backend
-    ? aws_s3_bucket.this[0].arn
-    : "arn:aws:s3:::${local.s3_bucket_name}"
-  )
-
-  # Runner group outputs
-  final_runner_group_name = stackguardian_runner_group.this.resource_name
-  final_connector_name    = stackguardian_connector.this.resource_name
+  # Tags applied to both the runner group and the connector. The platform models
+  # tags as a flat list of strings - there are no keys - so values are bare.
+  #
+  # Deliberately absent: the org name (a runner group only ever lives in one org)
+  # and the runner group name (it is the resource's own name). Both were pure
+  # duplication. The cloud account and prefix live here instead of in the name.
+  default_tags = compact(concat(
+    [
+      "StackGuardian Private Runner",
+      # Tool-agnostic on purpose: this module runs under both OpenTofu and
+      # Terraform, and the tag's job is "do not hand-edit this in the console",
+      # not to record which binary ran.
+      "Managed by IaC",
+      local.is_aws ? "aws" : "azure",
+    ],
+    var.tags,
+  ))
 }

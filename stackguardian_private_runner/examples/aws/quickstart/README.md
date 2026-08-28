@@ -46,8 +46,8 @@ hand-copying outputs between them.
                                     ▼
   module.packer      ┌──────────────────────────────┐
   ──────────────────►│  Packer build (first apply)  │
-                     │  • temp EC2 build instance   │
-                     │    (auto-terminated)         │
+  (skipped when      │  • temp EC2 build instance   │
+   ami_id is set)    │    (auto-terminated)         │
                      │  • custom AMI: Docker, jq,   │
                      │    cron, sg-runner, and      │
                      │    optional Terraform/Tofu   │
@@ -76,11 +76,11 @@ runner group token, then starts polling for work.
 | Requirement | Notes |
 |-------------|-------|
 | **OpenTofu >= 1.6** (or Terraform >= 1.4) | The packer module uses `terraform_data` |
-| **Packer** | Installed automatically by the build script at the configured version |
+| **Packer** | Installed automatically by the build script at the configured version - not needed when you pass `ami_id` |
 | **AWS credentials** | Via `AWS_PROFILE`, environment variables, or instance role |
 | **StackGuardian API key** | Org-scoped key with permission to create runner groups and connectors |
-| **VPC** | Existing, with a working outbound internet path |
-| **Public subnet** | Used for both the Packer build instance and the runner |
+| **An existing VPC and subnet** | This example attaches to them; it does not create networking |
+| **Outbound path from that subnet** | Public subnet with an internet gateway, or private behind NAT |
 
 ### AWS Permissions
 
@@ -103,8 +103,8 @@ cp terraform.tfvars.tpl terraform.tfvars
 $EDITOR terraform.tfvars
 ```
 
-At minimum you must set `stackguardian.api_key`, `stackguardian.org_name`,
-`vpc_id`, and `public_subnet_id`.
+At minimum you must set `stackguardian.api_key`, `stackguardian.org_name`, and the
+`network` block naming the VPC and subnet to attach to.
 
 **2. Initialize**
 
@@ -145,8 +145,8 @@ minute or two of the instance booting.
 |----------|------|-------------|
 | `stackguardian.api_key` | `string` | StackGuardian API key (sensitive) |
 | `stackguardian.org_name` | `string` | StackGuardian organization name |
-| `vpc_id` | `string` | Existing VPC ID |
-| `public_subnet_id` | `string` | Public subnet for the build instance and runner |
+| `network.vpc_id` | `string` | Existing VPC ID |
+| `network.subnet_id` | `string` | Existing subnet for the build instance and the runner |
 
 ### Commonly Adjusted
 
@@ -157,6 +157,7 @@ minute or two of the instance booting.
 | `vpc_endpoint_security_group_ids` | `[]` | Interface-endpoint SGs to open on 443 - see [Networking](#networking) |
 | `runner_instance_type` | `t3.xlarge` | Runner instance size |
 | `packer_instance_type` | `t3.medium` | Build instance size |
+| `ami_id` | `""` | Existing AMI to boot instead of building one - see [Bringing your own AMI](#bringing-your-own-ami) |
 | `max_runners` | `3` | Max runners in the runner group |
 | `override_names.global_prefix` | `SG_RUNNER` | Prefix for created resource names |
 | `runner_startup_timeout` | `300` | Seconds to wait for Docker before self-shutdown |
@@ -181,9 +182,11 @@ minute or two of the instance booting.
 | `opentofu.primary_version` | `""` | Installed as `/bin/tofu` |
 | `opentofu.additional_versions` | `[]` | Installed as `/bin/tofu<version>` |
 | `sg_runner.pre_release` | `false` | Bake the newest sg-runner pre-release instead of latest stable |
+| `ami_name_prefix` | `SG-RUNNER-ami` | Prefix of the generated AMI name |
 
 Every one of these is baked into the image at build time, so changing any of them
-on an existing deployment has **no effect until you trigger a rebuild**.
+on an existing deployment has **no effect until you trigger a rebuild**. All of
+them are ignored when `ami_id` is set, since nothing is built.
 
 ### Full Variable Reference
 
@@ -223,11 +226,71 @@ changes.
 > AMI this deployment built - on destroy, and on the rebuild that supersedes it.
 > AMIs from other deployments are never deregistered.
 
+### Bringing your own AMI
+
+Set `ami_id` and no AMI is built at all:
+
+```hcl
+ami_id = "ami-0123456789abcdef0"
+```
+
+The packer module then creates nothing - no build instance, no build, no
+destroy-time cleanup - and hands that AMI straight to the runner. Packer itself
+is never downloaded, and every build input (`os`, `terraform`, `opentofu`,
+`sg_runner`, `packer_config`, `ami_name_prefix`, `packer_instance_type`) is
+ignored. The `ami_id` output still reports what the runner booted from either way.
+
+Use it to reuse one AMI across several deployments, to pin a known-good image, or
+to run the [`aws/packer` example](../packer/README.md) separately and feed its
+`ami_id` output in here.
+
+The AMI has to live in `aws_region` and carry docker, cron, jq and sg-runner -
+the same contents [`aws/packer`](../../../aws/packer/README.md) bakes in. A
+missing dependency is not caught at plan time; the runner just fails to register.
+
+> **Set it on a fresh deployment.** Adding `ami_id` to a deployment that already
+> built an AMI tears down the build records, and the destroy-time cleanup
+> deregisters the AMI that was built - including when that is the very AMI you
+> are passing in. To hand an existing deployment its own AMI, drop the cleanup
+> resource from state first:
+> `tofu state rm module.packer.null_resource.ami_cleanup[0]`.
+
 ## Networking
 
-This example places both the Packer build instance and the runner on the **public
-subnet** you provide, with a public IP attached, and relies on the subnet's route
-to an internet gateway for outbound access.
+This example **attaches to an existing VPC and subnet**. It looks them up with
+`data.aws_vpc` / `data.aws_subnet` and places both the Packer build instance and
+the runner in that subnet — nothing about your network is managed by this state,
+and `destroy` leaves it as it was.
+
+```hcl
+network = {
+  vpc_id    = "vpc-0123456789abcdef0"
+  subnet_id = "subnet-0123456789abcdef0"
+}
+```
+
+The only network resources created are the ones bound to the instance itself: a
+security group and, unless you turn it off, a public IP.
+
+### Outbound Access
+
+The runner must reach the StackGuardian API and package mirrors. Either:
+
+- leave `network.associate_public_ip = true` (the default) and use a public subnet, or
+- set it to `false` when the subnet already has its own path out — a NAT gateway or
+  a proxy.
+
+The Packer build instance always needs egress from that same subnet.
+
+### What Belongs on Your Subnet
+
+| Need | Where it goes |
+|------|---------------|
+| NAT gateway, route tables for private egress | On your subnet |
+| HTTP proxy (`proxy_url`) | Not exposed here — use `aws/single_runner` directly |
+
+`aws/single_runner` can create a NAT gateway and route tables via
+`create_network_infrastructure`; this example never does.
 
 The runner's security group allows **all egress** and **no ingress** by default.
 SSH is opened only if you set `firewall.ssh_access_rules`.
@@ -238,7 +301,11 @@ If your VPC resolves AWS APIs through interface endpoints (STS, EC2, SSM, ECR)
 rather than over the internet, you **must** list those endpoints' security groups:
 
 ```hcl
-vpc_endpoint_security_group_ids = ["sg-0123456789abcdef0"]
+network = {
+  vpc_id                          = "vpc-0123456789abcdef0"
+  subnet_id                       = "subnet-0123456789abcdef0"
+  vpc_endpoint_security_group_ids = ["sg-0123456789abcdef0"]
+}
 ```
 
 The module adds an inbound HTTPS (443) rule to each listed security group, sourced
@@ -256,11 +323,13 @@ you see runners stuck with no logs, check this first.
 | `runner_group_url` | Direct link to the runner group in the web console |
 | `connector_name` | Name of the created connector |
 | `s3_bucket_name` | S3 bucket backing the runner group's storage |
-| `ami_id` | AMI built by Packer and recorded in state |
+| `ami_id` | AMI the runner booted from - built by Packer, or the `ami_id` passed in |
 | `instance_id` | Runner EC2 instance ID |
 | `instance_public_ip` | Runner public IP |
 | `instance_private_ip` | Runner private IP |
 | `security_group_id` | Runner security group ID |
+| `subnet_id` | Existing subnet the runner was placed in |
+| `ssh_command` | Ready-to-paste SSH command; uses the private IP when no public IP is attached |
 
 The runner group token is deliberately **not** exposed as a root output. It is
 passed module-to-module in memory and marked sensitive.
@@ -339,13 +408,15 @@ group and connector from StackGuardian, and tears down the AWS resources.
 
 | Symptom | Likely cause |
 |---------|--------------|
-| Jobs hang on plan, no logs | VPC interface endpoints not listed in `vpc_endpoint_security_group_ids` |
+| Jobs hang on plan, no logs | VPC interface endpoints not listed in `network.vpc_endpoint_security_group_ids` |
 | Plan fails on a map lookup | `stackguardian.api_uri` is not one of the three supported values |
 | Packer fails immediately | Subnet has no outbound internet path, or IAM permissions are missing |
 | `No AMI recorded` on output | The build produced no AMI - check `../../../aws/packer/packer_manifest.log` |
 | Packer never re-runs | Working as designed; bump `rebuild_ami_token` |
 | Runner shuts itself down after boot | Docker did not start within `runner_startup_timeout` - user-data calls `shutdown -h now` on timeout |
 | Runner never appears in the console | Token or org name wrong; check `/var/log/sg_runner_startup.log` |
+| Plan fails reading the VPC or subnet | `network.vpc_id` or `network.subnet_id` does not exist, or the credentials lack `ec2:Describe*` |
+| `Resource postcondition failed` on the subnet | `network.subnet_id` is in a different VPC than `network.vpc_id` |
 
 To force a rebuild without touching variables:
 
@@ -357,9 +428,10 @@ tofu apply -replace=module.packer.null_resource.packer_build
 
 This example trades flexibility for a short path to a working runner:
 
-- **Public subnet only.** `private_subnet_id`, `create_network_infrastructure`
-  (NAT gateway), and `proxy_url` are supported by the underlying modules but are
-  not exposed here. Use `aws/single_runner` directly for private deployments.
+- **Bring your own network.** The example attaches to an existing VPC and subnet
+  and has no option to create one. `private_subnet_id`, `create_network_infrastructure`
+  (NAT gateway), and `proxy_url` are supported by `aws/single_runner` but are not
+  exposed here — use the module directly when you need them.
 - **Single runner.** No autoscaling; `max_runners` caps the runner group, not the
   instance count.
 - **Local state.** No backend is configured. Add one before using this for anything

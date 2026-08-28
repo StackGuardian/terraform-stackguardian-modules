@@ -1,90 +1,53 @@
-/*---------------------------+
- | Storage Backend Options   |
- +---------------------------*/
-variable "create_storage_backend" {
-  description = <<EOT
-    Whether to create a new S3 bucket for storage backend.
-    Set to false to use an existing S3 bucket.
-  EOT
-  type        = bool
-  default     = true
-}
-
-variable "existing_s3_bucket_name" {
-  description = "Name of an existing S3 bucket to use as storage backend (required when create_storage_backend = false)"
-  type        = string
-  default     = ""
-}
-
-variable "force_destroy_storage_backend" {
-  description = <<EOT
-    Whether to force destroy the storage backend (S3 bucket) when the module is destroyed.
-    This will delete all data in the bucket, so use with caution.
-    Default is false, meaning the bucket will not be deleted if it contains objects.
-  EOT
-  type        = bool
-  default     = false
-}
-
 /*-----------------------------------+
  | StackGuardian Platform Variables  |
  +-----------------------------------*/
-variable "stackguardian" {
-  description = "StackGuardian platform configuration"
-  type = object({
-    api_key  = string
-    api_uri  = optional(string, "https://api.app.stackguardian.io")
-    org_name = optional(string, "")
-  })
-  sensitive = true
-
-  validation {
-    condition     = can(regex("^sg[uo]_.*", var.stackguardian.api_key))
-    error_message = "The api_key must be a valid StackGuardian API key starting with 'sgu_' (user) or 'sgo_' (organization)."
-  }
-
-  validation {
-    condition = contains([
-      "https://api.app.stackguardian.io",
-      "https://api.us.stackguardian.io",
-      "https://testapi.qa.stackguardian.io"
-    ], var.stackguardian.api_uri)
-    error_message = "The api_uri must be either 'https://api.app.stackguardian.io' (EU1), 'https://api.us.stackguardian.io' (US1) or 'https://testapi.qa.stackguardian.io' (DASH)."
-  }
-}
-
-/*-------------------+
- | General Variables |
- +-------------------*/
-variable "aws_region" {
-  description = "The target AWS Region"
+variable "sg_org_name" {
+  description = "StackGuardian organization name, resolved by the calling module."
   type        = string
-  default     = "eu-central-1"
+
+  validation {
+    condition     = var.sg_org_name != ""
+    error_message = "sg_org_name must not be empty. Set stackguardian.org_name on the calling module or make sure SG_ORG_ID is exported."
+  }
 }
 
-variable "override_names" {
-  description = <<EOT
-    Configuration for overriding default resource names.
-
-    - global_prefix: Prefix used for naming all resources created by this module
-    - include_org_in_prefix: When true, appends org name to prefix (e.g., SG_RUNNER_demo-org)
-    - runner_group_name: Override the default StackGuardian runner group name. If not provided, uses {effective_prefix}-runner-group-{account_id}
-    - connector_name: Override the default StackGuardian connector name. If not provided, uses {effective_prefix}-private-runner-backend-{account_id}
-  EOT
-  type = object({
-    global_prefix         = string
-    include_org_in_prefix = optional(bool, false)
-    runner_group_name     = optional(string, "")
-    connector_name        = optional(string, "")
-  })
-  default = {
-    global_prefix = "SG_RUNNER"
-  }
+variable "sg_app_uri" {
+  description = "StackGuardian web console base URI, resolved by the calling module (e.g. https://app.stackguardian.io). Used to build the runner group URL output."
+  type        = string
 }
 
 /*---------------------------+
- | Runner Group Configuration |
+ | Runner Group & Connector  |
  +---------------------------*/
+variable "runner_group_name" {
+  description = "Name of the StackGuardian runner group to create."
+  type        = string
+}
+
+variable "connector_name" {
+  description = "Name of the StackGuardian connector to create for storage backend access."
+  type        = string
+}
+
+variable "tags" {
+  description = <<EOT
+    Extra tags for the runner group and the connector, appended to the ones this
+    module always sets ("StackGuardian Private Runner", "Managed by IaC", and
+    the cloud name). The calling module passes cloud-specific values here -
+    account or subscription ID, region, and the naming prefix.
+
+    The platform models tags as a flat list of strings, not key/value pairs, and
+    allows at most 10 in total.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.tags) <= 7
+    error_message = "At most 7 extra tags: the platform caps tags at 10 and this module already sets 3."
+  }
+}
+
 variable "max_runners" {
   description = "Maximum number of runners allowed in the runner group"
   type        = number
@@ -93,5 +56,53 @@ variable "max_runners" {
   validation {
     condition     = var.max_runners >= 1
     error_message = "max_runners must be at least 1."
+  }
+}
+
+/*---------------------------+
+ | Storage Backend           |
+ +---------------------------*/
+variable "storage_backend" {
+  description = <<EOT
+    Resolved storage backend the runner group and connector are wired to. The cloud
+    resources themselves are created by the calling module (aws/runner_group or
+    azure/runner_group); this module only registers them with the platform.
+
+    - type: "aws_s3" or "azure_blob_storage"
+    - aws: required when type = "aws_s3" — bucket name plus the cross-account role
+      and external ID the AWS_RBAC connector assumes
+    - azure: required when type = "azure_blob_storage" — storage account name and
+      access key plus the identity the AZURE_OIDC connector federates with
+  EOT
+  type = object({
+    type = string
+    aws = optional(object({
+      region      = string
+      bucket_name = string
+      role_arn    = string
+      external_id = string
+    }))
+    azure = optional(object({
+      storage_account_name = string
+      access_key           = string
+      tenant_id            = string
+      subscription_id      = string
+      client_id            = string
+    }))
+  })
+
+  validation {
+    condition     = contains(["aws_s3", "azure_blob_storage"], var.storage_backend.type)
+    error_message = "storage_backend.type must be either 'aws_s3' or 'azure_blob_storage'."
+  }
+
+  validation {
+    condition     = var.storage_backend.type != "aws_s3" || var.storage_backend.aws != null
+    error_message = "storage_backend.aws is required when storage_backend.type = 'aws_s3'."
+  }
+
+  validation {
+    condition     = var.storage_backend.type != "azure_blob_storage" || var.storage_backend.azure != null
+    error_message = "storage_backend.azure is required when storage_backend.type = 'azure_blob_storage'."
   }
 }

@@ -1,5 +1,7 @@
 # StackGuardian Autoscaled Private Runner - AWS Module
 
+> Part of [StackGuardian Private Runner](../../README.md) — [AWS stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 This Terraform module deploys an Auto Scaling Group of StackGuardian Private Runners on AWS EC2. It creates the infrastructure (ASG, Launch Template, networking) for running Private Runners. For dynamic queue-based scaling, deploy this module together with the `autoscaler` module.
 
 ## Overview
@@ -100,7 +102,9 @@ module "autoscaling_runner" {
 | `network.public_subnet_id` | Public subnet ID (required for NAT Gateway) | `""` |
 | `network.associate_public_ip` | Assign public IPs to instances | `false` |
 | `network.create_network_infrastructure` | Create NAT Gateway and route tables | `false` |
+| `network.proxy_url` | HTTP proxy URL for private networks | `""` |
 | `network.additional_security_group_ids` | Additional security groups to attach | `[]` |
+| `network.vpc_endpoint_security_group_ids` | VPC endpoint security groups (adds inbound 443 rule) | `[]` |
 | `volume.type` | EBS volume type | `gp3` |
 | `volume.size` | EBS volume size in GB | `100` |
 | `volume.delete_on_termination` | Delete volume on instance termination | `false` |
@@ -312,7 +316,7 @@ aws autoscaling describe-scaling-activities \
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.0 |
+| terraform | >= 1.3.0 |
 | aws | >= 4.0 |
 | external | >= 2.0 |
 

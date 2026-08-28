@@ -1,6 +1,5 @@
 {
   "type": "object",
-  "additionalProperties": false,
   "properties": {
     "stackguardian": {
       "title": "StackGuardian Configuration",
@@ -118,6 +117,17 @@
           "default": 1,
           "minimum": 1
         },
+        "max_runners": {
+          "title": "Maximum Runners",
+          "type": "integer",
+          "default": 3,
+          "minimum": 1
+        },
+        "desired_runners": {
+          "title": "Desired Runners",
+          "type": ["integer", "null"],
+          "default": null
+        },
         "scale_out_threshold": {
           "title": "Scale Out Threshold",
           "type": "integer",
@@ -148,6 +158,11 @@
           "title": "Scale In Cooldown (minutes)",
           "type": "integer",
           "default": 5
+        },
+        "schedule_expression": {
+          "title": "Schedule Expression",
+          "type": "string",
+          "default": "rate(1 minute)"
         }
       },
       "additionalProperties": false
@@ -197,6 +212,14 @@
         }
       },
       "additionalProperties": false
+    },
+    "tags": {
+      "title": "Additional Tags",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {}
     }
   },
   "required": ["stackguardian", "asg_name", "runner_group_name", "s3_bucket_name"]

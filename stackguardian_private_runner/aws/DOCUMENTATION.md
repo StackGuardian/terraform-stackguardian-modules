@@ -39,6 +39,7 @@ Build a custom AMI for StackGuardian Private Runner with pre-installed dependenc
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| existing_ami_id | Reuse an AMI you already have; nothing is built and every other parameter here is ignored | `""` |
 | instance_type | EC2 instance type for the Packer build process | `t3.medium` |
 | network.private_subnet_id | Private subnet ID for the build instance | `""` |
 | network.public_subnet_id | Public subnet ID for the build instance | `""` |
@@ -54,6 +55,7 @@ Build a custom AMI for StackGuardian Private Runner with pre-installed dependenc
 | packer_config.deregistration_protection.with_cooldown | Enable cooldown period before deregistration | `false` |
 | packer_config.delete_snapshots | Delete EBS snapshots during cleanup | `true` |
 | packer_config.cleanup_amis_on_destroy | Deregister this deployment's AMI on terraform destroy | `true` |
+| ami_name_prefix | Prefix of the generated AMI name | `SG-RUNNER-ami` |
 | terraform.primary_version | Primary Terraform version to install | `""` |
 | terraform.additional_versions | Additional Terraform versions to install | `[]` |
 | opentofu.primary_version | Primary OpenTofu version to install | `""` |
@@ -70,7 +72,7 @@ Build a custom AMI for StackGuardian Private Runner with pre-installed dependenc
 
 ## Template 2: Runner Group
 
-Create a StackGuardian Runner Group with S3 storage backend and AWS connector.
+Create a StackGuardian Runner Group with S3 storage backend and AWS connector. This is the `aws/runner_group/` template. It requires only the AWS provider — the platform-side resources it shares with the Azure stack live in the internal, cloud-agnostic `runner_group/` module it calls, so an AWS deployment never initializes `azurerm`/`azuread`.
 
 ### Required Parameters
 
@@ -88,11 +90,14 @@ Create a StackGuardian Runner Group with S3 storage backend and AWS connector.
 | create_storage_backend | Whether to create a new S3 bucket | `true` |
 | existing_s3_bucket_name | Existing S3 bucket name (when create_storage_backend is false) | - |
 | force_destroy_storage_backend | Force destroy S3 bucket on module destruction | `false` |
-| override_names.global_prefix | Prefix for naming all resources | `SG_RUNNER` |
-| override_names.include_org_in_prefix | Append organization name to prefix | `false` |
-| override_names.runner_group_name | Override the runner group name | (auto-generated) |
-| override_names.connector_name | Override the connector name | (auto-generated) |
+| override_names.global_prefix | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
+| override_names.runner_group_name | Name half of the runner group; the full name is `{prefix}-{name}` | (6-char random) |
+| override_names.connector_name | Name half of the connector | (the runner group's name) |
 | max_runners | Maximum number of runners allowed | `3` |
+
+The AWS account ID is not part of these names — it is one of the tags applied to the
+runner group and the connector, alongside `StackGuardian Private Runner`,
+`Managed by IaC`, `aws`, the prefix, and the region.
 
 ### Outputs
 
@@ -103,6 +108,7 @@ Create a StackGuardian Runner Group with S3 storage backend and AWS connector.
 | s3_bucket_name | Name of the S3 bucket for storage backend |
 | storage_backend_role_arn | ARN of the IAM role for S3 access |
 | connector_name | Name of the StackGuardian connector |
+| connector_external_id | External ID enforced by the IAM role trust policy |
 
 ---
 

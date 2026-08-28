@@ -1,0 +1,302 @@
+{
+  "type": "object",
+  "properties": {
+    "stackguardian": {
+      "title": "StackGuardian Platform",
+      "type": "object",
+      "properties": {
+        "api_uri": {
+          "title": "API Region",
+          "type": "string",
+          "default": "https://api.app.stackguardian.io",
+          "enum": [
+            "https://api.app.stackguardian.io",
+            "https://api.us.stackguardian.io",
+            "https://testapi.qa.stackguardian.io"
+          ],
+          "enumNames": [
+            "EU1 - Europe",
+            "US1 - United States",
+            "DASH - QA"
+          ]
+        },
+        "api_key": {
+          "title": "API Key",
+          "type": "string",
+          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$",
+          "minLength": 1
+        },
+        "org_name": {
+          "title": "Organization Name",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["api_key"],
+      "additionalProperties": false
+    },
+    "azure_location": {
+      "title": "Azure Region",
+      "type": "string",
+      "default": "westeurope"
+    },
+    "resource_group_name": {
+      "title": "Resource Group Name",
+      "type": "string",
+      "minLength": 1
+    },
+    "runner_group_name": {
+      "title": "Runner Group Name",
+      "type": "string",
+      "minLength": 1
+    },
+    "runner_group_token": {
+      "title": "Runner Group Token",
+      "type": "string",
+      "minLength": 1
+    },
+    "storage_backend_identity_id": {
+      "title": "Storage Backend Identity ID",
+      "type": "string",
+      "minLength": 1
+    },
+    "vm_image_id": {
+      "title": "VM Image ID",
+      "type": "string",
+      "pattern": "^/subscriptions/.*",
+      "minLength": 1
+    },
+    "vm_size": {
+      "title": "VM Size",
+      "type": "string",
+      "default": "Standard_D4s_v3"
+    },
+    "network": {
+      "title": "Network",
+      "type": "object",
+      "properties": {
+        "create_network": {
+          "title": "Create New VNet & Subnet",
+          "type": "boolean",
+          "default": false
+        },
+        "vnet_id": {
+          "title": "Existing VNet ID",
+          "type": "string",
+          "default": ""
+        },
+        "subnet_id": {
+          "title": "Existing Subnet ID",
+          "type": "string",
+          "default": ""
+        },
+        "vnet_address_space": {
+          "title": "VNet Address Space",
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["10.0.0.0/16"]
+        },
+        "subnet_address_prefix": {
+          "title": "Subnet Address Prefix",
+          "type": "string",
+          "default": "10.0.1.0/24"
+        },
+        "associate_public_ip": {
+          "title": "Associate Public IP",
+          "type": "boolean",
+          "default": false
+        },
+        "create_network_infrastructure": {
+          "title": "Create NAT Gateway",
+          "type": "boolean",
+          "default": false
+        },
+        "service_endpoints": {
+          "title": "Service Endpoints",
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "proxy_url": {
+          "title": "Proxy URL",
+          "type": "string",
+          "default": ""
+        },
+        "additional_nsg_ids": {
+          "title": "Additional NSG IDs",
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        }
+      },
+      "dependencies": {
+        "create_network": {
+          "oneOf": [
+            {
+              "properties": {
+                "create_network": { "enum": [false] },
+                "vnet_id": {
+                  "title": "Existing VNet ID",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "subnet_id": {
+                  "title": "Existing Subnet ID",
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["vnet_id", "subnet_id"]
+            },
+            {
+              "properties": {
+                "create_network": { "enum": [true] },
+                "vnet_address_space": {
+                  "title": "VNet Address Space",
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": ["10.0.0.0/16"]
+                },
+                "subnet_address_prefix": {
+                  "title": "Subnet Address Prefix",
+                  "type": "string",
+                  "default": "10.0.1.0/24"
+                },
+                "service_endpoints": {
+                  "title": "Service Endpoints",
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": []
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "os_disk": {
+      "title": "OS Disk",
+      "type": "object",
+      "properties": {
+        "caching": {
+          "title": "Disk Caching",
+          "type": "string",
+          "default": "ReadWrite",
+          "enum": ["None", "ReadOnly", "ReadWrite"]
+        },
+        "storage_account_type": {
+          "title": "Storage Account Type",
+          "type": "string",
+          "default": "Premium_LRS",
+          "enum": ["Standard_LRS", "StandardSSD_LRS", "Premium_LRS", "Premium_ZRS"]
+        },
+        "disk_size_gb": {
+          "title": "Disk Size (GB)",
+          "type": "number",
+          "default": 100,
+          "minimum": 30
+        }
+      },
+      "additionalProperties": false
+    },
+    "firewall": {
+      "title": "Firewall & SSH",
+      "type": "object",
+      "properties": {
+        "admin_username": {
+          "title": "Admin Username",
+          "type": "string",
+          "default": "azureuser"
+        },
+        "generate_ssh_key": {
+          "title": "Generate SSH Key",
+          "type": "boolean",
+          "default": false
+        },
+        "ssh_public_key": {
+          "title": "SSH Public Key",
+          "type": "string",
+          "default": ""
+        },
+        "ssh_access_rules": {
+          "title": "SSH Access Rules",
+          "type": "object",
+          "default": {},
+          "additionalProperties": { "type": "string" }
+        },
+        "additional_inbound_rules": {
+          "title": "Additional Inbound Rules",
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "priority": { "type": "number" },
+              "direction": { "type": "string", "default": "Inbound", "enum": ["Inbound", "Outbound"] },
+              "access": { "type": "string", "default": "Allow", "enum": ["Allow", "Deny"] },
+              "protocol": { "type": "string" },
+              "source_port_range": { "type": "string", "default": "*" },
+              "destination_port_range": { "type": "string" },
+              "source_address_prefix": { "type": "string" },
+              "destination_address_prefix": { "type": "string", "default": "*" }
+            },
+            "required": ["priority", "protocol", "destination_port_range", "source_address_prefix"]
+          }
+        }
+      },
+      "dependencies": {
+        "generate_ssh_key": {
+          "oneOf": [
+            {
+              "properties": {
+                "generate_ssh_key": { "enum": [false] },
+                "ssh_public_key": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["ssh_public_key"]
+            },
+            {
+              "properties": {
+                "generate_ssh_key": { "enum": [true] }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "runner_startup_timeout": {
+      "title": "Runner Startup Timeout (seconds)",
+      "type": "number",
+      "default": 300,
+      "minimum": 30
+    },
+    "override_names": {
+      "title": "Resource Naming",
+      "type": "object",
+      "properties": {
+        "global_prefix": {
+          "title": "Global Prefix",
+          "type": "string",
+          "default": "SG_RUNNER"
+        },
+        "include_org_in_prefix": {
+          "title": "Include Org in Prefix",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["global_prefix"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "stackguardian",
+    "resource_group_name",
+    "runner_group_name",
+    "runner_group_token",
+    "storage_backend_identity_id",
+    "vm_image_id"
+  ]
+}

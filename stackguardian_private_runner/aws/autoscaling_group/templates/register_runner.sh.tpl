@@ -4,6 +4,16 @@ set -e
 
 startup_log_file="/tmp/sg_runner_startup.log"
 
+## Configure HTTP/HTTPS proxy if provided (for private network deployments)
+proxy_url="${proxy_url}"
+if [ -n "$proxy_url" ]; then
+  echo ">> Configuring proxy: $proxy_url" | tee -a "$startup_log_file"
+  export HTTP_PROXY="$proxy_url"
+  export HTTPS_PROXY="$proxy_url"
+  export http_proxy="$proxy_url"
+  export https_proxy="$proxy_url"
+fi
+
 ## Mount the additional EBS volume to /var
 ## The volume is attached as the second device (typically nvme1n1 or xvdf)
 echo ">> Setting up additional EBS volume for /var" | tee -a "$startup_log_file"

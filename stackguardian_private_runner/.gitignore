@@ -12,10 +12,14 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 tfplan
+tofuplan
 *.tfplan
 
 # Generated permissions files
 *_permissions.json
+
+# Generated cleanup dumps
+ami_cleanup_info.txt
 
 # IDE
 .claude/settings.local.json

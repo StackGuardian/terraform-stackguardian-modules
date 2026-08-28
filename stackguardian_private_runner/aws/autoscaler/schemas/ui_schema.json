@@ -11,7 +11,8 @@
     "scaling",
     "override_names",
     "lambda_config",
-    "autoscaler_repo"
+    "autoscaler_repo",
+    "tags"
   ],
   "stackguardian": {
     "ui:title": "StackGuardian Configuration",
@@ -56,15 +57,24 @@
     "ui:description": "Configure auto-scaling thresholds and behavior",
     "ui:order": [
       "min_size",
+      "max_runners",
+      "desired_runners",
       "scale_out_threshold",
       "scale_in_threshold",
       "scale_out_step",
       "scale_in_step",
       "scale_out_cooldown_duration",
-      "scale_in_cooldown_duration"
+      "scale_in_cooldown_duration",
+      "schedule_expression"
     ],
     "min_size": {
       "ui:description": "Minimum number of runners to maintain"
+    },
+    "max_runners": {
+      "ui:description": "Maximum number of runners the autoscaler can provision"
+    },
+    "desired_runners": {
+      "ui:description": "Optional initial capacity. Leave empty to let the autoscaler choose between minimum and maximum on first run"
     },
     "scale_out_threshold": {
       "ui:description": "Number of queued jobs to trigger scale-out"
@@ -83,6 +93,10 @@
     },
     "scale_in_cooldown_duration": {
       "ui:description": "Minutes to wait after scale-in before scaling again"
+    },
+    "schedule_expression": {
+      "ui:placeholder": "rate(1 minute)",
+      "ui:description": "EventBridge Scheduler expression that drives how often the autoscaler Lambda runs, e.g. rate(1 minute) or cron(0/5 * * * ? *)"
     }
   },
   "override_names": {
@@ -126,5 +140,9 @@
       "ui:placeholder": "main",
       "ui:description": "Git branch to use for the autoscaler Lambda source code"
     }
+  },
+  "tags": {
+    "ui:title": "Additional Tags",
+    "ui:description": "Extra tags merged into every taggable resource created by this module (optional)"
   }
 }

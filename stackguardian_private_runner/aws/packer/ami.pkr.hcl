@@ -1,3 +1,4 @@
+variable "ami_name_prefix" { default = "SG-RUNNER-ami" }
 variable "base_ami" {}
 variable "os_family" {}
 variable "os_version" {}
@@ -11,7 +12,7 @@ variable "terraform_version" {}
 variable "terraform_versions" {}
 variable "opentofu_version" {}
 variable "opentofu_versions" {}
-variable "sg_runner_pre_release" {}
+variable "sg_runner_pre_release" { default = "false" }
 variable "user_script" {}
 variable "vpc_id" {}
 variable "deregistration_protection_enabled" {}
@@ -27,7 +28,7 @@ packer {
 }
 
 source "amazon-ebs" "this" {
-  ami_name      = "SG-RUNNER-ami-${var.os_family}${var.os_version}-{{timestamp}}"
+  ami_name      = "${var.ami_name_prefix}-${var.os_family}${var.os_version}-{{timestamp}}"
   ami_description = <<EOT
     Custom AMI built for StackGuardian Private Runner.
     This AMI is based on ${var.os_family}${var.os_family != "amazon" ? "version ${var.os_version}." : "."}
@@ -59,9 +60,10 @@ build {
   sources = ["source.amazon-ebs.this"]
 
   provisioner "shell" {
-    script = "scripts/setup.sh"
+    script = "../../packer/scripts/setup.sh"
     environment_vars = [
       "OS_FAMILY=${var.os_family}",
+      "SSH_USERNAME=${var.ssh_username}",
       "UPDATE_OS=${var.update_os_before_install}",
       "TERRAFORM_VERSION=${var.terraform_version}",
       "TERRAFORM_VERSIONS=${var.terraform_versions}",

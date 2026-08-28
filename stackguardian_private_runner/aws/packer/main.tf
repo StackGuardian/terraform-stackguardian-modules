@@ -1,5 +1,7 @@
 # Fetch the latest AMI based on the OS family and version
 data "aws_ami" "this" {
+  count = local.build_ami ? 1 : 0
+
   most_recent = true
   owners      = [local.ami_owners[var.os.family]]
 
@@ -25,29 +27,37 @@ data "aws_ami" "this" {
 # packer_config.rebuild_ami_token to any new value to replace this resource and
 # build a fresh AMI; re-plans with an unchanged token do nothing.
 resource "null_resource" "packer_build" {
+  count = local.build_ami ? 1 : 0
+
   provisioner "local-exec" {
-    command     = "sh ${path.module}/scripts/build_ami.sh"
+    command     = "sh ../../packer/scripts/build.sh"
     working_dir = path.module
     environment = {
-      BASE_AMI                                = data.aws_ami.this.id
-      OS_FAMILY                               = var.os.family
-      OS_VERSION                              = var.os.family != "amazon" ? var.os.version : ""
-      UPDATE_OS                               = var.os.update_os_before_install
-      PACKER_VERSION                          = var.packer_config.version
-      REGION                                  = var.aws_region
-      SSH_USERNAME                            = local.ssh_usernames[var.os.family]
-      PUBLIC_SUBNET_ID                        = var.network.public_subnet_id
-      PRIVATE_SUBNET_ID                       = var.network.private_subnet_id
-      PROXY_URL                               = var.network.proxy_url
-      USER_SCRIPT                             = var.os.user_script
-      TERRAFORM_VERSION                       = var.terraform.primary_version
-      TERRAFORM_VERSIONS                      = join(" ", var.terraform.additional_versions)
-      OPENTOFU_VERSION                        = var.opentofu.primary_version
-      OPENTOFU_VERSIONS                       = join(" ", var.opentofu.additional_versions)
-      SG_RUNNER_PRE_RELEASE                   = var.sg_runner.pre_release
-      VPC_ID                                  = var.network.vpc_id
-      DEREGISTRATION_PROTECTION_ENABLED       = var.packer_config.deregistration_protection.enabled
-      DEREGISTRATION_PROTECTION_WITH_COOLDOWN = var.packer_config.deregistration_protection.with_cooldown
+      # Drives the shared build script itself
+      PACKER_VERSION  = var.packer_config.version
+      PACKER_TEMPLATE = "./ami.pkr.hcl"
+
+      # Packer reads PKR_VAR_<name> natively, so these reach ami.pkr.hcl
+      # without the build script having to know the per-cloud variable list.
+      PKR_VAR_base_ami                                = data.aws_ami.this[0].id
+      PKR_VAR_ami_name_prefix                         = var.ami_name_prefix
+      PKR_VAR_os_family                               = var.os.family
+      PKR_VAR_os_version                              = var.os.family != "amazon" ? var.os.version : ""
+      PKR_VAR_update_os_before_install                = var.os.update_os_before_install
+      PKR_VAR_region                                  = var.aws_region
+      PKR_VAR_ssh_username                            = local.ssh_usernames[var.os.family]
+      PKR_VAR_public_subnet_id                        = var.network.public_subnet_id
+      PKR_VAR_private_subnet_id                       = var.network.private_subnet_id
+      PKR_VAR_proxy_url                               = var.network.proxy_url
+      PKR_VAR_user_script                             = var.os.user_script
+      PKR_VAR_terraform_version                       = var.terraform.primary_version
+      PKR_VAR_terraform_versions                      = join(" ", var.terraform.additional_versions)
+      PKR_VAR_opentofu_version                        = var.opentofu.primary_version
+      PKR_VAR_opentofu_versions                       = join(" ", var.opentofu.additional_versions)
+      PKR_VAR_sg_runner_pre_release                   = var.sg_runner.pre_release
+      PKR_VAR_vpc_id                                  = var.network.vpc_id
+      PKR_VAR_deregistration_protection_enabled       = var.packer_config.deregistration_protection.enabled
+      PKR_VAR_deregistration_protection_with_cooldown = var.packer_config.deregistration_protection.with_cooldown
     }
   }
 
@@ -63,6 +73,8 @@ resource "null_resource" "packer_build" {
 # missing (fresh checkout, CI runner) instead of failing the plan, because the
 # recorded AMI ID is read from state via terraform_data.ami_id below.
 data "external" "packer_ami_id" {
+  count = local.build_ami ? 1 : 0
+
   program = [
     "sh",
     "-c",
@@ -78,11 +90,13 @@ data "external" "packer_ami_id" {
 # keeps the recorded ID untouched by later plans, even if the build log is stale
 # or gone.
 resource "terraform_data" "ami_id" {
-  input = data.external.packer_ami_id.result["ami_id"]
+  count = local.build_ami ? 1 : 0
+
+  input = data.external.packer_ami_id[0].result["ami_id"]
 
   lifecycle {
     ignore_changes       = [input]
-    replace_triggered_by = [null_resource.packer_build]
+    replace_triggered_by = [null_resource.packer_build[0]]
   }
 }
 
@@ -90,8 +104,10 @@ resource "terraform_data" "ami_id" {
 #
 # Tracks the AMI this module built, so a destroy never deregisters an image it
 # did not create. Re-keyed by a rebuild, which deregisters the superseded AMI.
+# Never runs for an AMI passed in through existing_ami_id: the module did not
+# build it, so it has no business deregistering it.
 resource "null_resource" "ami_cleanup" {
-  count = var.packer_config.cleanup_amis_on_destroy ? 1 : 0
+  count = local.build_ami && var.packer_config.cleanup_amis_on_destroy ? 1 : 0
 
   # Store AMI information as triggers so they're available during destroy
   triggers = {
@@ -111,4 +127,17 @@ resource "null_resource" "ami_cleanup" {
       REGION            = self.triggers.region
     }
   }
+}
+
+# The build resources gained a count when existing_ami_id was introduced. These
+# keep a state written before that from re-keying, which would otherwise destroy
+# and rebuild the AMI on the next apply.
+moved {
+  from = null_resource.packer_build
+  to   = null_resource.packer_build[0]
+}
+
+moved {
+  from = terraform_data.ami_id
+  to   = terraform_data.ami_id[0]
 }

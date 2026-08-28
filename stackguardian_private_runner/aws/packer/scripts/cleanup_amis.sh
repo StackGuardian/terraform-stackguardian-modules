@@ -1,9 +1,26 @@
 #!/bin/sh
+# Cleanup helper for the AMI produced by this Packer build.
+#
+# Targets ONLY the AMI whose ID is passed in via TARGET_AMI_ID (sourced from the
+# Terraform state on `terraform destroy`). Will not enumerate or delete other
+# AMIs.
+#
+# Optional env:
+#   TARGET_AMI_ID          AMI ID to deregister. Nothing happens when unset.
+#   REGION                 AWS region. Falls back to AWS_DEFAULT_REGION, then to
+#                          the CLI profile, then to us-east-1.
+#   DELETE_SNAPSHOTS=true  Also delete the AMI's backing EBS snapshots (default).
+#   DRY_RUN=true           Print actions without executing them.
 
 set -e
 
 AWS_EXECUTABLE=""
 WORKING_DIR=""
+
+_dry_run() { #{{{
+  [ "${DRY_RUN:-false}" = "true" ]
+}
+#}}}: _dry_run
 
 _detect_arch() { #{{{
   machine="$(uname -m)"
@@ -182,6 +199,11 @@ _disable_ami_protection() { #{{{
   ami_id="$1"
   region="$2"
 
+  if _dry_run; then
+    echo ">>   [dry-run] aws ec2 disable-image-deregistration-protection --region $region --image-id $ami_id"
+    return 0
+  fi
+
   echo ">> Disabling deregistration protection for AMI: $ami_id"
   if $AWS_EXECUTABLE ec2 disable-image-deregistration-protection --region "$region" --image-id "$ami_id" 2>/dev/null; then
     echo ">>   ✓ Deregistration protection disabled"
@@ -192,6 +214,44 @@ _disable_ami_protection() { #{{{
   fi
 }
 #}}}: _disable_ami_protection
+
+_deregister_ami() { #{{{
+  ami_id="$1"
+  region="$2"
+
+  if _dry_run; then
+    echo ">>   [dry-run] aws ec2 deregister-image --region $region --image-id $ami_id"
+    return 0
+  fi
+
+  echo ">>   Deregistering AMI: $ami_id"
+  if $AWS_EXECUTABLE ec2 deregister-image --region "$region" --image-id "$ami_id" 2>/dev/null; then
+    echo ">>   ✓ AMI deregistered successfully"
+    return 0
+  fi
+
+  echo ">>   ✗ Failed to deregister AMI: $ami_id"
+  return 1
+}
+#}}}: _deregister_ami
+
+_delete_snapshot() { #{{{
+  snapshot_id="$1"
+  region="$2"
+
+  if _dry_run; then
+    echo ">>   [dry-run] aws ec2 delete-snapshot --region $region --snapshot-id $snapshot_id"
+    return 0
+  fi
+
+  echo ">>   Deleting snapshot: $snapshot_id"
+  if $AWS_EXECUTABLE ec2 delete-snapshot --region "$region" --snapshot-id "$snapshot_id" 2>/dev/null; then
+    echo ">>   ✓ Snapshot deleted successfully"
+  else
+    echo ">>   ✗ Failed to delete snapshot: $snapshot_id"
+  fi
+}
+#}}}: _delete_snapshot
 
 _cleanup_target_ami() { #{{{
   ami_id="$1"
@@ -230,7 +290,9 @@ _cleanup_ami() { #{{{
 
   if [ "$protection_enabled" != "disabled" ]; then
     echo ">>   ⚠️  AMI has deregistration protection enabled"
-    echo ">>   🚨 Automatic cleanup enabled - attempting to disable protection"
+    if ! _dry_run; then
+      echo ">>   🚨 Automatic cleanup enabled - attempting to disable protection"
+    fi
 
     if ! _disable_ami_protection "$ami_id" "$region"; then
       echo ">>   ✗ Cannot proceed with cleanup - protection disable failed"
@@ -261,19 +323,11 @@ _cleanup_ami() { #{{{
         --output text 2>/dev/null || echo "")
   fi
 
-  echo ">>   Deregistering AMI: $ami_id"
-  if $AWS_EXECUTABLE ec2 deregister-image --region "$region" --image-id "$ami_id" 2>/dev/null; then
-    echo ">>   ✓ AMI deregistered successfully"
-
+  if _deregister_ami "$ami_id" "$region"; then
     if [ "$delete_snapshots_flag" = "true" ]; then
       if [ -n "$snapshots" ] && [ "$snapshots" != "None" ]; then
         for snapshot_id in $snapshots; do
-          echo ">>   Deleting snapshot: $snapshot_id"
-          if $AWS_EXECUTABLE ec2 delete-snapshot --region "$region" --snapshot-id "$snapshot_id" 2>/dev/null; then
-            echo ">>   ✓ Snapshot deleted successfully"
-          else
-            echo ">>   ✗ Failed to delete snapshot: $snapshot_id"
-          fi
+          _delete_snapshot "$snapshot_id" "$region"
         done
       else
         echo ">>   No snapshots found for this AMI"
@@ -282,7 +336,6 @@ _cleanup_ami() { #{{{
       echo ">>   Skipping snapshot deletion (delete_snapshots=false)"
     fi
   else
-    echo ">>   ✗ Failed to deregister AMI: $ami_id"
     if [ "$protection_enabled" = "enabled-with-cooldown" ]; then
       echo ">>   💡 This may be due to the 24-hour cooldown period being active"
       echo ">>   📅 Please retry this command after the cooldown expires"
@@ -298,6 +351,10 @@ main() { #{{{
   echo "## ----------"
   echo ">> AMI Cleanup Script - Automatic AMI deregistration and snapshot deletion"
   echo "## ----------"
+
+  if _dry_run; then
+    echo ">> 🔍 DRY_RUN=true - actions will be printed, nothing will be deleted"
+  fi
 
   # Download/cache AWS CLI v2 if not already available
   _download_aws_cli
@@ -315,7 +372,9 @@ main() { #{{{
 
   target_ami="${TARGET_AMI_ID:-}"
 
-  echo ">> 🚨 Automatic cleanup enabled - will bypass AMI protection (except cooldown)"
+  if ! _dry_run; then
+    echo ">> 🚨 Automatic cleanup enabled - will bypass AMI protection (except cooldown)"
+  fi
 
   # Only cleanup the specific AMI from terraform state
   if [ -n "$target_ami" ] && [ "$target_ami" != "null" ]; then

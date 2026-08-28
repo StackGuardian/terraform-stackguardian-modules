@@ -1,0 +1,246 @@
+{
+  "type": "object",
+  "properties": {
+    "stackguardian": {
+      "title": "StackGuardian Configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_uri": {
+          "title": "API Region",
+          "type": "string",
+          "enum": [
+            "https://api.app.stackguardian.io",
+            "https://api.us.stackguardian.io",
+            "https://testapi.qa.stackguardian.io"
+          ],
+          "enumNames": [
+            "EU1 - Europe",
+            "US1 - East",
+            "DASH - QA Environment"
+          ],
+          "default": "https://api.app.stackguardian.io"
+        },
+        "api_key": {
+          "title": "API Key",
+          "type": "string",
+          "pattern": "^(sg[uo]_.*|\\$\\{secret::[a-zA-Z0-9_-]+\\})$",
+          "minLength": 1
+        },
+        "org_name": {
+          "title": "Organization Name",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["api_key"]
+    },
+    "azure_location": {
+      "title": "Azure Region",
+      "type": "string",
+      "enum": [
+        "eastus",
+        "eastus2",
+        "westus",
+        "westus2",
+        "westus3",
+        "centralus",
+        "northcentralus",
+        "southcentralus",
+        "westcentralus",
+        "canadacentral",
+        "canadaeast",
+        "brazilsouth",
+        "northeurope",
+        "westeurope",
+        "uksouth",
+        "ukwest",
+        "francecentral",
+        "germanywestcentral",
+        "norwayeast",
+        "swedencentral",
+        "switzerlandnorth",
+        "italynorth",
+        "polandcentral",
+        "spaincentral",
+        "eastasia",
+        "southeastasia",
+        "japaneast",
+        "japanwest",
+        "australiaeast",
+        "australiasoutheast",
+        "centralindia",
+        "southindia",
+        "koreacentral",
+        "koreasouth",
+        "uaenorth",
+        "southafricanorth",
+        "qatarcentral",
+        "israelcentral"
+      ],
+      "default": "westeurope"
+    },
+    "resource_group_name": {
+      "title": "Resource Group Name",
+      "type": "string",
+      "minLength": 1
+    },
+    "vmss": {
+      "title": "VM Scale Set",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "VMSS Name",
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_group_name": {
+          "title": "VMSS Resource Group",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["name"]
+    },
+    "override_names": {
+      "title": "Resource Naming",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "global_prefix": {
+          "title": "Global Prefix",
+          "type": "string",
+          "default": "SG_RUNNER"
+        },
+        "include_org_in_prefix": {
+          "title": "Include Org in Prefix",
+          "type": "boolean",
+          "default": false
+        },
+        "runner_group_name": {
+          "title": "Runner Group Name",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["global_prefix"]
+    },
+    "scaling": {
+      "title": "Scaling Configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_runners": {
+          "title": "Minimum Runners",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "max_runners": {
+          "title": "Maximum Runners",
+          "type": "integer",
+          "default": 3,
+          "minimum": 1
+        },
+        "desired_runners": {
+          "title": "Desired Runners",
+          "type": ["integer", "null"],
+          "default": null
+        },
+        "scale_out_threshold": {
+          "title": "Scale Out Threshold",
+          "type": "integer",
+          "default": 3
+        },
+        "scale_in_threshold": {
+          "title": "Scale In Threshold",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "scale_out_step": {
+          "title": "Scale Out Step",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "scale_in_step": {
+          "title": "Scale In Step",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "scale_out_cooldown_duration": {
+          "title": "Scale Out Cooldown (minutes)",
+          "type": "integer",
+          "default": 4,
+          "minimum": 4
+        },
+        "scale_in_cooldown_duration": {
+          "title": "Scale In Cooldown (minutes)",
+          "type": "integer",
+          "default": 5
+        },
+        "schedule_cron": {
+          "title": "Schedule (NCRONTAB)",
+          "type": "string",
+          "default": "0 */1 * * * *"
+        }
+      }
+    },
+    "storage": {
+      "title": "Storage Backend",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "account_tier": {
+          "title": "Storage Account Tier",
+          "type": "string",
+          "enum": ["Standard", "Premium"],
+          "default": "Standard"
+        },
+        "account_replication_type": {
+          "title": "Replication Type",
+          "type": "string",
+          "enum": ["LRS", "GRS", "RAGRS", "ZRS"],
+          "default": "LRS"
+        },
+        "account_url": {
+          "title": "Storage Account URL",
+          "type": "string",
+          "default": ""
+        },
+        "use_rbac": {
+          "title": "Use RBAC (Managed Identity)",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "application_insights_retention_in_days": {
+      "title": "Application Insights Retention (days)",
+      "type": "integer",
+      "enum": [30, 60, 90, 120, 180, 270, 365, 550, 730],
+      "default": 30
+    },
+    "autoscaler_repo": {
+      "title": "Autoscaler Repository",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "title": "Repository URL",
+          "type": "string",
+          "default": "https://github.com/StackGuardian/sg-runner-autoscaler"
+        },
+        "branch": {
+          "title": "Branch",
+          "type": "string",
+          "default": "main"
+        }
+      }
+    }
+  },
+  "required": ["stackguardian", "resource_group_name", "vmss"]
+}

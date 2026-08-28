@@ -1,7 +1,12 @@
 {
   "type": "object",
-  "additionalProperties": false,
   "properties": {
+    "existing_ami_id": {
+      "title": "Existing AMI ID",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^ami-.*$"
+    },
     "aws_region": {
       "title": "AWS Region",
       "type": "string",
@@ -228,6 +233,12 @@
         }
       },
       "additionalProperties": false
+    },
+    "ami_name_prefix": {
+      "title": "AMI Name Prefix",
+      "type": "string",
+      "default": "SG-RUNNER-ami",
+      "minLength": 1
     },
     "terraform": {
       "title": "Terraform Installation",

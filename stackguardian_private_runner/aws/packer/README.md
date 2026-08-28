@@ -1,5 +1,7 @@
 # StackGuardian Private Runner - Packer AMI Builder (AWS)
 
+> Part of [StackGuardian Private Runner](../../README.md) — [AWS stack overview](../DOCUMENTATION.md) · [platform template doc](DOCUMENTATION.md)
+
 Build custom Amazon Machine Images (AMIs) for StackGuardian Private Runner deployments with pre-installed dependencies and configurable tooling.
 
 ## Overview
@@ -96,6 +98,7 @@ module "packer_ami" {
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `existing_ami_id` | Existing AMI to hand back instead of building one - see [Skipping the build](#skipping-the-build) | `""` |
 | `aws_region` | AWS region for AMI creation | `eu-central-1` |
 | `instance_type` | EC2 instance type for build process | `t3.medium` |
 | `os.family` | Operating system family (`amazon`, `ubuntu`, `rhel`) | `amazon` |
@@ -109,6 +112,7 @@ module "packer_ami" {
 | `packer_config.deregistration_protection.with_cooldown` | Enable 24-hour cooldown period | `false` |
 | `packer_config.delete_snapshots` | Delete EBS snapshots during cleanup | `true` |
 | `packer_config.cleanup_amis_on_destroy` | Deregister this deployment's AMI on terraform destroy | `true` |
+| `ami_name_prefix` | Prefix for the generated AMI name | `"SG-RUNNER-ami"` |
 | `terraform.primary_version` | Primary Terraform version to install | `""` |
 | `terraform.additional_versions` | Additional Terraform versions | `[]` |
 | `opentofu.primary_version` | Primary OpenTofu version to install | `""` |
@@ -148,6 +152,39 @@ replaced on every apply either.
 > touches the AMI this deployment built — on destroy, and on the rebuild that
 > supersedes it. AMIs belonging to other deployments are never deregistered, since
 > the module never adopts an AMI it did not build.
+
+### Skipping the Build
+
+Set `existing_ami_id` to an AMI you already have and this module builds nothing:
+
+```hcl
+module "packer" {
+  source          = "../../aws/packer"
+  existing_ami_id = "ami-0123456789abcdef0"
+
+  aws_region = "eu-central-1"
+  network = {
+    vpc_id           = "vpc-0123456789abcdef0"
+    public_subnet_id = "subnet-0123456789abcdef0"
+  }
+}
+```
+
+No build instance, no Packer download, no destroy-time cleanup — the module
+creates no resources at all, and `ami_id` returns the value you passed. Every
+other build input is ignored. It exists so a caller can wire
+`module.packer.ami_id` into an instance once and choose per deployment whether an
+AMI gets built; the module call itself cannot be `count`-ed, because it declares
+its own provider.
+
+The AMI is used as-is: it has to live in `aws_region` and carry docker, cron, jq
+and sg-runner. Nothing is validated at plan time.
+
+> **Note:** `existing_ami_id` is meant for a fresh state. Adding it to a state
+> that already built an AMI destroys the build records, and the destroy-time
+> cleanup deregisters the built AMI — including when that is the AMI you are
+> passing in. Run `tofu state rm null_resource.ami_cleanup[0]` first if that is
+> what you are doing.
 
 ### Configuration Examples
 
@@ -284,10 +321,28 @@ terraform apply -var="ami_id=$AMI_ID"
 
 ### Cleanup
 
+See [TERRAFORM_DESTROY_GUIDE.md](TERRAFORM_DESTROY_GUIDE.md) for the full destroy
+walkthrough, including why AMIs survive `destroy` by default and how deregistration
+protection interacts with cleanup.
+
 ```bash
 # Destroy and cleanup AMI (if cleanup_amis_on_destroy = true)
 terraform destroy
 ```
+
+To preview exactly what the cleanup would deregister and delete without touching
+anything, run the script directly with `DRY_RUN=true`:
+
+```bash
+DRY_RUN=true \
+  TARGET_AMI_ID="$(terraform output -raw ami_id)" \
+  REGION="us-east-1" \
+  sh ./scripts/cleanup_amis.sh
+```
+
+Every destructive call — disabling deregistration protection, deregistering the
+AMI, and deleting its snapshots — is printed as `[dry-run] aws ec2 ...` instead of
+being executed.
 
 For manual cleanup when deregistration protection is enabled:
 
@@ -319,9 +374,9 @@ terraform output -json cleanup_commands | jq -r '.delete_snapshots'
 | `locals.tf` | AMI selection mappings, SSH username configuration |
 | `provider.tf` | AWS and utility provider configuration |
 | `ami.pkr.hcl` | Packer template for AMI creation |
-| `scripts/build_ami.sh` | Shell script to execute Packer |
-| `scripts/setup.sh` | AMI provisioning script |
-| `scripts/cleanup_amis.sh` | AMI cleanup automation |
+| `../../packer/scripts/build.sh` | Shared: installs Packer and runs the build |
+| `../../packer/scripts/setup.sh` | Shared: image provisioning script |
+| `scripts/cleanup_amis.sh` | AMI cleanup automation (AWS-specific) |
 
 ### Build Flow
 
@@ -337,13 +392,13 @@ terraform apply
     |                  rebuild_ami_token changes
     |                     |
     |                     v
-    |              scripts/build_ami.sh
+    |              ../../packer/scripts/build.sh
     |                     |
     |                     v
     |              ami.pkr.hcl (Packer template)
     |                     |
     |                     v
-    |              scripts/setup.sh (on EC2)
+    |              ../../packer/scripts/setup.sh (on EC2)
     |
     v
 [Parse AMI ID] --> data.external.packer_ami_id (reads packer_manifest.log)
@@ -438,7 +493,7 @@ terraform apply
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.0 |
+| terraform | >= 1.4.0 |
 | aws | >= 4.0 |
 | null | >= 3.0 |
 | external | >= 2.0 |

@@ -30,6 +30,7 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 | API Key | Your StackGuardian API key | `string` |
 | AMI ID | The AMI with pre-installed dependencies (docker, cron, jq, sg-runner) | `string` |
 | Runner Group Name | Name of the runner group from the Runner Group template | `string` |
+| Runner Group Token | Registration token from the Runner Group template. Sensitive - prefer a secret reference (`${secret::SECRET_NAME}`) over a literal value | `string` (password) |
 | Storage Backend Role ARN | IAM role ARN for S3 storage access from the Runner Group template | `string` |
 | VPC ID | Existing VPC for deployment | `string` |
 
@@ -48,8 +49,8 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 | Associate Public IP | Assign a public IP to the instance | `false` |
 | Create Network Infrastructure | Create NAT Gateway and route tables | `false` |
 | Proxy URL | HTTP proxy for private network deployments | - |
-| Additional Security Groups | Extra security groups to attach | `[]` |
-| VPC Endpoint Security Groups | Security groups of VPC endpoints (STS, SSM, ECR). Adds inbound 443 rule to allow runner access. | `[]` |
+| Additional Security Group IDs | Extra security groups to attach | `[]` |
+| VPC Endpoint Security Group IDs | Security groups of VPC endpoints (STS, SSM, ECR). Adds inbound 443 rule to allow runner access. | `[]` |
 | Volume Type | EBS volume type (gp2, gp3, io1, io2) | `gp3` |
 | Volume Size (GB) | Storage size in GB (minimum 8GB) | `100` |
 | Delete on Termination | Delete volume when instance terminates | `false` |
@@ -69,6 +70,8 @@ This template creates a single EC2 instance configured as a StackGuardian Privat
 - Enable NAT Gateway creation, or
 - Configure a proxy URL, or
 - Use VPC endpoints with `vpc_endpoint_security_group_ids`
+
+**Proxy Support**: When "Proxy URL" is set, the instance exports it as `HTTP_PROXY`/`HTTPS_PROXY` at boot, before it registers with StackGuardian. Leave it empty and no proxy is configured.
 
 **VPC Endpoints**: For fully private deployments without internet access, create VPC endpoints for AWS services (STS, SSM, ECR, S3) and provide their security group IDs. The template automatically adds inbound rules to allow the runner to access these endpoints.
 

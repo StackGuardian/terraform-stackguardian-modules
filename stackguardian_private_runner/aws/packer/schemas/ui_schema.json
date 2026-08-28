@@ -2,15 +2,21 @@
   "ui:title": "StackGuardian Private Runner - Packer AMI Builder",
   "ui:description": "Build a custom AMI for StackGuardian Private Runner with pre-installed dependencies including Docker, Terraform, OpenTofu, and StackGuardian runner components. This AMI can then be used with the AWS deployment template for optimal performance.",
   "ui:order": [
+    "existing_ami_id",
     "aws_region",
     "network",
     "os",
     "instance_type",
     "packer_config",
+    "ami_name_prefix",
     "terraform",
     "opentofu",
     "sg_runner"
   ],
+  "existing_ami_id": {
+    "ui:placeholder": "ami-***",
+    "ui:description": "Hand back an AMI you already have instead of building one. Leave empty to run the Packer build. When it is set nothing is built - no build instance, no Packer download, no cleanup on destroy - and every other setting here is ignored. The AMI must live in the selected region and already carry Docker, cron, jq and sg-runner."
+  },
   "aws_region": {
     "ui:widget": "select",
     "ui:description": "The AWS region where the AMI will be built"
@@ -132,5 +138,9 @@
       "ui:widget": "checkbox",
       "ui:description": "Install the newest sg-runner pre-release instead of the latest stable release. Falls back to the latest stable release when no pre-release is published. Intended for testing upcoming runner changes; keep disabled for production. Changing this on an existing deployment only takes effect once a new AMI is built, so also change the Rebuild AMI Token."
     }
+  },
+  "ami_name_prefix": {
+    "ui:placeholder": "SG-RUNNER-ami",
+    "ui:description": "Prefix of the generated AMI name. The default matches AMIs built by earlier versions."
   }
 }

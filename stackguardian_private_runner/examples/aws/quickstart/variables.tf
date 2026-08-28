@@ -23,20 +23,37 @@ variable "aws_region" {
 /*-------------------+
  | Network Settings  |
  +-------------------*/
-variable "vpc_id" {
-  description = "VPC ID where all resources will be deployed"
-  type        = string
-}
+variable "network" {
+  description = <<EOT
+    Existing VPC and subnet the runner attaches to. This example never creates
+    networking - point it at a subnet you already have.
 
-variable "public_subnet_id" {
-  description = "Public subnet ID for Packer builds and runner deployment"
-  type        = string
-}
+    - vpc_id / subnet_id: the existing VPC, and the subnet that hosts both the
+      Packer build instance and the runner. It needs a route to the internet, so
+      either a public subnet or a private one behind a NAT gateway.
+    - associate_public_ip: give the runner a public IP. Keep it true unless the
+      subnet already provides outbound internet access - the runner must reach
+      the StackGuardian API.
+    - vpc_endpoint_security_group_ids: security groups of interface VPC endpoints
+      (STS, SSM, ECR, ...). An inbound HTTPS rule from the runner is added to each.
 
-variable "vpc_endpoint_security_group_ids" {
-  description = "Security group IDs of VPC interface endpoints (STS, EC2, etc.) that should allow HTTPS from the runner"
-  type        = list(string)
-  default     = []
+    NAT gateways, route tables and proxies belong to the subnet you bring:
+    configure them there, or use the aws/single_runner module directly.
+  EOT
+  type = object({
+    vpc_id                          = string
+    subnet_id                       = string
+    associate_public_ip             = optional(bool, true)
+    vpc_endpoint_security_group_ids = optional(list(string), [])
+  })
+
+  validation {
+    condition = alltrue([
+      trimspace(var.network.vpc_id) != "",
+      trimspace(var.network.subnet_id) != "",
+    ])
+    error_message = "network.vpc_id and network.subnet_id are both required - this example attaches to an existing VPC and subnet."
+  }
 }
 
 /*-------------------+
@@ -73,6 +90,24 @@ variable "force_destroy_storage_backend" {
 /*---------------------------+
  | Packer AMI Settings       |
  +---------------------------*/
+variable "ami_id" {
+  description = <<EOT
+    Existing runner AMI to boot instead of building one.
+    Leave it empty to run the Packer module and build an AMI; set it to an AMI
+    you already built (for example the ami_id output of an earlier apply, or of
+    the aws/packer example) and the build is skipped entirely - every other
+    Packer input below is then ignored.
+    The AMI has to carry docker, cron, jq and sg-runner, and live in aws_region.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.ami_id == "" || can(regex("^ami-", var.ami_id))
+    error_message = "ami_id must be empty (build an AMI with Packer) or a valid AMI ID starting with 'ami-'."
+  }
+}
+
 variable "packer_instance_type" {
   description = "EC2 instance type for the Packer build process"
   type        = string
@@ -92,6 +127,12 @@ variable "os" {
     family                   = "amazon"
     update_os_before_install = true
   }
+}
+
+variable "ami_name_prefix" {
+  description = "Prefix of the generated AMI name"
+  type        = string
+  default     = "SG-RUNNER-ami"
 }
 
 variable "packer_config" {

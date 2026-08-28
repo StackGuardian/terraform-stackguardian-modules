@@ -25,7 +25,7 @@ output "s3_bucket_name" {
  | AMI Outputs                     |
  +---------------------------------*/
 output "ami_id" {
-  description = "AMI ID built by Packer and recorded in state"
+  description = "AMI the runner booted from - built by Packer, or the ami_id that was passed in"
   value       = module.packer.ami_id
 }
 
@@ -50,4 +50,18 @@ output "instance_private_ip" {
 output "security_group_id" {
   description = "Security group ID of the private runner"
   value       = module.single_runner.security_group_id
+}
+
+output "subnet_id" {
+  description = "Existing subnet the runner was placed in"
+  value       = data.aws_subnet.runner.id
+}
+
+output "ssh_command" {
+  description = <<EOT
+    Ready-to-use SSH command, once firewall.ssh_access_rules opens port 22.
+    Falls back to the private IP when network.associate_public_ip is false, in
+    which case reach the instance over Session Manager or from inside the VPC.
+  EOT
+  value       = "ssh ${local.ssh_username}@${coalesce(module.single_runner.instance_public_ip, module.single_runner.instance_private_ip)}"
 }
