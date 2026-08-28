@@ -241,6 +241,8 @@ Stack overview: [azure/DOCUMENTATION.md](azure/DOCUMENTATION.md)
 |---------|---------|
 | [examples/aws/quickstart](examples/aws/quickstart/) | Runner group + AMI build + one EC2 runner in a single apply |
 | [examples/azure/quickstart](examples/azure/quickstart/) | Runner group + image build + one Azure VM runner in a single apply |
+| [examples/aws/packer](examples/aws/packer/) | Just the AMI build — bake an image once and reuse its `ami_id` |
+| [examples/azure/packer](examples/azure/packer/) | Just the image build — bake an image once and reuse its `image_id` |
 
 ### Common Required Parameters
 
