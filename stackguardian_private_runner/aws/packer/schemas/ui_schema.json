@@ -2,6 +2,7 @@
   "ui:title": "StackGuardian Private Runner - Packer AMI Builder",
   "ui:description": "Build a custom AMI for StackGuardian Private Runner with pre-installed dependencies including Docker, Terraform, OpenTofu, and StackGuardian runner components. This AMI can then be used with the AWS deployment template for optimal performance.",
   "ui:order": [
+    "existing_ami_id",
     "aws_region",
     "network",
     "os",
@@ -12,6 +13,10 @@
     "opentofu",
     "sg_runner"
   ],
+  "existing_ami_id": {
+    "ui:placeholder": "ami-***",
+    "ui:description": "Hand back an AMI you already have instead of building one. Leave empty to run the Packer build. When it is set nothing is built - no build instance, no Packer download, no cleanup on destroy - and every other setting here is ignored. The AMI must live in the selected region and already carry Docker, cron, jq and sg-runner."
+  },
   "aws_region": {
     "ui:widget": "select",
     "ui:description": "The AWS region where the AMI will be built"

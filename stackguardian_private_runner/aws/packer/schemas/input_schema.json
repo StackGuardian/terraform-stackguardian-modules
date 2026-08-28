@@ -1,6 +1,12 @@
 {
   "type": "object",
   "properties": {
+    "existing_ami_id": {
+      "title": "Existing AMI ID",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^ami-.*$"
+    },
     "aws_region": {
       "title": "AWS Region",
       "type": "string",

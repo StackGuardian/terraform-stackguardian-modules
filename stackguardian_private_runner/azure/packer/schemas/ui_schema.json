@@ -1,5 +1,6 @@
 {
   "ui:order": [
+    "existing_image_id",
     "azure_location",
     "resource_group_name",
     "create_resource_group",
@@ -12,6 +13,10 @@
     "opentofu",
     "sg_runner"
   ],
+  "existing_image_id": {
+    "ui:placeholder": "/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Compute/images/{name}",
+    "ui:description": "Hand back a managed image you already have instead of building one. Leave empty to run the Packer build. When it is set nothing is built - no build VM, no Packer download, no cleanup on destroy - and every other setting here is ignored. The image must live in the selected location and already carry Docker, cron, jq and sg-runner."
+  },
   "azure_location": {
     "ui:description": "The target Azure region to build the Private Runner image",
     "ui:placeholder": "westeurope"

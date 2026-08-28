@@ -1,6 +1,12 @@
 {
   "type": "object",
   "properties": {
+    "existing_image_id": {
+      "title": "Existing Image ID",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^/subscriptions/.*"
+    },
     "azure_location": {
       "title": "Azure Location",
       "type": "string",
