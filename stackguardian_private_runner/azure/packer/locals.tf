@@ -18,8 +18,18 @@ locals {
   # Network configuration (empty strings mean Packer creates temporary networking)
   use_existing_network = var.network.vnet_name != "" && var.network.subnet_name != ""
 
+  # Whether to build at all. An existing_image_id turns every build resource off.
+  build_image = var.existing_image_id == ""
+
   # The image built by this module, as recorded in state. Packer runs on the first
   # apply and then only when packer_config.rebuild_image_token changes, so this
-  # value stays stable across re-plans.
-  image_id = terraform_data.image_id.output
+  # value stays stable across re-plans. Null when the build was skipped.
+  built_image_id = one(terraform_data.image_id[*].output)
+
+  # What the module reports: the image it was handed, otherwise the one it built.
+  image_id = (
+    var.existing_image_id != ""
+    ? var.existing_image_id
+    : (local.built_image_id == null ? "" : local.built_image_id)
+  )
 }

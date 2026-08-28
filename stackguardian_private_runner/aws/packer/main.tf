@@ -1,5 +1,7 @@
 # Fetch the latest AMI based on the OS family and version
 data "aws_ami" "this" {
+  count = local.build_ami ? 1 : 0
+
   most_recent = true
   owners      = [local.ami_owners[var.os.family]]
 
@@ -25,6 +27,8 @@ data "aws_ami" "this" {
 # packer_config.rebuild_ami_token to any new value to replace this resource and
 # build a fresh AMI; re-plans with an unchanged token do nothing.
 resource "null_resource" "packer_build" {
+  count = local.build_ami ? 1 : 0
+
   provisioner "local-exec" {
     command     = "sh ../../packer/scripts/build.sh"
     working_dir = path.module
@@ -35,7 +39,7 @@ resource "null_resource" "packer_build" {
 
       # Packer reads PKR_VAR_<name> natively, so these reach ami.pkr.hcl
       # without the build script having to know the per-cloud variable list.
-      PKR_VAR_base_ami                                = data.aws_ami.this.id
+      PKR_VAR_base_ami                                = data.aws_ami.this[0].id
       PKR_VAR_ami_name_prefix                         = var.ami_name_prefix
       PKR_VAR_os_family                               = var.os.family
       PKR_VAR_os_version                              = var.os.family != "amazon" ? var.os.version : ""
@@ -69,6 +73,8 @@ resource "null_resource" "packer_build" {
 # missing (fresh checkout, CI runner) instead of failing the plan, because the
 # recorded AMI ID is read from state via terraform_data.ami_id below.
 data "external" "packer_ami_id" {
+  count = local.build_ami ? 1 : 0
+
   program = [
     "sh",
     "-c",
@@ -84,11 +90,13 @@ data "external" "packer_ami_id" {
 # keeps the recorded ID untouched by later plans, even if the build log is stale
 # or gone.
 resource "terraform_data" "ami_id" {
-  input = data.external.packer_ami_id.result["ami_id"]
+  count = local.build_ami ? 1 : 0
+
+  input = data.external.packer_ami_id[0].result["ami_id"]
 
   lifecycle {
     ignore_changes       = [input]
-    replace_triggered_by = [null_resource.packer_build]
+    replace_triggered_by = [null_resource.packer_build[0]]
   }
 }
 
@@ -96,8 +104,10 @@ resource "terraform_data" "ami_id" {
 #
 # Tracks the AMI this module built, so a destroy never deregisters an image it
 # did not create. Re-keyed by a rebuild, which deregisters the superseded AMI.
+# Never runs for an AMI passed in through existing_ami_id: the module did not
+# build it, so it has no business deregistering it.
 resource "null_resource" "ami_cleanup" {
-  count = var.packer_config.cleanup_amis_on_destroy ? 1 : 0
+  count = local.build_ami && var.packer_config.cleanup_amis_on_destroy ? 1 : 0
 
   # Store AMI information as triggers so they're available during destroy
   triggers = {
@@ -117,4 +127,17 @@ resource "null_resource" "ami_cleanup" {
       REGION            = self.triggers.region
     }
   }
+}
+
+# The build resources gained a count when existing_ami_id was introduced. These
+# keep a state written before that from re-keying, which would otherwise destroy
+# and rebuild the AMI on the next apply.
+moved {
+  from = null_resource.packer_build
+  to   = null_resource.packer_build[0]
+}
+
+moved {
+  from = terraform_data.ami_id
+  to   = terraform_data.ami_id[0]
 }

@@ -98,6 +98,7 @@ module "packer_ami" {
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `existing_ami_id` | Existing AMI to hand back instead of building one - see [Skipping the build](#skipping-the-build) | `""` |
 | `aws_region` | AWS region for AMI creation | `eu-central-1` |
 | `instance_type` | EC2 instance type for build process | `t3.medium` |
 | `os.family` | Operating system family (`amazon`, `ubuntu`, `rhel`) | `amazon` |
@@ -151,6 +152,39 @@ replaced on every apply either.
 > touches the AMI this deployment built — on destroy, and on the rebuild that
 > supersedes it. AMIs belonging to other deployments are never deregistered, since
 > the module never adopts an AMI it did not build.
+
+### Skipping the Build
+
+Set `existing_ami_id` to an AMI you already have and this module builds nothing:
+
+```hcl
+module "packer" {
+  source          = "../../aws/packer"
+  existing_ami_id = "ami-0123456789abcdef0"
+
+  aws_region = "eu-central-1"
+  network = {
+    vpc_id           = "vpc-0123456789abcdef0"
+    public_subnet_id = "subnet-0123456789abcdef0"
+  }
+}
+```
+
+No build instance, no Packer download, no destroy-time cleanup — the module
+creates no resources at all, and `ami_id` returns the value you passed. Every
+other build input is ignored. It exists so a caller can wire
+`module.packer.ami_id` into an instance once and choose per deployment whether an
+AMI gets built; the module call itself cannot be `count`-ed, because it declares
+its own provider.
+
+The AMI is used as-is: it has to live in `aws_region` and carry docker, cron, jq
+and sg-runner. Nothing is validated at plan time.
+
+> **Note:** `existing_ami_id` is meant for a fresh state. Adding it to a state
+> that already built an AMI destroys the build records, and the destroy-time
+> cleanup deregisters the built AMI — including when that is the AMI you are
+> passing in. Run `tofu state rm null_resource.ami_cleanup[0]` first if that is
+> what you are doing.
 
 ### Configuration Examples
 

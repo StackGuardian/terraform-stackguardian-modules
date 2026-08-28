@@ -63,6 +63,7 @@ module "private_runner_image" {
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `existing_image_id` | Existing managed image to hand back instead of building one - see [Skipping the build](#skipping-the-build) | `""` |
 | `azure_location` | Target Azure region for the build | `"westeurope"` |
 | `create_resource_group` | Create the resource group as part of this deployment | `false` |
 | `vm_size` | Packer build VM size (min 2 vCPU / 4GB RAM) | `"Standard_D2s_v3"` |
@@ -118,6 +119,36 @@ replaced on every apply either.
 > touches the image this deployment built — on destroy, and on the rebuild that
 > supersedes it. Images belonging to other deployments are never deleted, since the
 > module never adopts an image it did not build.
+
+### Skipping the Build
+
+Set `existing_image_id` to an image you already have and this module builds
+nothing:
+
+```hcl
+module "packer" {
+  source            = "../../azure/packer"
+  existing_image_id = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Compute/images/<name>"
+
+  azure_location      = "westeurope"
+  resource_group_name = "sg-runner-rg"
+}
+```
+
+No build VM, no Packer download, no destroy-time cleanup — the module creates no
+resources at all, and `image_id` returns the value you passed. Every other build
+input is ignored. It exists so a caller can wire `module.packer.image_id` into a
+VM once and choose per deployment whether an image gets built; the module call
+itself cannot be `count`-ed, because it declares its own provider.
+
+The image is used as-is: it has to live in `azure_location` and carry docker,
+cron, jq and sg-runner. Nothing is validated at plan time.
+
+> **Note:** `existing_image_id` is meant for a fresh state. Adding it to a state
+> that already built an image destroys the build records, and the destroy-time
+> cleanup deletes the built image — including when that is the image you are
+> passing in. Run `tofu state rm null_resource.image_cleanup[0]` first if that
+> is what you are doing.
 
 ### Configuration Examples
 

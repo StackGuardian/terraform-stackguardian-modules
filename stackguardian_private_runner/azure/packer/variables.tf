@@ -1,6 +1,25 @@
 /*-------------------+
  | General Variables |
  +-------------------*/
+variable "existing_image_id" {
+  description = <<EOT
+    Existing managed image to hand back instead of building one.
+    Leave it empty and the module runs Packer as usual. Set it to an image you
+    already have and the build, the manifest parsing and the destroy-time
+    cleanup are all skipped - the module builds nothing and the image_id output
+    returns this value unchanged, so a caller can wire the same output either
+    way. Every other build input is then ignored.
+    Example: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Compute/images/{name}
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.existing_image_id == "" || can(regex("^/subscriptions/", var.existing_image_id))
+    error_message = "existing_image_id must be empty (build an image) or a valid Azure resource ID starting with '/subscriptions/'."
+  }
+}
+
 variable "azure_location" {
   description = "The target Azure region to build the Private Runner image"
   type        = string

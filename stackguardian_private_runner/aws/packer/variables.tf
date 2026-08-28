@@ -1,6 +1,24 @@
 /*-------------------+
  | General Variables |
  +-------------------*/
+variable "existing_ami_id" {
+  description = <<EOT
+    Existing AMI to hand back instead of building one.
+    Leave it empty and the module runs Packer as usual. Set it to an AMI you
+    already have and the build, the manifest parsing and the destroy-time
+    cleanup are all skipped - the module creates nothing and the ami_id output
+    returns this value unchanged, so a caller can wire the same output either
+    way. Every other build input is then ignored.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.existing_ami_id == "" || can(regex("^ami-", var.existing_ami_id))
+    error_message = "existing_ami_id must be empty (build an AMI) or a valid AMI ID starting with 'ami-'."
+  }
+}
+
 variable "aws_region" {
   description = "The target AWS Region to build the Private Runner AMI"
   type        = string

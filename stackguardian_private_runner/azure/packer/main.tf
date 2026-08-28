@@ -20,6 +20,8 @@ resource "azurerm_resource_group" "packer" {
 # packer_config.rebuild_image_token to any new value to replace this resource and
 # build a fresh image; re-plans with an unchanged token do nothing.
 resource "null_resource" "packer_build" {
+  count = local.build_image ? 1 : 0
+
   provisioner "local-exec" {
     working_dir = path.module
     command     = "sh ../../packer/scripts/build.sh"
@@ -69,6 +71,8 @@ resource "null_resource" "packer_build" {
 # is missing (fresh checkout, CI runner) instead of failing the plan, because the
 # recorded image ID is read from state via terraform_data.image_id below.
 data "external" "packer_image_id" {
+  count = local.build_image ? 1 : 0
+
   working_dir = path.module
   program = [
     "sh",
@@ -87,11 +91,13 @@ data "external" "packer_image_id" {
 # keeps the recorded ID untouched by later plans, even if the build log is stale
 # or gone.
 resource "terraform_data" "image_id" {
-  input = data.external.packer_image_id.result["image_id"]
+  count = local.build_image ? 1 : 0
+
+  input = data.external.packer_image_id[0].result["image_id"]
 
   lifecycle {
     ignore_changes       = [input]
-    replace_triggered_by = [null_resource.packer_build]
+    replace_triggered_by = [null_resource.packer_build[0]]
   }
 }
 
@@ -100,9 +106,10 @@ resource "terraform_data" "image_id" {
  +-------------------------------------------*/
 #
 # Tracks the image this module built, so a destroy never deletes an image it did
-# not create. Re-keyed by a rebuild, which deletes the superseded image.
+# not create. Re-keyed by a rebuild, which deletes the superseded image. Never
+# runs for an image passed in through existing_image_id.
 resource "null_resource" "image_cleanup" {
-  count = var.packer_config.cleanup_images_on_destroy ? 1 : 0
+  count = local.build_image && var.packer_config.cleanup_images_on_destroy ? 1 : 0
 
   # Store image information as triggers so they're available during destroy
   triggers = {
@@ -120,4 +127,17 @@ resource "null_resource" "image_cleanup" {
   }
 
   depends_on = [null_resource.packer_build]
+}
+
+# The build resources gained a count when existing_image_id was introduced.
+# These keep a state written before that from re-keying, which would otherwise
+# destroy and rebuild the image on the next apply.
+moved {
+  from = null_resource.packer_build
+  to   = null_resource.packer_build[0]
+}
+
+moved {
+  from = terraform_data.image_id
+  to   = terraform_data.image_id[0]
 }
