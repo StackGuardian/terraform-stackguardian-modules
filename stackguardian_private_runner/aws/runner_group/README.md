@@ -15,6 +15,9 @@ deployment never initializes `azurerm` or `azuread`. The Azure equivalent is
 
 - **S3 bucket** with public access blocked and CORS limited to the StackGuardian
   platform origin (when `create_storage_backend = true`).
+- **Object versioning + lifecycle rule** on that bucket (when
+  `storage_backend_versioning.enabled = true`): old versions are deleted
+  `noncurrent_retention_days` after they are replaced.
 - **IAM role + policy** scoped to the bucket. The trust policy allows the StackGuardian
   AWS accounts (`163602625436`, `476299211833`) and the caller's own account, gated by
   an external ID of the form `{org_name}:{24-char-random}`.
@@ -81,6 +84,8 @@ module "runner_group" {
 | `create_storage_backend` | Create a new S3 bucket | `true` |
 | `existing_s3_bucket_name` | Existing bucket name (when `create_storage_backend = false`) | `""` |
 | `force_destroy_storage_backend` | Force destroy the bucket on `destroy` — deletes all objects | `false` |
+| `storage_backend_versioning.enabled` | Turn on S3 versioning for the bucket the module creates | `false` |
+| `storage_backend_versioning.noncurrent_retention_days` | Days to keep a version after it is replaced; `0` keeps them forever | `365` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
 | `override_names.connector_name` | Name half of the connector | (runner group's name) |
@@ -147,3 +152,6 @@ together.
   not enough to assume the role.
 - `force_destroy_storage_backend` deletes every object in the bucket on `destroy`. Leave
   it off unless you mean it.
+- S3 versioning can only be suspended once enabled, never fully turned off. Setting
+  `storage_backend_versioning.enabled` back to `false` suspends it and keeps the existing
+  versions; the lifecycle rule is removed, so they no longer expire.

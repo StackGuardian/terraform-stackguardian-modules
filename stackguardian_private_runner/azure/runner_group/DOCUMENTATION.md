@@ -59,6 +59,8 @@ required.
 | Create Storage Backend | Whether to create a new Azure Storage Account | Enabled |
 | Azure Storage — Account Tier | Performance tier of the Storage Account (Standard / Premium) | Standard |
 | Azure Storage — Replication Type | Replication strategy (LRS / GRS / RAGRS / ZRS) | LRS |
+| Storage Backend Versioning — Enable Versioning | Keep previous versions of blobs in the storage account | Disabled |
+| Storage Backend Versioning — Old Version Retention (days) | Days to keep a previous version; 0 keeps them forever | 365 |
 | Existing Azure Storage Account Name | Name of an existing Storage Account to use (when not creating new) | — |
 | Existing Azure Storage Account Access Key | Access key for that account (sensitive) | — |
 | Global Prefix | Prefix for the runner group and connector names. Leave empty to omit it | SG_RUNNER |
@@ -105,6 +107,12 @@ group only ever lives in one org, and its name is not information a tag adds.
 
 **Data Retention**: The Azure Storage Account is destroyed along with its contents on
 `terraform destroy` — back up anything you need first.
+
+**Versioning**: Applies only to a storage account this template creates. When enabled,
+Azure keeps previous versions of each blob and a lifecycle management policy deletes them
+**Old Version Retention** days after they were written (Azure counts from when a version
+was written, not from when it was replaced). Turning versioning on or off for an existing
+deployment changes the account in place; turning it off keeps the stored versions.
 
 ## Outputs
 

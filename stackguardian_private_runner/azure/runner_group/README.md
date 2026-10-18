@@ -19,6 +19,9 @@ an Azure deployment never initializes the AWS provider. The AWS equivalent is
 - **Storage Account + private `runner` blob container** with TLS 1.2 minimum and CORS
   limited to the StackGuardian platform origin (when `create_storage_backend = true`).
   The container name `runner` is required by the platform.
+- **Blob versioning + lifecycle management policy** on that account (when
+  `storage_backend_versioning.enabled = true`): previous versions are deleted
+  `noncurrent_retention_days` after they were written.
 - **Entra ID application + service principal** backing the OIDC connector.
 - **Federated identity credential** issued by the StackGuardian API URI for the org
   subject `/orgs/{org_name}` — no long-lived secret is stored on the platform.
@@ -102,6 +105,8 @@ When `create_azure_resource_group = false`, `azure_resource_group_name` becomes 
 | `existing_azure_storage_account_access_key` | Access key for that account (sensitive) | `""` |
 | `azure_storage.account_tier` | Storage Account performance tier (`Standard` / `Premium`) | `Standard` |
 | `azure_storage.account_replication_type` | Replication strategy (`LRS` / `GRS` / `RAGRS` / `ZRS`) | `LRS` |
+| `storage_backend_versioning.enabled` | Turn on blob versioning for the account the module creates | `false` |
+| `storage_backend_versioning.noncurrent_retention_days` | Days to keep a previous version; `0` keeps them forever | `365` |
 | `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader` | `true` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
@@ -180,3 +185,6 @@ together.
 - The runner registration token and the storage access key are marked sensitive.
 - `tofu destroy` removes the storage account and everything in it. Back up anything you
   need first.
+- Azure counts a previous version's age from when that version was written, not from
+  when it was replaced, so a version can be deleted sooner after replacement than the
+  same setting would on S3.
