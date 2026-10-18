@@ -50,6 +50,33 @@ variable "azure_storage" {
   }
 }
 
+variable "storage_backend_versioning" {
+  description = <<EOT
+    Blob versioning on the storage backend account. Only applies when
+    create_storage_backend = true; an existing account is left as it is.
+
+    - enabled: Turn on blob versioning. Turning it off again stops new versions
+      and keeps the existing ones.
+    - noncurrent_retention_days: Days to keep a previous version, then delete it.
+      0 keeps old versions forever. Azure counts a version's age from when it
+      was written, not from when it was replaced.
+  EOT
+  type = object({
+    enabled                   = optional(bool, false)
+    noncurrent_retention_days = optional(number, 365)
+  })
+  default = {}
+
+  validation {
+    condition = (
+      floor(var.storage_backend_versioning.noncurrent_retention_days) == var.storage_backend_versioning.noncurrent_retention_days
+      && var.storage_backend_versioning.noncurrent_retention_days >= 0
+      && var.storage_backend_versioning.noncurrent_retention_days <= 99999
+    )
+    error_message = "storage_backend_versioning.noncurrent_retention_days must be a whole number between 0 and 99999."
+  }
+}
+
 /*---------------------------+
  | Azure Platform Variables  |
  +---------------------------*/

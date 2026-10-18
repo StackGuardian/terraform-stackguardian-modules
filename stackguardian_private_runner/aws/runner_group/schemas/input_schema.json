@@ -127,6 +127,25 @@
               "title": "Force Destroy Storage Backend",
               "type": "boolean",
               "default": false
+            },
+            "storage_backend_versioning": {
+              "title": "Storage Backend Versioning",
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enable Versioning",
+                  "type": "boolean",
+                  "default": false
+                },
+                "noncurrent_retention_days": {
+                  "title": "Old Version Retention (days)",
+                  "type": "integer",
+                  "default": 365,
+                  "minimum": 0,
+                  "maximum": 99999
+                }
+              },
+              "additionalProperties": false
             }
           }
         },

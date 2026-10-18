@@ -9,6 +9,7 @@
     "create_blob_reader_role_assignment",
     "create_storage_backend",
     "azure_storage",
+    "storage_backend_versioning",
     "existing_azure_storage_account_name",
     "existing_azure_storage_account_access_key",
     "override_names",
@@ -69,6 +70,21 @@
     "account_replication_type": {
       "ui:widget": "select",
       "ui:description": "Replication strategy for the storage account"
+    }
+  },
+  "storage_backend_versioning": {
+    "ui:title": "Storage Backend Versioning",
+    "ui:description": "Keep previous versions of blobs in the storage account (only for an account this template creates)",
+    "ui:order": [
+      "enabled",
+      "noncurrent_retention_days"
+    ],
+    "enabled": {
+      "ui:widget": "checkbox",
+      "ui:description": "Turn on blob versioning. Turning it off later stops new versions and keeps existing ones"
+    },
+    "noncurrent_retention_days": {
+      "ui:description": "Days to keep a previous version (counted from when it was written), then delete it. 0 keeps old versions forever"
     }
   },
   "existing_azure_storage_account_name": {

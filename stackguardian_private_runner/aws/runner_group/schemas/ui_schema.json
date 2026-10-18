@@ -7,6 +7,7 @@
     "create_storage_backend",
     "existing_s3_bucket_name",
     "force_destroy_storage_backend",
+    "storage_backend_versioning",
     "override_names",
     "max_runners"
   ],
@@ -46,6 +47,21 @@
   "force_destroy_storage_backend": {
     "ui:widget": "checkbox",
     "ui:description": "Warning: Force destroy the S3 bucket on module destruction (deletes all data)"
+  },
+  "storage_backend_versioning": {
+    "ui:title": "Storage Backend Versioning",
+    "ui:description": "Keep previous versions of objects in the S3 bucket (only for a bucket this template creates)",
+    "ui:order": [
+      "enabled",
+      "noncurrent_retention_days"
+    ],
+    "enabled": {
+      "ui:widget": "checkbox",
+      "ui:description": "Turn on S3 versioning. Turning it off later suspends versioning and keeps existing versions"
+    },
+    "noncurrent_retention_days": {
+      "ui:description": "Days to keep a version after it is replaced, then delete it. 0 keeps old versions forever"
+    }
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",

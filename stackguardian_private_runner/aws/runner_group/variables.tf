@@ -26,6 +26,32 @@ variable "force_destroy_storage_backend" {
   default     = false
 }
 
+variable "storage_backend_versioning" {
+  description = <<EOT
+    Object versioning on the storage backend bucket. Only applies when
+    create_storage_backend = true; an existing bucket is left as it is.
+
+    - enabled: Turn on S3 versioning. Turning it off again suspends versioning -
+      S3 can't fully disable it once enabled - and keeps the existing versions.
+    - noncurrent_retention_days: Days to keep a version after it is replaced,
+      then delete it. 0 keeps old versions forever.
+  EOT
+  type = object({
+    enabled                   = optional(bool, false)
+    noncurrent_retention_days = optional(number, 365)
+  })
+  default = {}
+
+  validation {
+    condition = (
+      floor(var.storage_backend_versioning.noncurrent_retention_days) == var.storage_backend_versioning.noncurrent_retention_days
+      && var.storage_backend_versioning.noncurrent_retention_days >= 0
+      && var.storage_backend_versioning.noncurrent_retention_days <= 99999
+    )
+    error_message = "storage_backend_versioning.noncurrent_retention_days must be a whole number between 0 and 99999."
+  }
+}
+
 /*-----------------------------------+
  | StackGuardian Platform Variables  |
  +-----------------------------------*/
