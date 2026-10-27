@@ -117,3 +117,31 @@ run "rejects_retention_above_azure_max" {
 
   expect_failures = [var.storage_backend_versioning]
 }
+
+run "cors_adds_extra_origins" {
+  command = plan
+
+  variables {
+    stackguardian = {
+      api_key  = "sgu_testkey"
+      api_uri  = "https://testapi.qa.stackguardian.io"
+      org_name = "contract-org"
+    }
+    storage_backend_cors_extra_origins = ["http://localhost:3000"]
+  }
+
+  assert {
+    condition     = azurerm_storage_account.this[0].blob_properties[0].cors_rule[0].allowed_origins == tolist(["https://dash.qa.stackguardian.io", "http://localhost:3000"])
+    error_message = "Extra origins must be added next to the console origin."
+  }
+}
+
+run "cors_rejects_origin_with_path" {
+  command = plan
+
+  variables {
+    storage_backend_cors_extra_origins = ["http://localhost:3000/logs"]
+  }
+
+  expect_failures = [var.storage_backend_cors_extra_origins]
+}

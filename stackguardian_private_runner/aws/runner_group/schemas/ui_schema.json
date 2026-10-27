@@ -8,6 +8,7 @@
     "existing_s3_bucket_name",
     "force_destroy_storage_backend",
     "storage_backend_versioning",
+    "storage_backend_cors_extra_origins",
     "override_names",
     "max_runners"
   ],
@@ -62,6 +63,9 @@
     "noncurrent_retention_days": {
       "ui:description": "Days to keep a version after it is replaced, then delete it. 0 keeps old versions forever"
     }
+  },
+  "storage_backend_cors_extra_origins": {
+    "ui:description": "Extra browser origins allowed to fetch from the S3 bucket, e.g. http://localhost:3000. The StackGuardian console origin is always allowed"
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",

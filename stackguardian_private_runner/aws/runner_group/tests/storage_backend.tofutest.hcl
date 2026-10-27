@@ -130,3 +130,48 @@ run "rejects_negative_retention" {
 
   expect_failures = [var.storage_backend_versioning]
 }
+
+run "cors_allows_console_origin_only_by_default" {
+  command = plan
+
+  variables {
+    stackguardian = {
+      api_key  = "sgu_testkey"
+      api_uri  = "https://testapi.qa.stackguardian.io"
+      org_name = "contract-org"
+    }
+  }
+
+  assert {
+    condition     = tolist(aws_s3_bucket_cors_configuration.this[0].cors_rule)[0].allowed_origins == toset(["https://dash.qa.stackguardian.io"])
+    error_message = "Only the console origin of the selected API region may be allowed by default."
+  }
+}
+
+run "cors_adds_extra_origins" {
+  command = plan
+
+  variables {
+    stackguardian = {
+      api_key  = "sgu_testkey"
+      api_uri  = "https://testapi.qa.stackguardian.io"
+      org_name = "contract-org"
+    }
+    storage_backend_cors_extra_origins = ["http://localhost:3000"]
+  }
+
+  assert {
+    condition     = tolist(aws_s3_bucket_cors_configuration.this[0].cors_rule)[0].allowed_origins == toset(["https://dash.qa.stackguardian.io", "http://localhost:3000"])
+    error_message = "Extra origins must be added next to the console origin."
+  }
+}
+
+run "cors_rejects_origin_with_path" {
+  command = plan
+
+  variables {
+    storage_backend_cors_extra_origins = ["http://localhost:3000/"]
+  }
+
+  expect_failures = [var.storage_backend_cors_extra_origins]
+}

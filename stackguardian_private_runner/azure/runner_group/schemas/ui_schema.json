@@ -10,6 +10,7 @@
     "create_storage_backend",
     "azure_storage",
     "storage_backend_versioning",
+    "storage_backend_cors_extra_origins",
     "existing_azure_storage_account_name",
     "existing_azure_storage_account_access_key",
     "override_names",
@@ -86,6 +87,9 @@
     "noncurrent_retention_days": {
       "ui:description": "Days to keep a previous version (counted from when it was written), then delete it. 0 keeps old versions forever"
     }
+  },
+  "storage_backend_cors_extra_origins": {
+    "ui:description": "Extra browser origins allowed to fetch from the storage account, e.g. http://localhost:3000. The StackGuardian console origin is always allowed"
   },
   "existing_azure_storage_account_name": {
     "ui:placeholder": "myexistingstorageaccount",

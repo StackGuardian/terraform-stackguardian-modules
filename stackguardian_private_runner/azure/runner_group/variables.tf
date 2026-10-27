@@ -77,6 +77,26 @@ variable "storage_backend_versioning" {
   }
 }
 
+variable "storage_backend_cors_extra_origins" {
+  description = <<EOT
+    Extra browser origins allowed by the storage backend's CORS rule, on top of
+    the StackGuardian console origin for the selected API region. Use it to let a
+    local or self-hosted frontend fetch runner logs and artifacts, e.g.
+    ["http://localhost:3000"]. Only applies when create_storage_backend = true.
+    Each entry is a bare origin: scheme://host[:port], no path or trailing slash.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for origin in var.storage_backend_cors_extra_origins :
+      can(regex("^https?://[^/]+$", origin))
+    ])
+    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port], no path)."
+  }
+}
+
 /*---------------------------+
  | Azure Platform Variables  |
  +---------------------------*/
