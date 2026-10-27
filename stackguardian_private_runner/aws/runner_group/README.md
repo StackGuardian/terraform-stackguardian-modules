@@ -86,6 +86,7 @@ module "runner_group" {
 | `force_destroy_storage_backend` | Force destroy the bucket on `destroy` — deletes all objects | `false` |
 | `storage_backend_versioning.enabled` | Turn on S3 versioning for the bucket the module creates | `false` |
 | `storage_backend_versioning.noncurrent_retention_days` | Days to keep a version after it is replaced; `0` keeps them forever | `365` |
+| `storage_backend_cors_extra_origins` | Extra browser origins for the bucket's CORS rule (e.g. `http://localhost:3000`); the console origin is always allowed | `[]` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
 | `override_names.connector_name` | Name half of the connector | (runner group's name) |

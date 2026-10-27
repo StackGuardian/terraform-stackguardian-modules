@@ -47,6 +47,7 @@ Deploying on Azure instead? Use the **StackGuardian Runner Group - Azure** templ
 | Force Destroy Storage Backend | Delete all data in the S3 bucket on destroy (use with caution) | Disabled |
 | Storage Backend Versioning — Enable Versioning | Keep previous versions of objects in the S3 bucket | Disabled |
 | Storage Backend Versioning — Old Version Retention (days) | Days to keep a version after it is replaced; 0 keeps them forever | 365 |
+| Extra CORS Origins | Extra browser origins allowed to fetch from the bucket (e.g. a local frontend at http://localhost:3000); the StackGuardian console is always allowed | — |
 | Global Prefix | Prefix for the runner group and connector names. Leave empty to omit it | SG_RUNNER |
 | Runner Group Name | Name half of the runner group; the full name is `{prefix}-{name}` | 6-character random string |
 | Connector Name | Name half of the connector | Same as the runner group |

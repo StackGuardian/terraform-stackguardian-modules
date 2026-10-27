@@ -61,6 +61,7 @@ required.
 | Azure Storage — Replication Type | Replication strategy (LRS / GRS / RAGRS / ZRS) | LRS |
 | Storage Backend Versioning — Enable Versioning | Keep previous versions of blobs in the storage account | Disabled |
 | Storage Backend Versioning — Old Version Retention (days) | Days to keep a previous version; 0 keeps them forever | 365 |
+| Extra CORS Origins | Extra browser origins allowed to fetch from the storage account (e.g. a local frontend at http://localhost:3000); the StackGuardian console is always allowed | — |
 | Existing Azure Storage Account Name | Name of an existing Storage Account to use (when not creating new) | — |
 | Existing Azure Storage Account Access Key | Access key for that account (sensitive) | — |
 | Global Prefix | Prefix for the runner group and connector names. Leave empty to omit it | SG_RUNNER |

@@ -107,6 +107,7 @@ When `create_azure_resource_group = false`, `azure_resource_group_name` becomes 
 | `azure_storage.account_replication_type` | Replication strategy (`LRS` / `GRS` / `RAGRS` / `ZRS`) | `LRS` |
 | `storage_backend_versioning.enabled` | Turn on blob versioning for the account the module creates | `false` |
 | `storage_backend_versioning.noncurrent_retention_days` | Days to keep a previous version; `0` keeps them forever | `365` |
+| `storage_backend_cors_extra_origins` | Extra browser origins for the storage account's CORS rule (e.g. `http://localhost:3000`); the console origin is always allowed | `[]` |
 | `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader` | `true` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
