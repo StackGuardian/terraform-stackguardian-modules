@@ -15,9 +15,11 @@ deployment never initializes `azurerm` or `azuread`. The Azure equivalent is
 
 - **S3 bucket** with public access blocked and CORS limited to the StackGuardian
   platform origin (when `create_storage_backend = true`).
-- **Object versioning + lifecycle rule** on that bucket (when
-  `storage_backend_versioning.enabled = true`): old versions are deleted
-  `noncurrent_retention_days` after they are replaced.
+- **Object versioning** on that bucket, on by default, so the runners' state files keep
+  their history.
+- **Lifecycle rules** on that bucket: old versions are deleted
+  `noncurrent_retention_days` after they are replaced, and incomplete multipart uploads
+  are aborted after 7 days.
 - **IAM role + policy** scoped to the bucket. The trust policy allows the StackGuardian
   AWS accounts (`163602625436`, `476299211833`) and the caller's own account, gated by
   an external ID of the form `{org_name}:{24-char-random}`.
@@ -84,9 +86,9 @@ module "runner_group" {
 | `create_storage_backend` | Create a new S3 bucket | `true` |
 | `existing_s3_bucket_name` | Existing bucket name (when `create_storage_backend = false`) | `""` |
 | `force_destroy_storage_backend` | Force destroy the bucket on `destroy` — deletes all objects | `false` |
-| `storage_backend_versioning.enabled` | Turn on S3 versioning for the bucket the module creates | `false` |
+| `storage_backend_versioning.enabled` | S3 versioning (state file history) for the bucket the module creates; turning it off prints a warning | `true` |
 | `storage_backend_versioning.noncurrent_retention_days` | Days to keep a version after it is replaced; `0` keeps them forever | `365` |
-| `storage_backend_cors_extra_origins` | Extra browser origins for the bucket's CORS rule (e.g. `http://localhost:3000`); the console origin is always allowed | `[]` |
+| `storage_backend_cors_extra_origins` | Extra browser origins for the bucket's CORS rule (e.g. `http://localhost:3000`); bare origins only, no wildcards; the console origin is always allowed | `[]` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
 | `override_names.connector_name` | Name half of the connector | (runner group's name) |
@@ -147,12 +149,17 @@ together.
 ## Security Notes
 
 - The bucket blocks all public access and accepts browser requests only from the
-  StackGuardian console origin.
+  StackGuardian console origin, plus any origins you list in
+  `storage_backend_cors_extra_origins` (no wildcards accepted).
 - The IAM policy grants only the S3 actions runners need, scoped to the one bucket.
 - Cross-account access is gated by a random external ID, so a leaked role ARN alone is
   not enough to assume the role.
 - `force_destroy_storage_backend` deletes every object in the bucket on `destroy`. Leave
   it off unless you mean it.
-- S3 versioning can only be suspended once enabled, never fully turned off. Setting
-  `storage_backend_versioning.enabled` back to `false` suspends it and keeps the existing
-  versions; the lifecycle rule is removed, so they no longer expire.
+- Versioning is what lets you recover an overwritten or deleted state file. Turning it
+  off is allowed, but every plan then prints a warning. S3 can only suspend versioning
+  once it was enabled: the stored versions stay and keep expiring per
+  `noncurrent_retention_days`.
+- With `create_storage_backend = false` the module doesn't touch your bucket: set up
+  versioning and CORS on it yourself. A plan warning says so when versioning or extra
+  CORS origins are set.

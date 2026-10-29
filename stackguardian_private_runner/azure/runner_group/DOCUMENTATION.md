@@ -57,10 +57,10 @@ required.
 | Azure Resource Group Name | Resource Group name. Optional override when creating; required when using an existing RG | — |
 | Create Blob Reader Role Assignment | Grant the OIDC connector SP `Storage Blob Data Reader` on the storage account. Disable when the deploying identity lacks role-assignment write permission | Enabled |
 | Create Storage Backend | Whether to create a new Azure Storage Account | Enabled |
-| Azure Storage — Account Tier | Performance tier of the Storage Account (Standard / Premium) | Standard |
+| Azure Storage — Account Tier | Performance tier of the Storage Account. Only Standard: Premium has no blob versioning, so state files would keep no history | Standard |
 | Azure Storage — Replication Type | Replication strategy (LRS / GRS / RAGRS / ZRS) | LRS |
-| Storage Backend Versioning — Enable Versioning | Keep previous versions of blobs in the storage account | Disabled |
-| Storage Backend Versioning — Old Version Retention (days) | Days to keep a previous version; 0 keeps them forever | 365 |
+| Storage Backend Versioning — Enable Versioning | Keep the history of state files in the storage account (not recommended to disable) | Enabled |
+| Storage Backend Versioning — Old Version Retention (days) | Days to keep a previous version, counted from when it was written; 0 keeps them forever | 365 |
 | Extra CORS Origins | Extra browser origins allowed to fetch from the storage account (e.g. a local frontend at http://localhost:3000); the StackGuardian console is always allowed | — |
 | Existing Azure Storage Account Name | Name of an existing Storage Account to use (when not creating new) | — |
 | Existing Azure Storage Account Access Key | Access key for that account (sensitive) | — |
@@ -109,11 +109,17 @@ group only ever lives in one org, and its name is not information a tag adds.
 **Data Retention**: The Azure Storage Account is destroyed along with its contents on
 `terraform destroy` — back up anything you need first.
 
-**Versioning**: Applies only to a storage account this template creates. When enabled,
-Azure keeps previous versions of each blob and a lifecycle management policy deletes them
-**Old Version Retention** days after they were written (Azure counts from when a version
-was written, not from when it was replaced). Turning versioning on or off for an existing
-deployment changes the account in place; turning it off keeps the stored versions.
+**Versioning**: On by default, because it keeps the history of the runners' state
+files: an overwritten or deleted state file can be recovered from a previous version.
+Azure keeps previous versions of each blob, and a lifecycle management policy deletes
+them **Old Version Retention** days after they were written. Azure counts from when a
+version was written, not from when it was replaced: with 365 days, overwriting a blob
+last written 400 days ago deletes its previous version on the next daily policy run.
+Existing deployments that never set this get versioning turned on in place on their next
+apply. Turning it off is allowed, but every plan then prints a warning; the stored
+versions keep expiring as configured. Only **Standard** storage accounts are accepted,
+because Premium accounts have no blob versioning. Applies only to a storage account this template creates; for an existing
+account, configure versioning yourself.
 
 ## Outputs
 

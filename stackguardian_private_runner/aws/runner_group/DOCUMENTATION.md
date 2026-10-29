@@ -45,7 +45,7 @@ Deploying on Azure instead? Use the **StackGuardian Runner Group - Azure** templ
 | Create Storage Backend | Whether to create a new S3 bucket | Enabled |
 | Existing S3 Bucket Name | Name of an existing S3 bucket to use (when not creating new) | — |
 | Force Destroy Storage Backend | Delete all data in the S3 bucket on destroy (use with caution) | Disabled |
-| Storage Backend Versioning — Enable Versioning | Keep previous versions of objects in the S3 bucket | Disabled |
+| Storage Backend Versioning — Enable Versioning | Keep the history of state files in the S3 bucket (not recommended to disable) | Enabled |
 | Storage Backend Versioning — Old Version Retention (days) | Days to keep a version after it is replaced; 0 keeps them forever | 365 |
 | Extra CORS Origins | Extra browser origins allowed to fetch from the bucket (e.g. a local frontend at http://localhost:3000); the StackGuardian console is always allowed | — |
 | Global Prefix | Prefix for the runner group and connector names. Leave empty to omit it | SG_RUNNER |
@@ -82,11 +82,16 @@ and its name is not information a tag adds.
 **Data Retention**: **Force Destroy Storage Backend** deletes all bucket contents on
 destroy. Leave it disabled to protect your data.
 
-**Versioning**: Applies only to a bucket this template creates. When enabled, S3 keeps
-every previous version of an object and a lifecycle rule deletes each one **Old Version
-Retention** days after it was replaced. Turning versioning on for an existing deployment
-changes the bucket in place. S3 can't fully disable versioning once it is on: turning it
-off again suspends it and keeps the stored versions, which then no longer expire.
+**Versioning**: On by default, because it keeps the history of the runners' state
+files: an overwritten or deleted state file can be recovered from a previous version.
+S3 keeps every previous version of an object, and a lifecycle rule deletes each one
+**Old Version Retention** days after it was replaced. The same lifecycle configuration
+aborts incomplete multipart uploads after 7 days. Existing deployments that never set
+this get versioning turned on in place on their next apply. Turning it off is allowed,
+but every plan then prints a warning. S3 can't fully disable versioning once it is on:
+turning it off suspends it, and the stored versions keep expiring as configured. Applies
+only to a bucket this template creates; for an existing bucket, configure versioning
+yourself.
 
 ## Outputs
 
