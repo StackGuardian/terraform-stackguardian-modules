@@ -42,11 +42,10 @@ resource "aws_s3_bucket_cors_configuration" "this" {
   }
 }
 
-# Object versioning (opt-in via storage_backend_versioning). Destroying this
-# resource suspends versioning on the bucket, which is all S3 allows once it has
-# been enabled.
+# Object versioning - always on. The storage backend keeps the history of the
+# runners' state files, so this is not optional.
 resource "aws_s3_bucket_versioning" "this" {
-  count = var.create_storage_backend && var.storage_backend_versioning.enabled ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
 
@@ -57,11 +56,6 @@ resource "aws_s3_bucket_versioning" "this" {
 
 # Lifecycle rules for the bucket this module creates. This resource owns the
 # bucket's whole lifecycle configuration.
-#
-# The version expiry rule is deliberately not tied to storage_backend_versioning
-# .enabled: after versioning is turned off (suspended) the versions already
-# stored must keep expiring, or they are kept and billed forever. On a bucket
-# that never had versioning the rule simply matches nothing.
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
   count = var.create_storage_backend ? 1 : 0
 

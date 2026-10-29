@@ -54,14 +54,14 @@ variable "azure_storage" {
 
 variable "storage_backend_versioning" {
   description = <<EOT
-    Blob versioning on the storage backend account - on by default. It is what
-    keeps the history of the runners' state files: without it an overwritten or
-    deleted state file cannot be recovered. Only applies when
-    create_storage_backend = true; an existing account is left as it is.
+    Retention of old state file versions in the storage backend account.
 
-    - enabled: Blob versioning. Turning it off is allowed but prints a warning
-      on every plan; existing versions are kept and still expire per
-      noncurrent_retention_days.
+    Blob versioning itself is always on for an account this module creates and
+    can't be turned off: the storage backend keeps the history of the runners'
+    state files, so an overwritten or deleted state file can always be
+    recovered. An existing account (create_storage_backend = false) is left as
+    it is - enable blob versioning on it yourself.
+
     - noncurrent_retention_days: Days to keep a previous version, then delete it.
       0 keeps old versions forever. Azure counts a version's age from when that
       version was written, not from when it was replaced: overwrite a blob last
@@ -69,7 +69,6 @@ variable "storage_backend_versioning" {
       on the next daily policy run.
   EOT
   type = object({
-    enabled                   = optional(bool, true)
     noncurrent_retention_days = optional(number, 365)
   })
   default = {}

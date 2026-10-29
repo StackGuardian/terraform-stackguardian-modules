@@ -31,12 +31,12 @@ variables {
   }
 }
 
-run "versioning_on_by_default" {
+run "versioning_always_on" {
   command = plan
 
   assert {
     condition     = azurerm_storage_account.this[0].blob_properties[0].versioning_enabled == true
-    error_message = "Blob versioning must be on by default."
+    error_message = "Blob versioning must always be on for an account the module creates."
   }
 
   assert {
@@ -45,26 +45,20 @@ run "versioning_on_by_default" {
   }
 }
 
-run "versioning_off_keeps_expiring_old_versions_and_warns" {
+run "old_enabled_flag_cannot_turn_versioning_off" {
   command = plan
 
   variables {
     storage_backend_versioning = {
-      enabled = false
+      enabled                   = false
+      noncurrent_retention_days = 365
     }
   }
 
   assert {
-    condition     = azurerm_storage_account.this[0].blob_properties[0].versioning_enabled == false
-    error_message = "Blob versioning must be off when disabled."
+    condition     = azurerm_storage_account.this[0].blob_properties[0].versioning_enabled == true
+    error_message = "A leftover enabled = false must not turn blob versioning off."
   }
-
-  assert {
-    condition     = azurerm_storage_management_policy.this[0].rule[0].actions[0].version[0].delete_after_days_since_creation == 365
-    error_message = "Versions stored before turning versioning off must keep expiring."
-  }
-
-  expect_failures = [check.versioning_enabled]
 }
 
 run "zero_retention_keeps_versions_forever" {
@@ -99,7 +93,7 @@ run "rejects_premium_tier" {
   expect_failures = [var.azure_storage]
 }
 
-run "existing_account_is_left_alone_and_warns" {
+run "existing_account_is_left_alone" {
   command = plan
 
   variables {
@@ -112,8 +106,19 @@ run "existing_account_is_left_alone_and_warns" {
     condition     = length(azurerm_storage_account.this) == 0 && length(azurerm_storage_management_policy.this) == 0
     error_message = "An account the module doesn't create must not get versioning or a management policy."
   }
+}
 
-  expect_failures = [check.existing_account_settings_ignored]
+run "existing_account_warns_about_ignored_cors" {
+  command = plan
+
+  variables {
+    create_storage_backend                    = false
+    existing_azure_storage_account_name       = "existingaccount"
+    existing_azure_storage_account_access_key = "dGVzdA=="
+    storage_backend_cors_extra_origins        = ["http://localhost:3000"]
+  }
+
+  expect_failures = [check.existing_account_cors_ignored]
 }
 
 run "rejects_retention_above_azure_max" {

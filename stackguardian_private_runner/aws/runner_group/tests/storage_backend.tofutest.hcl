@@ -27,12 +27,12 @@ variables {
   }
 }
 
-run "versioning_on_by_default" {
+run "versioning_always_on" {
   command = plan
 
   assert {
     condition     = aws_s3_bucket_versioning.this[0].versioning_configuration[0].status == "Enabled"
-    error_message = "Versioning must be on by default."
+    error_message = "Versioning must always be on for a bucket the module creates."
   }
 
   assert {
@@ -56,26 +56,20 @@ run "versioning_on_by_default" {
   }
 }
 
-run "versioning_off_keeps_expiring_old_versions_and_warns" {
+run "old_enabled_flag_cannot_turn_versioning_off" {
   command = plan
 
   variables {
     storage_backend_versioning = {
-      enabled = false
+      enabled                   = false
+      noncurrent_retention_days = 365
     }
   }
 
   assert {
-    condition     = length(aws_s3_bucket_versioning.this) == 0
-    error_message = "Versioning must be off (suspended) when disabled."
+    condition     = aws_s3_bucket_versioning.this[0].versioning_configuration[0].status == "Enabled"
+    error_message = "A leftover enabled = false must not turn versioning off."
   }
-
-  assert {
-    condition     = aws_s3_bucket_lifecycle_configuration.this[0].rule[0].noncurrent_version_expiration[0].noncurrent_days == 365
-    error_message = "Versions stored before turning versioning off must keep expiring."
-  }
-
-  expect_failures = [check.versioning_enabled]
 }
 
 run "zero_retention_keeps_versions_forever" {
@@ -98,7 +92,7 @@ run "zero_retention_keeps_versions_forever" {
   }
 }
 
-run "existing_bucket_is_left_alone_and_warns" {
+run "existing_bucket_is_left_alone" {
   command = plan
 
   variables {
@@ -110,25 +104,18 @@ run "existing_bucket_is_left_alone_and_warns" {
     condition     = length(aws_s3_bucket_versioning.this) == 0 && length(aws_s3_bucket_lifecycle_configuration.this) == 0
     error_message = "A bucket the module doesn't create must not get versioning or lifecycle rules."
   }
-
-  expect_failures = [check.existing_bucket_settings_ignored]
 }
 
-run "existing_bucket_with_versioning_off" {
+run "existing_bucket_warns_about_ignored_cors" {
   command = plan
 
   variables {
-    create_storage_backend  = false
-    existing_s3_bucket_name = "existing-bucket"
-    storage_backend_versioning = {
-      enabled = false
-    }
+    create_storage_backend             = false
+    existing_s3_bucket_name            = "existing-bucket"
+    storage_backend_cors_extra_origins = ["http://localhost:3000"]
   }
 
-  assert {
-    condition     = length(aws_s3_bucket_versioning.this) == 0
-    error_message = "No versioning on a bucket the module doesn't create."
-  }
+  expect_failures = [check.existing_bucket_cors_ignored]
 }
 
 run "rejects_fractional_retention" {

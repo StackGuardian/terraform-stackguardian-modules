@@ -129,14 +129,9 @@
               "default": false
             },
             "storage_backend_versioning": {
-              "title": "Storage Backend Versioning",
+              "title": "State File Version History",
               "type": "object",
               "properties": {
-                "enabled": {
-                  "title": "Enable Versioning",
-                  "type": "boolean",
-                  "default": true
-                },
                 "noncurrent_retention_days": {
                   "title": "Old Version Retention (days)",
                   "type": "integer",

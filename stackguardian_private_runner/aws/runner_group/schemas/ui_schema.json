@@ -50,16 +50,11 @@
     "ui:description": "Warning: Force destroy the S3 bucket on module destruction (deletes all data)"
   },
   "storage_backend_versioning": {
-    "ui:title": "Storage Backend Versioning",
-    "ui:description": "Keeps the history of the runners' state files in the S3 bucket, so an overwritten or deleted state file can be recovered. On by default; turning it off is not recommended.",
+    "ui:title": "State File Version History",
+    "ui:description": "Versioning is always on for the S3 bucket: it keeps the history of the runners' state files, so an overwritten or deleted state file can be recovered. Choose how long old versions are kept.",
     "ui:order": [
-      "enabled",
       "noncurrent_retention_days"
     ],
-    "enabled": {
-      "ui:widget": "checkbox",
-      "ui:description": "S3 versioning for state file history. Turning it off suspends versioning, keeps existing versions (they still expire) and prints a warning on every plan"
-    },
     "noncurrent_retention_days": {
       "ui:description": "Days to keep a version after it is replaced, then delete it. 0 keeps old versions forever"
     }

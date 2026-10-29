@@ -50,7 +50,9 @@ resource "azurerm_storage_account" "this" {
   }
 
   blob_properties {
-    versioning_enabled = var.storage_backend_versioning.enabled
+    # Always on: the storage backend keeps the history of the runners' state
+    # files, so this is not optional.
+    versioning_enabled = true
 
     cors_rule {
       allowed_headers    = ["*"]
@@ -77,10 +79,7 @@ resource "azurerm_storage_container" "runner" {
 }
 
 # Delete previous blob versions noncurrent_retention_days after they were
-# written. Skipped when retention is 0 (keep forever). Deliberately not tied to
-# storage_backend_versioning.enabled: after
-# versioning is turned off the versions already stored must keep expiring, or
-# they are kept and billed forever.
+# written. Skipped when retention is 0 (keep forever).
 resource "azurerm_storage_management_policy" "this" {
   count = (
     var.create_storage_backend

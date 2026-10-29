@@ -28,20 +28,18 @@ variable "force_destroy_storage_backend" {
 
 variable "storage_backend_versioning" {
   description = <<EOT
-    Object versioning on the storage backend bucket - on by default. It is what
-    keeps the history of the runners' state files: without it an overwritten or
-    deleted state file cannot be recovered. Only applies when
-    create_storage_backend = true; an existing bucket is left as it is.
+    Retention of old state file versions in the storage backend bucket.
 
-    - enabled: S3 versioning. Turning it off is allowed but prints a warning on
-      every plan. It suspends versioning - S3 can't fully disable it once
-      enabled - and keeps the existing versions, which still expire per
-      noncurrent_retention_days.
+    Versioning itself is always on for a bucket this module creates and can't be
+    turned off: the storage backend keeps the history of the runners' state
+    files, so an overwritten or deleted state file can always be recovered. An
+    existing bucket (create_storage_backend = false) is left as it is - enable
+    versioning on it yourself.
+
     - noncurrent_retention_days: Days to keep a version after it is replaced,
       then delete it. 0 keeps old versions forever.
   EOT
   type = object({
-    enabled                   = optional(bool, true)
     noncurrent_retention_days = optional(number, 365)
   })
   default = {}
