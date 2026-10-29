@@ -170,7 +170,7 @@ runner_constraints:
 ### Runner Group
 
 - **StackGuardian Runner Group**: Platform integration for runner management
-- **S3 Storage Backend**: Private bucket for runner state, versioned by default so state files keep their history
+- **S3 Storage Backend**: Private bucket for runner state, always versioned so state files keep their history
 - **AWS Connector**: Cross-account access configuration
 
 ### Autoscaling Group

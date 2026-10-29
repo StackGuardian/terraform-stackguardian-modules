@@ -19,8 +19,8 @@ an Azure deployment never initializes the AWS provider. The AWS equivalent is
 - **Storage Account + private `runner` blob container** with TLS 1.2 minimum and CORS
   limited to the StackGuardian platform origin (when `create_storage_backend = true`).
   The container name `runner` is required by the platform.
-- **Blob versioning** on that account, on by default, so the runners' state files keep
-  their history.
+- **Blob versioning** on that account, always on, so the runners' state files keep their
+  history.
 - **Lifecycle management policy** on that account: previous versions are deleted
   `noncurrent_retention_days` after they were written.
 - **Entra ID application + service principal** backing the OIDC connector.
@@ -106,7 +106,6 @@ When `create_azure_resource_group = false`, `azure_resource_group_name` becomes 
 | `existing_azure_storage_account_access_key` | Access key for that account (sensitive) | `""` |
 | `azure_storage.account_tier` | Storage Account performance tier; only `Standard` (Premium has no blob versioning) | `Standard` |
 | `azure_storage.account_replication_type` | Replication strategy (`LRS` / `GRS` / `RAGRS` / `ZRS`) | `LRS` |
-| `storage_backend_versioning.enabled` | Blob versioning (state file history) for the account the module creates; turning it off prints a warning | `true` |
 | `storage_backend_versioning.noncurrent_retention_days` | Days to keep a previous version, counted from when it was written; `0` keeps them forever | `365` |
 | `storage_backend_cors_extra_origins` | Extra browser origins for the storage account's CORS rule (e.g. `http://localhost:3000`); bare origins only, no wildcards; the console origin is always allowed | `[]` |
 | `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader` | `true` |
@@ -188,9 +187,9 @@ together.
 - The runner registration token and the storage access key are marked sensitive.
 - `tofu destroy` removes the storage account and everything in it. Back up anything you
   need first.
-- Versioning is what lets you recover an overwritten or deleted state file. Turning it
-  off is allowed, but every plan then prints a warning; the stored versions stay and keep
-  expiring per `noncurrent_retention_days`.
+- Blob versioning is always on and can't be turned off: the storage backend keeps the
+  history of the runners' state files, so an overwritten or deleted state file can always
+  be recovered. `storage_backend_versioning` only sets how long old versions are kept.
 - Only `Standard` storage accounts are accepted: Premium (page-blob) accounts have no
   blob versioning and can't be managed by this module.
 - Azure counts a previous version's age from when that version was written, not from
@@ -199,6 +198,6 @@ together.
   rules offer no "days since replaced" option for versions.
 - Incomplete uploads need no cleanup rule on Azure: uncommitted blocks are discarded by
   the service after 7 days.
-- With `create_storage_backend = false` the module doesn't touch your account: set up
-  versioning and CORS on it yourself. A plan warning says so when versioning or extra
-  CORS origins are set.
+- With `create_storage_backend = false` the module doesn't touch your account: enable
+  blob versioning on it yourself, and set up CORS. A plan warning says so when extra CORS
+  origins are set.

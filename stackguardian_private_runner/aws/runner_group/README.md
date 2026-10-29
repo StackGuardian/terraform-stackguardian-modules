@@ -15,8 +15,8 @@ deployment never initializes `azurerm` or `azuread`. The Azure equivalent is
 
 - **S3 bucket** with public access blocked and CORS limited to the StackGuardian
   platform origin (when `create_storage_backend = true`).
-- **Object versioning** on that bucket, on by default, so the runners' state files keep
-  their history.
+- **Object versioning** on that bucket, always on, so the runners' state files keep their
+  history.
 - **Lifecycle rules** on that bucket: old versions are deleted
   `noncurrent_retention_days` after they are replaced, and incomplete multipart uploads
   are aborted after 7 days.
@@ -86,7 +86,6 @@ module "runner_group" {
 | `create_storage_backend` | Create a new S3 bucket | `true` |
 | `existing_s3_bucket_name` | Existing bucket name (when `create_storage_backend = false`) | `""` |
 | `force_destroy_storage_backend` | Force destroy the bucket on `destroy` — deletes all objects | `false` |
-| `storage_backend_versioning.enabled` | S3 versioning (state file history) for the bucket the module creates; turning it off prints a warning | `true` |
 | `storage_backend_versioning.noncurrent_retention_days` | Days to keep a version after it is replaced; `0` keeps them forever | `365` |
 | `storage_backend_cors_extra_origins` | Extra browser origins for the bucket's CORS rule (e.g. `http://localhost:3000`); bare origins only, no wildcards; the console origin is always allowed | `[]` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
@@ -156,10 +155,9 @@ together.
   not enough to assume the role.
 - `force_destroy_storage_backend` deletes every object in the bucket on `destroy`. Leave
   it off unless you mean it.
-- Versioning is what lets you recover an overwritten or deleted state file. Turning it
-  off is allowed, but every plan then prints a warning. S3 can only suspend versioning
-  once it was enabled: the stored versions stay and keep expiring per
-  `noncurrent_retention_days`.
-- With `create_storage_backend = false` the module doesn't touch your bucket: set up
-  versioning and CORS on it yourself. A plan warning says so when versioning or extra
-  CORS origins are set.
+- Versioning is always on and can't be turned off: the storage backend keeps the history
+  of the runners' state files, so an overwritten or deleted state file can always be
+  recovered. `storage_backend_versioning` only sets how long old versions are kept.
+- With `create_storage_backend = false` the module doesn't touch your bucket: enable
+  versioning on it yourself, and set up CORS. A plan warning says so when extra CORS
+  origins are set.
