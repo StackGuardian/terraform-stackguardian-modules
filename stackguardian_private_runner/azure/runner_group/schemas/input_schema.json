@@ -173,8 +173,7 @@
                   "title": "Account Tier",
                   "type": "string",
                   "enum": [
-                    "Standard",
-                    "Premium"
+                    "Standard"
                   ],
                   "default": "Standard"
                 },
@@ -199,7 +198,7 @@
                 "enabled": {
                   "title": "Enable Versioning",
                   "type": "boolean",
-                  "default": false
+                  "default": true
                 },
                 "noncurrent_retention_days": {
                   "title": "Old Version Retention (days)",
@@ -216,7 +215,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "pattern": "^https?://[^/]+$"
+                "pattern": "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
               },
               "default": []
             }

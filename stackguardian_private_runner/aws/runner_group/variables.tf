@@ -28,16 +28,20 @@ variable "force_destroy_storage_backend" {
 
 variable "storage_backend_versioning" {
   description = <<EOT
-    Object versioning on the storage backend bucket. Only applies when
+    Object versioning on the storage backend bucket - on by default. It is what
+    keeps the history of the runners' state files: without it an overwritten or
+    deleted state file cannot be recovered. Only applies when
     create_storage_backend = true; an existing bucket is left as it is.
 
-    - enabled: Turn on S3 versioning. Turning it off again suspends versioning -
-      S3 can't fully disable it once enabled - and keeps the existing versions.
+    - enabled: S3 versioning. Turning it off is allowed but prints a warning on
+      every plan. It suspends versioning - S3 can't fully disable it once
+      enabled - and keeps the existing versions, which still expire per
+      noncurrent_retention_days.
     - noncurrent_retention_days: Days to keep a version after it is replaced,
       then delete it. 0 keeps old versions forever.
   EOT
   type = object({
-    enabled                   = optional(bool, false)
+    enabled                   = optional(bool, true)
     noncurrent_retention_days = optional(number, 365)
   })
   default = {}
@@ -66,9 +70,9 @@ variable "storage_backend_cors_extra_origins" {
   validation {
     condition = alltrue([
       for origin in var.storage_backend_cors_extra_origins :
-      can(regex("^https?://[^/]+$", origin))
+      can(regex("^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$", origin))
     ])
-    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port], no path)."
+    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port]: no wildcard, path, query or fragment)."
   }
 }
 

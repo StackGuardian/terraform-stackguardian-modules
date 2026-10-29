@@ -55,30 +55,50 @@ resource "aws_s3_bucket_versioning" "this" {
   }
 }
 
-# Expire versions noncurrent_retention_days after they are replaced, then drop
-# the delete markers left with no versions behind them. Skipped when retention
-# is 0 (keep forever).
+# Lifecycle rules for the bucket this module creates. This resource owns the
+# bucket's whole lifecycle configuration.
+#
+# The version expiry rule is deliberately not tied to storage_backend_versioning
+# .enabled: after versioning is turned off (suspended) the versions already
+# stored must keep expiring, or they are kept and billed forever. On a bucket
+# that never had versioning the rule simply matches nothing.
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  count = (
-    var.create_storage_backend
-    && var.storage_backend_versioning.enabled
-    && var.storage_backend_versioning.noncurrent_retention_days > 0
-  ) ? 1 : 0
+  count = var.create_storage_backend ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
 
+  # Expire versions noncurrent_retention_days after they are replaced, then drop
+  # the delete markers left with no versions behind them. Skipped when retention
+  # is 0 (keep forever).
+  dynamic "rule" {
+    for_each = var.storage_backend_versioning.noncurrent_retention_days > 0 ? [1] : []
+
+    content {
+      id     = "expire-noncurrent-versions"
+      status = "Enabled"
+
+      filter {}
+
+      noncurrent_version_expiration {
+        noncurrent_days = var.storage_backend_versioning.noncurrent_retention_days
+      }
+
+      expiration {
+        expired_object_delete_marker = true
+      }
+    }
+  }
+
+  # Interrupted multipart uploads (large state or artifact files) otherwise
+  # leave their parts in the bucket, billed, until removed by hand.
   rule {
-    id     = "expire-noncurrent-versions"
+    id     = "abort-incomplete-multipart-uploads"
     status = "Enabled"
 
     filter {}
 
-    noncurrent_version_expiration {
-      noncurrent_days = var.storage_backend_versioning.noncurrent_retention_days
-    }
-
-    expiration {
-      expired_object_delete_marker = true
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
     }
   }
 

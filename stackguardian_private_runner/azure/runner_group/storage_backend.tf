@@ -55,7 +55,7 @@ resource "azurerm_storage_account" "this" {
     cors_rule {
       allowed_headers    = ["*"]
       allowed_methods    = ["GET", "HEAD", "PUT", "POST", "DELETE", "MERGE", "OPTIONS", "PATCH"]
-      allowed_origins    = concat([local.sg_app_uri], var.storage_backend_cors_extra_origins)
+      allowed_origins    = distinct(concat([local.sg_app_uri], var.storage_backend_cors_extra_origins))
       exposed_headers    = ["*"]
       max_age_in_seconds = 3600
     }
@@ -77,11 +77,13 @@ resource "azurerm_storage_container" "runner" {
 }
 
 # Delete previous blob versions noncurrent_retention_days after they were
-# written. Skipped when versioning is off or retention is 0 (keep forever).
+# written. Skipped when retention is 0 (keep forever). Deliberately not tied to
+# storage_backend_versioning.enabled: after
+# versioning is turned off the versions already stored must keep expiring, or
+# they are kept and billed forever.
 resource "azurerm_storage_management_policy" "this" {
   count = (
     var.create_storage_backend
-    && var.storage_backend_versioning.enabled
     && var.storage_backend_versioning.noncurrent_retention_days > 0
   ) ? 1 : 0
 

@@ -31,39 +31,40 @@ variables {
   }
 }
 
-run "versioning_off_by_default" {
+run "versioning_on_by_default" {
   command = plan
-
-  assert {
-    condition     = azurerm_storage_account.this[0].blob_properties[0].versioning_enabled == false
-    error_message = "Blob versioning must stay off unless storage_backend_versioning.enabled is set."
-  }
-
-  assert {
-    condition     = length(azurerm_storage_management_policy.this) == 0
-    error_message = "No management policy without versioning."
-  }
-}
-
-run "versioning_with_one_year_retention" {
-  command = plan
-
-  variables {
-    storage_backend_versioning = {
-      enabled                   = true
-      noncurrent_retention_days = 365
-    }
-  }
 
   assert {
     condition     = azurerm_storage_account.this[0].blob_properties[0].versioning_enabled == true
-    error_message = "Blob versioning must be enabled on the storage account."
+    error_message = "Blob versioning must be on by default."
   }
 
   assert {
     condition     = azurerm_storage_management_policy.this[0].rule[0].actions[0].version[0].delete_after_days_since_creation == 365
-    error_message = "Previous versions must be deleted after 365 days."
+    error_message = "Previous versions must be deleted after 365 days by default."
   }
+}
+
+run "versioning_off_keeps_expiring_old_versions_and_warns" {
+  command = plan
+
+  variables {
+    storage_backend_versioning = {
+      enabled = false
+    }
+  }
+
+  assert {
+    condition     = azurerm_storage_account.this[0].blob_properties[0].versioning_enabled == false
+    error_message = "Blob versioning must be off when disabled."
+  }
+
+  assert {
+    condition     = azurerm_storage_management_policy.this[0].rule[0].actions[0].version[0].delete_after_days_since_creation == 365
+    error_message = "Versions stored before turning versioning off must keep expiring."
+  }
+
+  expect_failures = [check.versioning_enabled]
 }
 
 run "zero_retention_keeps_versions_forever" {
@@ -71,7 +72,6 @@ run "zero_retention_keeps_versions_forever" {
 
   variables {
     storage_backend_versioning = {
-      enabled                   = true
       noncurrent_retention_days = 0
     }
   }
@@ -87,22 +87,33 @@ run "zero_retention_keeps_versions_forever" {
   }
 }
 
-run "existing_account_is_left_alone" {
+run "rejects_premium_tier" {
+  command = plan
+
+  variables {
+    azure_storage = {
+      account_tier = "Premium"
+    }
+  }
+
+  expect_failures = [var.azure_storage]
+}
+
+run "existing_account_is_left_alone_and_warns" {
   command = plan
 
   variables {
     create_storage_backend                    = false
     existing_azure_storage_account_name       = "existingaccount"
     existing_azure_storage_account_access_key = "dGVzdA=="
-    storage_backend_versioning = {
-      enabled = true
-    }
   }
 
   assert {
     condition     = length(azurerm_storage_account.this) == 0 && length(azurerm_storage_management_policy.this) == 0
     error_message = "An account the module doesn't create must not get versioning or a management policy."
   }
+
+  expect_failures = [check.existing_account_settings_ignored]
 }
 
 run "rejects_retention_above_azure_max" {
@@ -110,7 +121,6 @@ run "rejects_retention_above_azure_max" {
 
   variables {
     storage_backend_versioning = {
-      enabled                   = true
       noncurrent_retention_days = 100000
     }
   }
@@ -118,7 +128,7 @@ run "rejects_retention_above_azure_max" {
   expect_failures = [var.storage_backend_versioning]
 }
 
-run "cors_adds_extra_origins" {
+run "cors_adds_extra_origins_without_duplicates" {
   command = plan
 
   variables {
@@ -127,20 +137,30 @@ run "cors_adds_extra_origins" {
       api_uri  = "https://testapi.qa.stackguardian.io"
       org_name = "contract-org"
     }
-    storage_backend_cors_extra_origins = ["http://localhost:3000"]
+    storage_backend_cors_extra_origins = ["http://localhost:3000", "https://dash.qa.stackguardian.io"]
   }
 
   assert {
     condition     = azurerm_storage_account.this[0].blob_properties[0].cors_rule[0].allowed_origins == tolist(["https://dash.qa.stackguardian.io", "http://localhost:3000"])
-    error_message = "Extra origins must be added next to the console origin."
+    error_message = "Extra origins must be added next to the console origin, without duplicates."
   }
 }
 
-run "cors_rejects_origin_with_path" {
+run "cors_rejects_wildcard_origin" {
   command = plan
 
   variables {
-    storage_backend_cors_extra_origins = ["http://localhost:3000/logs"]
+    storage_backend_cors_extra_origins = ["https://*.example.com"]
+  }
+
+  expect_failures = [var.storage_backend_cors_extra_origins]
+}
+
+run "cors_rejects_path_query_and_fragment" {
+  command = plan
+
+  variables {
+    storage_backend_cors_extra_origins = ["http://localhost:3000/logs", "https://a.example.com?x", "https://a.example.com#f"]
   }
 
   expect_failures = [var.storage_backend_cors_extra_origins]

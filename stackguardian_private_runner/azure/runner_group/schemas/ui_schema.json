@@ -66,7 +66,7 @@
     ],
     "account_tier": {
       "ui:widget": "select",
-      "ui:description": "Performance tier of the storage account"
+      "ui:description": "Performance tier of the storage account. Only Standard is supported: it is the tier with blob versioning, which keeps the state file history"
     },
     "account_replication_type": {
       "ui:widget": "select",
@@ -75,17 +75,17 @@
   },
   "storage_backend_versioning": {
     "ui:title": "Storage Backend Versioning",
-    "ui:description": "Keep previous versions of blobs in the storage account (only for an account this template creates)",
+    "ui:description": "Keeps the history of the runners' state files in the storage account, so an overwritten or deleted state file can be recovered. On by default; turning it off is not recommended.",
     "ui:order": [
       "enabled",
       "noncurrent_retention_days"
     ],
     "enabled": {
       "ui:widget": "checkbox",
-      "ui:description": "Turn on blob versioning. Turning it off later stops new versions and keeps existing ones"
+      "ui:description": "Blob versioning for state file history. Turning it off keeps existing versions (they still expire) and prints a warning on every plan"
     },
     "noncurrent_retention_days": {
-      "ui:description": "Days to keep a previous version (counted from when it was written), then delete it. 0 keeps old versions forever"
+      "ui:description": "Days to keep a previous version, counted from when that version was written (not from when it was replaced), then delete it. 0 keeps old versions forever"
     }
   },
   "storage_backend_cors_extra_origins": {

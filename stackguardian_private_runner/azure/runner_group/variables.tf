@@ -27,7 +27,9 @@ variable "azure_storage" {
   description = <<EOT
     Azure Storage Account configuration (used when create_storage_backend = true).
 
-    - account_tier: Performance tier of the storage account (Standard or Premium)
+    - account_tier: Performance tier of the storage account. Only "Standard":
+      Premium (page-blob) accounts can't be managed by this module and have no
+      blob versioning, which the runners' state file history depends on.
     - account_replication_type: Replication strategy (LRS, GRS, RAGRS, ZRS)
   EOT
   type = object({
@@ -40,8 +42,8 @@ variable "azure_storage" {
   }
 
   validation {
-    condition     = contains(["Standard", "Premium"], var.azure_storage.account_tier)
-    error_message = "The account_tier must be either 'Standard' or 'Premium'."
+    condition     = var.azure_storage.account_tier == "Standard"
+    error_message = "The account_tier must be 'Standard'. Premium accounts have no blob versioning (state file history) and can't be managed by this module."
   }
 
   validation {
@@ -52,17 +54,22 @@ variable "azure_storage" {
 
 variable "storage_backend_versioning" {
   description = <<EOT
-    Blob versioning on the storage backend account. Only applies when
+    Blob versioning on the storage backend account - on by default. It is what
+    keeps the history of the runners' state files: without it an overwritten or
+    deleted state file cannot be recovered. Only applies when
     create_storage_backend = true; an existing account is left as it is.
 
-    - enabled: Turn on blob versioning. Turning it off again stops new versions
-      and keeps the existing ones.
+    - enabled: Blob versioning. Turning it off is allowed but prints a warning
+      on every plan; existing versions are kept and still expire per
+      noncurrent_retention_days.
     - noncurrent_retention_days: Days to keep a previous version, then delete it.
-      0 keeps old versions forever. Azure counts a version's age from when it
-      was written, not from when it was replaced.
+      0 keeps old versions forever. Azure counts a version's age from when that
+      version was written, not from when it was replaced: overwrite a blob last
+      written 400 days ago and, with 365 days, its previous version is deleted
+      on the next daily policy run.
   EOT
   type = object({
-    enabled                   = optional(bool, false)
+    enabled                   = optional(bool, true)
     noncurrent_retention_days = optional(number, 365)
   })
   default = {}
@@ -91,9 +98,9 @@ variable "storage_backend_cors_extra_origins" {
   validation {
     condition = alltrue([
       for origin in var.storage_backend_cors_extra_origins :
-      can(regex("^https?://[^/]+$", origin))
+      can(regex("^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$", origin))
     ])
-    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port], no path)."
+    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port]: no wildcard, path, query or fragment)."
   }
 }
 

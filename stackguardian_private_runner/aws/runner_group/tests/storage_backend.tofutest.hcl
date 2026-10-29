@@ -27,44 +27,55 @@ variables {
   }
 }
 
-run "versioning_off_by_default" {
+run "versioning_on_by_default" {
   command = plan
-
-  assert {
-    condition     = length(aws_s3_bucket_versioning.this) == 0
-    error_message = "Versioning must stay off unless storage_backend_versioning.enabled is set."
-  }
-
-  assert {
-    condition     = length(aws_s3_bucket_lifecycle_configuration.this) == 0
-    error_message = "No lifecycle rule without versioning."
-  }
-}
-
-run "versioning_with_one_year_retention" {
-  command = plan
-
-  variables {
-    storage_backend_versioning = {
-      enabled                   = true
-      noncurrent_retention_days = 365
-    }
-  }
 
   assert {
     condition     = aws_s3_bucket_versioning.this[0].versioning_configuration[0].status == "Enabled"
-    error_message = "Versioning must be enabled on the bucket."
+    error_message = "Versioning must be on by default."
+  }
+
+  assert {
+    condition     = [for r in aws_s3_bucket_lifecycle_configuration.this[0].rule : r.id] == ["expire-noncurrent-versions", "abort-incomplete-multipart-uploads"]
+    error_message = "By default the bucket gets the version expiry and the multipart cleanup rules."
   }
 
   assert {
     condition     = aws_s3_bucket_lifecycle_configuration.this[0].rule[0].noncurrent_version_expiration[0].noncurrent_days == 365
-    error_message = "Noncurrent versions must expire after 365 days."
+    error_message = "Noncurrent versions must expire after 365 days by default."
   }
 
   assert {
     condition     = aws_s3_bucket_lifecycle_configuration.this[0].rule[0].expiration[0].expired_object_delete_marker == true
     error_message = "Expired delete markers must be cleaned up."
   }
+
+  assert {
+    condition     = aws_s3_bucket_lifecycle_configuration.this[0].rule[1].abort_incomplete_multipart_upload[0].days_after_initiation == 7
+    error_message = "Incomplete multipart uploads must be aborted after 7 days."
+  }
+}
+
+run "versioning_off_keeps_expiring_old_versions_and_warns" {
+  command = plan
+
+  variables {
+    storage_backend_versioning = {
+      enabled = false
+    }
+  }
+
+  assert {
+    condition     = length(aws_s3_bucket_versioning.this) == 0
+    error_message = "Versioning must be off (suspended) when disabled."
+  }
+
+  assert {
+    condition     = aws_s3_bucket_lifecycle_configuration.this[0].rule[0].noncurrent_version_expiration[0].noncurrent_days == 365
+    error_message = "Versions stored before turning versioning off must keep expiring."
+  }
+
+  expect_failures = [check.versioning_enabled]
 }
 
 run "zero_retention_keeps_versions_forever" {
@@ -72,7 +83,6 @@ run "zero_retention_keeps_versions_forever" {
 
   variables {
     storage_backend_versioning = {
-      enabled                   = true
       noncurrent_retention_days = 0
     }
   }
@@ -83,25 +93,41 @@ run "zero_retention_keeps_versions_forever" {
   }
 
   assert {
-    condition     = length(aws_s3_bucket_lifecycle_configuration.this) == 0
-    error_message = "Retention 0 must not create an expiry rule."
+    condition     = [for r in aws_s3_bucket_lifecycle_configuration.this[0].rule : r.id] == ["abort-incomplete-multipart-uploads"]
+    error_message = "Retention 0 must leave only the multipart cleanup rule."
   }
 }
 
-run "existing_bucket_is_left_alone" {
+run "existing_bucket_is_left_alone_and_warns" {
+  command = plan
+
+  variables {
+    create_storage_backend  = false
+    existing_s3_bucket_name = "existing-bucket"
+  }
+
+  assert {
+    condition     = length(aws_s3_bucket_versioning.this) == 0 && length(aws_s3_bucket_lifecycle_configuration.this) == 0
+    error_message = "A bucket the module doesn't create must not get versioning or lifecycle rules."
+  }
+
+  expect_failures = [check.existing_bucket_settings_ignored]
+}
+
+run "existing_bucket_with_versioning_off" {
   command = plan
 
   variables {
     create_storage_backend  = false
     existing_s3_bucket_name = "existing-bucket"
     storage_backend_versioning = {
-      enabled = true
+      enabled = false
     }
   }
 
   assert {
-    condition     = length(aws_s3_bucket_versioning.this) == 0 && length(aws_s3_bucket_lifecycle_configuration.this) == 0
-    error_message = "A bucket the module doesn't create must not get versioning or lifecycle rules."
+    condition     = length(aws_s3_bucket_versioning.this) == 0
+    error_message = "No versioning on a bucket the module doesn't create."
   }
 }
 
@@ -110,7 +136,6 @@ run "rejects_fractional_retention" {
 
   variables {
     storage_backend_versioning = {
-      enabled                   = true
       noncurrent_retention_days = 1.5
     }
   }
@@ -123,7 +148,6 @@ run "rejects_negative_retention" {
 
   variables {
     storage_backend_versioning = {
-      enabled                   = true
       noncurrent_retention_days = -1
     }
   }
@@ -157,20 +181,30 @@ run "cors_adds_extra_origins" {
       api_uri  = "https://testapi.qa.stackguardian.io"
       org_name = "contract-org"
     }
-    storage_backend_cors_extra_origins = ["http://localhost:3000"]
+    storage_backend_cors_extra_origins = ["http://localhost:3000", "https://dash.qa.stackguardian.io"]
   }
 
   assert {
     condition     = tolist(aws_s3_bucket_cors_configuration.this[0].cors_rule)[0].allowed_origins == toset(["https://dash.qa.stackguardian.io", "http://localhost:3000"])
-    error_message = "Extra origins must be added next to the console origin."
+    error_message = "Extra origins must be added next to the console origin, without duplicates."
   }
 }
 
-run "cors_rejects_origin_with_path" {
+run "cors_rejects_wildcard_origin" {
   command = plan
 
   variables {
-    storage_backend_cors_extra_origins = ["http://localhost:3000/"]
+    storage_backend_cors_extra_origins = ["https://*"]
+  }
+
+  expect_failures = [var.storage_backend_cors_extra_origins]
+}
+
+run "cors_rejects_path_query_and_fragment" {
+  command = plan
+
+  variables {
+    storage_backend_cors_extra_origins = ["http://localhost:3000/", "https://a.example.com?x", "https://a.example.com#f"]
   }
 
   expect_failures = [var.storage_backend_cors_extra_origins]
