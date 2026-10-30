@@ -27,7 +27,9 @@ variable "azure_storage" {
   description = <<EOT
     Azure Storage Account configuration (used when create_storage_backend = true).
 
-    - account_tier: Performance tier of the storage account (Standard or Premium)
+    - account_tier: Performance tier of the storage account. Only "Standard":
+      Premium (page-blob) accounts can't be managed by this module and have no
+      blob versioning, which the runners' state file history depends on.
     - account_replication_type: Replication strategy (LRS, GRS, RAGRS, ZRS)
   EOT
   type = object({
@@ -40,13 +42,64 @@ variable "azure_storage" {
   }
 
   validation {
-    condition     = contains(["Standard", "Premium"], var.azure_storage.account_tier)
-    error_message = "The account_tier must be either 'Standard' or 'Premium'."
+    condition     = var.azure_storage.account_tier == "Standard"
+    error_message = "The account_tier must be 'Standard'. Premium accounts have no blob versioning (state file history) and can't be managed by this module."
   }
 
   validation {
     condition     = contains(["LRS", "GRS", "RAGRS", "ZRS"], var.azure_storage.account_replication_type)
     error_message = "The account_replication_type must be one of: LRS, GRS, RAGRS, ZRS."
+  }
+}
+
+variable "storage_backend_versioning" {
+  description = <<EOT
+    Retention of old state file versions in the storage backend account.
+
+    Blob versioning itself is always on for an account this module creates and
+    can't be turned off: the storage backend keeps the history of the runners'
+    state files, so an overwritten or deleted state file can always be
+    recovered. An existing account (create_storage_backend = false) is left as
+    it is - enable blob versioning on it yourself.
+
+    - noncurrent_retention_days: Days to keep a previous version, then delete it.
+      0 keeps old versions forever. Azure counts a version's age from when that
+      version was written, not from when it was replaced: overwrite a blob last
+      written 400 days ago and, with 365 days, its previous version is deleted
+      on the next daily policy run.
+  EOT
+  type = object({
+    noncurrent_retention_days = optional(number, 365)
+  })
+  default = {}
+
+  validation {
+    condition = (
+      floor(var.storage_backend_versioning.noncurrent_retention_days) == var.storage_backend_versioning.noncurrent_retention_days
+      && var.storage_backend_versioning.noncurrent_retention_days >= 0
+      && var.storage_backend_versioning.noncurrent_retention_days <= 99999
+    )
+    error_message = "storage_backend_versioning.noncurrent_retention_days must be a whole number between 0 and 99999."
+  }
+}
+
+variable "storage_backend_cors_extra_origins" {
+  description = <<EOT
+    Extra browser origins allowed by the storage backend's CORS rule, on top of
+    the StackGuardian console origin for the selected API region. Use it to let a
+    local or self-hosted frontend fetch runner logs and artifacts, e.g.
+    ["http://localhost:3000"]. Only applies when create_storage_backend = true.
+    Each entry is a bare origin: scheme://host[:port], no path or trailing slash.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for origin in var.storage_backend_cors_extra_origins :
+      can(regex("^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$", origin))
+    ])
+    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port]: no wildcard, path, query or fragment)."
   }
 }
 

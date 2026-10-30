@@ -34,11 +34,69 @@ resource "aws_s3_bucket_cors_configuration" "this" {
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD", "PUT"]
-    allowed_origins = [
-      local.sg_app_uri
-    ]
+    allowed_origins = concat(
+      [local.sg_app_uri],
+      var.storage_backend_cors_extra_origins,
+    )
     expose_headers = []
   }
+}
+
+# Object versioning - always on. The storage backend keeps the history of the
+# runners' state files, so this is not optional.
+resource "aws_s3_bucket_versioning" "this" {
+  count = var.create_storage_backend ? 1 : 0
+
+  bucket = aws_s3_bucket.this[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Lifecycle rules for the bucket this module creates. This resource owns the
+# bucket's whole lifecycle configuration.
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  count = var.create_storage_backend ? 1 : 0
+
+  bucket = aws_s3_bucket.this[0].id
+
+  # Expire versions noncurrent_retention_days after they are replaced, then drop
+  # the delete markers left with no versions behind them. Skipped when retention
+  # is 0 (keep forever).
+  dynamic "rule" {
+    for_each = var.storage_backend_versioning.noncurrent_retention_days > 0 ? [1] : []
+
+    content {
+      id     = "expire-noncurrent-versions"
+      status = "Enabled"
+
+      filter {}
+
+      noncurrent_version_expiration {
+        noncurrent_days = var.storage_backend_versioning.noncurrent_retention_days
+      }
+
+      expiration {
+        expired_object_delete_marker = true
+      }
+    }
+  }
+
+  # Interrupted multipart uploads (large state or artifact files) otherwise
+  # leave their parts in the bucket, billed, until removed by hand.
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.this]
 }
 
 # Data source for existing S3 bucket (when using an existing bucket)

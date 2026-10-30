@@ -170,7 +170,7 @@ runner_constraints:
 ### Runner Group
 
 - **StackGuardian Runner Group**: Platform integration for runner management
-- **S3 Storage Backend**: Encrypted bucket for Terraform state with versioning
+- **S3 Storage Backend**: Private bucket for runner state, always versioned so state files keep their history
 - **AWS Connector**: Cross-account access configuration
 
 ### Autoscaling Group
