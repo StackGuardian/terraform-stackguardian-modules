@@ -25,9 +25,11 @@ variable "proxy_url" { default = "" }
 variable "client_id" { default = env("ARM_CLIENT_ID") }
 variable "tenant_id" { default = env("ARM_TENANT_ID") }
 variable "subscription_id" { default = env("ARM_SUBSCRIPTION_ID") }
-variable "client_jwt" {
-  default   = env("ARM_OIDC_TOKEN")
-  sensitive = true
+# The connector writes the federated token to a file and exposes its path.
+variable "oidc_token_file_path" { default = env("ARM_OIDC_TOKEN_FILE_PATH") }
+
+locals {
+  client_jwt = trimspace(file(var.oidc_token_file_path))
 }
 
 packer {
@@ -44,7 +46,7 @@ source "azure-arm" "this" {
   client_id       = var.client_id
   tenant_id       = var.tenant_id
   subscription_id = var.subscription_id
-  client_jwt      = var.client_jwt
+  client_jwt      = local.client_jwt
 
   # Location and VM configuration
   location = var.azure_location

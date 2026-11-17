@@ -7,7 +7,7 @@
 #
 # Required env:
 #   TARGET_IMAGE_ID   Full Azure resource ID of the managed image to delete.
-#   ARM_CLIENT_ID, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID, ARM_OIDC_TOKEN
+#   ARM_CLIENT_ID, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID, ARM_OIDC_TOKEN_FILE_PATH
 #                     Federated credentials exposed by the StackGuardian Azure connector.
 # Optional env:
 #   DRY_RUN=true      Print actions without executing them.
@@ -20,14 +20,14 @@ _have_az() {
 
 _login_service_principal() {
   az login --service-principal -u "$ARM_CLIENT_ID" -t "$ARM_TENANT_ID" \
-    --federated-token "$ARM_OIDC_TOKEN" --allow-no-subscriptions >/dev/null
+    --federated-token "$(cat "$ARM_OIDC_TOKEN_FILE_PATH")" --allow-no-subscriptions >/dev/null
   az account set --subscription "$ARM_SUBSCRIPTION_ID"
 }
 
 _verify_credentials() {
   _login_service_principal
   if ! az account show >/dev/null 2>&1; then
-    echo "ERROR: Azure login failed. Check ARM_CLIENT_ID / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID / ARM_OIDC_TOKEN." >&2
+    echo "ERROR: Azure login failed. Check ARM_CLIENT_ID / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID / ARM_OIDC_TOKEN_FILE_PATH." >&2
     exit 1
   fi
 }

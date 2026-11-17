@@ -18,7 +18,7 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 
 ## Prerequisites
 
-- A StackGuardian Azure connector with federated credentials on the workflow. It exposes `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` and `ARM_OIDC_TOKEN`, which Packer uses directly.
+- A StackGuardian Azure connector with federated credentials on the workflow. It exposes `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` and `ARM_OIDC_TOKEN_FILE_PATH`, which Packer uses directly.
 - Permission to create managed images in the target resource group (and to create the resource group itself, if `create_resource_group = true`).
 - Outbound network access from the build VM to package mirrors (Ubuntu archive / RHEL repos, HashiCorp/OpenTofu releases). If the network is locked down, supply `network.proxy_url`.
 - `sh`, `curl`, and `unzip` available on the machine running Terraform — `../../packer/scripts/build.sh` uses them to bootstrap Packer (default version `1.14.1`).
@@ -27,7 +27,7 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 
 ### Step 1: Configure Azure credentials
 
-Attach a StackGuardian Azure connector with federated credentials to the workflow. It exposes `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` and `ARM_OIDC_TOKEN`, which the azurerm provider and Packer both use as they are.
+Attach a StackGuardian Azure connector with federated credentials to the workflow. It exposes `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` and `ARM_OIDC_TOKEN_FILE_PATH`, which the azurerm provider and Packer both use as they are.
 
 ### Step 2: Apply the module
 
@@ -248,7 +248,7 @@ Image name follows: `{image_name_prefix}-{os_family}-{os.sku}` where `os_family`
 ### Common Issues
 
 1. **`az` CLI / Azure auth not available**
-   - Packer authenticates only with the connector's `ARM_CLIENT_ID` / `ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` / `ARM_OIDC_TOKEN`. Check that the workflow has the Azure connector attached.
+   - Packer authenticates only with the connector's `ARM_CLIENT_ID` / `ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` / `ARM_OIDC_TOKEN_FILE_PATH`. Check that the workflow has the Azure connector attached.
 
 2. **Packer install fails in `../../packer/scripts/build.sh`**
    - Confirm outbound HTTPS to `releases.hashicorp.com`. Behind a proxy, set `HTTPS_PROXY` in the runner environment as well as `network.proxy_url`.
