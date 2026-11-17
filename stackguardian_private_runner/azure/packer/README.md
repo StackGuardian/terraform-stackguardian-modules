@@ -19,8 +19,7 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 ## Prerequisites
 
 - A StackGuardian Azure connector with federated credentials on the workflow. It exposes `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` and `ARM_OIDC_TOKEN_FILE_PATH`, which Packer uses directly.
-- Permission to create managed images in the target resource group (and to create the resource group itself, if `create_resource_group = true`).
-- Without `build_resource_group_name`, Packer creates a temporary resource group, which needs permissions at subscription scope. With only resource-group-scoped access, set `build_resource_group_name` to an existing resource group.
+- Contributor on the target resource group. Packer builds inside it (no temporary resource group), so no subscription-level permissions are needed unless `create_resource_group = true`.
 - Outbound network access from the build VM to package mirrors (Ubuntu archive / RHEL repos, HashiCorp/OpenTofu releases). If the network is locked down, supply `network.proxy_url`.
 - `sh`, `curl`, and `unzip` available on the machine running Terraform — `../../packer/scripts/build.sh` uses them to bootstrap Packer (default version `1.14.1`).
 
@@ -55,16 +54,15 @@ module "private_runner_image" {
 
 | Parameter | Description | Type |
 |-----------|-------------|------|
-| `resource_group_name` | Resource group where the image will be stored | `string` |
+| `resource_group_name` | Resource group the build runs in and the image is stored in | `string` |
 
 ### Optional Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `existing_image_id` | Existing managed image to hand back instead of building one - see [Skipping the build](#skipping-the-build) | `""` |
-| `azure_location` | Target Azure region for the build | `"westeurope"` |
+| `azure_location` | Region for the resource group when `create_resource_group = true`. The build and the image take the resource group's region | `"westeurope"` |
 | `create_resource_group` | Create the resource group as part of this deployment | `false` |
-| `build_resource_group_name` | Existing resource group to run the build in; Packer deletes its build resources there afterwards. Empty means a temporary resource group, which needs subscription-level permissions | `""` |
 | `vm_size` | Packer build VM size (min 2 vCPU / 4GB RAM) | `"Standard_D2s_v3"` |
 | `network.vnet_name` | Existing VNet to attach the build VM to | `""` (Packer creates temp networking) |
 | `network.subnet_name` | Existing subnet inside the VNet above | `""` |

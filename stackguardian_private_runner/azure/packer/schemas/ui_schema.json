@@ -4,7 +4,6 @@
     "azure_location",
     "resource_group_name",
     "create_resource_group",
-    "build_resource_group_name",
     "vm_size",
     "network",
     "os",
@@ -19,20 +18,16 @@
     "ui:description": "Hand back a managed image you already have instead of building one. Leave empty to run the Packer build. When it is set nothing is built - no build VM, no Packer download, no cleanup on destroy - and every other setting here is ignored. The image must live in the selected location and already carry Docker, cron, jq and sg-runner."
   },
   "azure_location": {
-    "ui:description": "The target Azure region to build the Private Runner image",
+    "ui:description": "Region for the resource group when it is created here. The build and the image always take the resource group's region.",
     "ui:placeholder": "westeurope"
   },
   "resource_group_name": {
-    "ui:description": "The name of the resource group where the image will be stored",
+    "ui:description": "The resource group the build runs in and the image is stored in. Packer creates its temporary build resources here and deletes them afterwards.",
     "ui:placeholder": "sg-runner-images-rg"
   },
   "create_resource_group": {
     "ui:widget": "checkbox",
     "ui:description": "Create the resource group as part of this deployment. If disabled, the resource group must already exist."
-  },
-  "build_resource_group_name": {
-    "ui:description": "Existing resource group to run the Packer build in. Packer creates the build VM and its temporary resources there and deletes them afterwards. Leave empty to let Packer use a temporary resource group, which needs subscription-level permissions. Must be in the selected location.",
-    "ui:placeholder": "rg-sg-runner-build"
   },
   "vm_size": {
     "ui:description": "The Azure VM size used by Packer during the build (min 2 vCPU, 4GB RAM recommended)",

@@ -1,4 +1,3 @@
-variable "azure_location" {}
 variable "resource_group_name" {}
 variable "vm_size" {}
 variable "image_publisher" {}
@@ -19,7 +18,6 @@ variable "vnet_name" { default = "" }
 variable "subnet_name" { default = "" }
 variable "vnet_resource_group_name" { default = "" }
 variable "proxy_url" { default = "" }
-variable "build_resource_group_name" { default = "" }
 
 # Federated (OIDC) service principal credentials, exposed as ARM_* by the
 # StackGuardian Azure connector.
@@ -50,10 +48,10 @@ source "azure-arm" "this" {
   client_jwt      = local.client_jwt
 
   # Location and VM configuration
-  # Packer creates a temporary resource group in location, or builds inside an
-  # existing one (taking its region). It rejects both being set.
-  location                  = var.build_resource_group_name == "" ? var.azure_location : null
-  build_resource_group_name = var.build_resource_group_name != "" ? var.build_resource_group_name : null
+  # Build inside the image's resource group instead of a temporary one Packer
+  # would create, so resource-group-scoped permissions are enough. Packer deletes
+  # the build VM and its resources afterwards; the build takes the group's region.
+  build_resource_group_name = var.resource_group_name
   vm_size                   = var.vm_size
 
   # Source image configuration

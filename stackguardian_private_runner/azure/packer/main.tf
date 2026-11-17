@@ -32,28 +32,26 @@ resource "null_resource" "packer_build" {
 
       # Packer reads PKR_VAR_<name> natively, so these reach image.pkr.hcl
       # without the build script having to know the per-cloud variable list.
-      PKR_VAR_azure_location            = var.azure_location
-      PKR_VAR_resource_group_name       = local.resource_group_name
-      PKR_VAR_build_resource_group_name = var.build_resource_group_name
-      PKR_VAR_vm_size                   = var.vm_size
-      PKR_VAR_image_publisher           = var.os.publisher
-      PKR_VAR_image_offer               = var.os.offer
-      PKR_VAR_image_sku                 = var.os.sku
-      PKR_VAR_image_version             = var.os.version
-      PKR_VAR_image_name_prefix         = var.image_name_prefix
-      PKR_VAR_os_family                 = local.os_family
-      PKR_VAR_ssh_username              = local.ssh_username
-      PKR_VAR_update_os_before_install  = var.os.update_os_before_install
-      PKR_VAR_user_script               = var.os.user_script
-      PKR_VAR_terraform_version         = var.terraform.primary_version
-      PKR_VAR_terraform_versions        = join(" ", var.terraform.additional_versions)
-      PKR_VAR_opentofu_version          = var.opentofu.primary_version
-      PKR_VAR_opentofu_versions         = join(" ", var.opentofu.additional_versions)
-      PKR_VAR_sg_runner_pre_release     = var.sg_runner.pre_release
-      PKR_VAR_vnet_name                 = var.network.vnet_name
-      PKR_VAR_subnet_name               = var.network.subnet_name
-      PKR_VAR_vnet_resource_group_name  = var.network.resource_group_name
-      PKR_VAR_proxy_url                 = var.network.proxy_url
+      PKR_VAR_resource_group_name      = local.resource_group_name
+      PKR_VAR_vm_size                  = var.vm_size
+      PKR_VAR_image_publisher          = var.os.publisher
+      PKR_VAR_image_offer              = var.os.offer
+      PKR_VAR_image_sku                = var.os.sku
+      PKR_VAR_image_version            = var.os.version
+      PKR_VAR_image_name_prefix        = var.image_name_prefix
+      PKR_VAR_os_family                = local.os_family
+      PKR_VAR_ssh_username             = local.ssh_username
+      PKR_VAR_update_os_before_install = var.os.update_os_before_install
+      PKR_VAR_user_script              = var.os.user_script
+      PKR_VAR_terraform_version        = var.terraform.primary_version
+      PKR_VAR_terraform_versions       = join(" ", var.terraform.additional_versions)
+      PKR_VAR_opentofu_version         = var.opentofu.primary_version
+      PKR_VAR_opentofu_versions        = join(" ", var.opentofu.additional_versions)
+      PKR_VAR_sg_runner_pre_release    = var.sg_runner.pre_release
+      PKR_VAR_vnet_name                = var.network.vnet_name
+      PKR_VAR_subnet_name              = var.network.subnet_name
+      PKR_VAR_vnet_resource_group_name = var.network.resource_group_name
+      PKR_VAR_proxy_url                = var.network.proxy_url
     }
   }
 

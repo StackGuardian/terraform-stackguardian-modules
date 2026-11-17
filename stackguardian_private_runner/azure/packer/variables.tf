@@ -21,13 +21,13 @@ variable "existing_image_id" {
 }
 
 variable "azure_location" {
-  description = "The target Azure region to build the Private Runner image"
+  description = "Region for the resource group when create_resource_group = true. The build and the image always take the resource group's region."
   type        = string
   default     = "westeurope"
 }
 
 variable "resource_group_name" {
-  description = "The name of the resource group where the image will be stored"
+  description = "The resource group the build runs in and the image is stored in. Packer creates its temporary build resources here and deletes them afterwards."
   type        = string
 }
 
@@ -35,20 +35,6 @@ variable "create_resource_group" {
   description = "Whether to create the resource group (if false, must already exist)"
   type        = bool
   default     = false
-}
-
-variable "build_resource_group_name" {
-  description = <<EOT
-    Existing resource group to run the Packer build in. Packer puts the build VM
-    and its temporary disk, NIC, public IP and networking there and deletes them
-    when the build ends; the resource group itself is left alone.
-    Leave empty to let Packer create and delete a temporary resource group,
-    which needs permissions at subscription scope.
-    When set, the build runs in this resource group's region, so keep it in
-    azure_location.
-  EOT
-  type        = string
-  default     = ""
 }
 
 variable "vm_size" {
