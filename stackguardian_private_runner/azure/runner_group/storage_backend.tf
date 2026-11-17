@@ -50,10 +50,14 @@ resource "azurerm_storage_account" "this" {
   }
 
   blob_properties {
+    # Always on: the storage backend keeps the history of the runners' state
+    # files, so this is not optional.
+    versioning_enabled = true
+
     cors_rule {
       allowed_headers    = ["*"]
       allowed_methods    = ["GET", "HEAD", "PUT", "POST", "DELETE", "MERGE", "OPTIONS", "PATCH"]
-      allowed_origins    = [local.sg_app_uri]
+      allowed_origins    = distinct(concat([local.sg_app_uri], var.storage_backend_cors_extra_origins))
       exposed_headers    = ["*"]
       max_age_in_seconds = 3600
     }
@@ -72,4 +76,30 @@ resource "azurerm_storage_container" "runner" {
   name                  = "runner"
   storage_account_id    = azurerm_storage_account.this[0].id
   container_access_type = "private"
+}
+
+# Delete previous blob versions noncurrent_retention_days after they were
+# written. Skipped when retention is 0 (keep forever).
+resource "azurerm_storage_management_policy" "this" {
+  count = (
+    var.create_storage_backend
+    && var.storage_backend_versioning.noncurrent_retention_days > 0
+  ) ? 1 : 0
+
+  storage_account_id = azurerm_storage_account.this[0].id
+
+  rule {
+    name    = "expire-noncurrent-versions"
+    enabled = true
+
+    filters {
+      blob_types = ["blockBlob"]
+    }
+
+    actions {
+      version {
+        delete_after_days_since_creation = var.storage_backend_versioning.noncurrent_retention_days
+      }
+    }
+  }
 }

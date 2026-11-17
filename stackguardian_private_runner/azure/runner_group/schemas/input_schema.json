@@ -173,8 +173,7 @@
                   "title": "Account Tier",
                   "type": "string",
                   "enum": [
-                    "Standard",
-                    "Premium"
+                    "Standard"
                   ],
                   "default": "Standard"
                 },
@@ -191,6 +190,29 @@
                 }
               },
               "additionalProperties": false
+            },
+            "storage_backend_versioning": {
+              "title": "State File Version History",
+              "type": "object",
+              "properties": {
+                "noncurrent_retention_days": {
+                  "title": "Old Version Retention (days)",
+                  "type": "integer",
+                  "default": 365,
+                  "minimum": 0,
+                  "maximum": 99999
+                }
+              },
+              "additionalProperties": false
+            },
+            "storage_backend_cors_extra_origins": {
+              "title": "Extra CORS Origins",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
+              },
+              "default": []
             }
           }
         },

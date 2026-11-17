@@ -19,6 +19,10 @@ an Azure deployment never initializes the AWS provider. The AWS equivalent is
 - **Storage Account + private `runner` blob container** with TLS 1.2 minimum and CORS
   limited to the StackGuardian platform origin (when `create_storage_backend = true`).
   The container name `runner` is required by the platform.
+- **Blob versioning** on that account, always on, so the runners' state files keep their
+  history.
+- **Lifecycle management policy** on that account: previous versions are deleted
+  `noncurrent_retention_days` after they were written.
 - **Entra ID application + service principal** backing the OIDC connector.
 - **Federated identity credential** issued by the StackGuardian API URI for the org
   subject `/orgs/{org_name}` — no long-lived secret is stored on the platform.
@@ -100,8 +104,10 @@ When `create_azure_resource_group = false`, `azure_resource_group_name` becomes 
 | `create_storage_backend` | Create a new Storage Account | `true` |
 | `existing_azure_storage_account_name` | Existing Storage Account name (when `create_storage_backend = false`) | `""` |
 | `existing_azure_storage_account_access_key` | Access key for that account (sensitive) | `""` |
-| `azure_storage.account_tier` | Storage Account performance tier (`Standard` / `Premium`) | `Standard` |
+| `azure_storage.account_tier` | Storage Account performance tier; only `Standard` (Premium has no blob versioning) | `Standard` |
 | `azure_storage.account_replication_type` | Replication strategy (`LRS` / `GRS` / `RAGRS` / `ZRS`) | `LRS` |
+| `storage_backend_versioning.noncurrent_retention_days` | Days to keep a previous version, counted from when it was written; `0` keeps them forever | `365` |
+| `storage_backend_cors_extra_origins` | Extra browser origins for the storage account's CORS rule (e.g. `http://localhost:3000`); bare origins only, no wildcards; the console origin is always allowed | `[]` |
 | `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader` | `true` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
@@ -172,7 +178,8 @@ together.
 
 - The storage account disables public blob access and enforces TLS 1.2 minimum; the
   container is private.
-- Browser requests are accepted only from the StackGuardian console origin (CORS).
+- Browser requests are accepted only from the StackGuardian console origin, plus any
+  origins you list in `storage_backend_cors_extra_origins` (CORS; no wildcards accepted).
 - The connector authenticates by OIDC federation, so no client secret is stored on the
   platform.
 - The connector service principal gets only `Storage Blob Data Reader`, scoped to the one
@@ -180,3 +187,17 @@ together.
 - The runner registration token and the storage access key are marked sensitive.
 - `tofu destroy` removes the storage account and everything in it. Back up anything you
   need first.
+- Blob versioning is always on and can't be turned off: the storage backend keeps the
+  history of the runners' state files, so an overwritten or deleted state file can always
+  be recovered. `storage_backend_versioning` only sets how long old versions are kept.
+- Only `Standard` storage accounts are accepted: Premium (page-blob) accounts have no
+  blob versioning and can't be managed by this module.
+- Azure counts a previous version's age from when that version was written, not from
+  when it was replaced. Example: with 365 days, overwrite a blob last written 400 days
+  ago and its previous version is deleted on the next daily policy run. Azure's lifecycle
+  rules offer no "days since replaced" option for versions.
+- Incomplete uploads need no cleanup rule on Azure: uncommitted blocks are discarded by
+  the service after 7 days.
+- With `create_storage_backend = false` the module doesn't touch your account: enable
+  blob versioning on it yourself, and set up CORS. A plan warning says so when extra CORS
+  origins are set.

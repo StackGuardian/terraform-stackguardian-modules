@@ -26,6 +26,54 @@ variable "force_destroy_storage_backend" {
   default     = false
 }
 
+variable "storage_backend_versioning" {
+  description = <<EOT
+    Retention of old state file versions in the storage backend bucket.
+
+    Versioning itself is always on for a bucket this module creates and can't be
+    turned off: the storage backend keeps the history of the runners' state
+    files, so an overwritten or deleted state file can always be recovered. An
+    existing bucket (create_storage_backend = false) is left as it is - enable
+    versioning on it yourself.
+
+    - noncurrent_retention_days: Days to keep a version after it is replaced,
+      then delete it. 0 keeps old versions forever.
+  EOT
+  type = object({
+    noncurrent_retention_days = optional(number, 365)
+  })
+  default = {}
+
+  validation {
+    condition = (
+      floor(var.storage_backend_versioning.noncurrent_retention_days) == var.storage_backend_versioning.noncurrent_retention_days
+      && var.storage_backend_versioning.noncurrent_retention_days >= 0
+      && var.storage_backend_versioning.noncurrent_retention_days <= 99999
+    )
+    error_message = "storage_backend_versioning.noncurrent_retention_days must be a whole number between 0 and 99999."
+  }
+}
+
+variable "storage_backend_cors_extra_origins" {
+  description = <<EOT
+    Extra browser origins allowed by the storage backend's CORS rule, on top of
+    the StackGuardian console origin for the selected API region. Use it to let a
+    local or self-hosted frontend fetch runner logs and artifacts, e.g.
+    ["http://localhost:3000"]. Only applies when create_storage_backend = true.
+    Each entry is a bare origin: scheme://host[:port], no path or trailing slash.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for origin in var.storage_backend_cors_extra_origins :
+      can(regex("^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$", origin))
+    ])
+    error_message = "Each storage_backend_cors_extra_origins entry must be an origin like http://localhost:3000 (scheme://host[:port]: no wildcard, path, query or fragment)."
+  }
+}
+
 /*-----------------------------------+
  | StackGuardian Platform Variables  |
  +-----------------------------------*/

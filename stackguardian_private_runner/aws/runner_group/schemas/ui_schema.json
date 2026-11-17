@@ -7,6 +7,8 @@
     "create_storage_backend",
     "existing_s3_bucket_name",
     "force_destroy_storage_backend",
+    "storage_backend_versioning",
+    "storage_backend_cors_extra_origins",
     "override_names",
     "max_runners"
   ],
@@ -46,6 +48,19 @@
   "force_destroy_storage_backend": {
     "ui:widget": "checkbox",
     "ui:description": "Warning: Force destroy the S3 bucket on module destruction (deletes all data)"
+  },
+  "storage_backend_versioning": {
+    "ui:title": "State File Version History",
+    "ui:description": "Versioning is always on for the S3 bucket: it keeps the history of the runners' state files, so an overwritten or deleted state file can be recovered. Choose how long old versions are kept.",
+    "ui:order": [
+      "noncurrent_retention_days"
+    ],
+    "noncurrent_retention_days": {
+      "ui:description": "Days to keep a version after it is replaced, then delete it. 0 keeps old versions forever"
+    }
+  },
+  "storage_backend_cors_extra_origins": {
+    "ui:description": "Extra browser origins allowed to fetch from the S3 bucket, e.g. http://localhost:3000. The StackGuardian console origin is always allowed"
   },
   "override_names": {
     "ui:title": "Resource Naming Configuration",

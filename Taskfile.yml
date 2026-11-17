@@ -112,13 +112,13 @@ tasks:
         export AZUREAD_CLIENT_SECRET="$ARM_CLIENT_SECRET"
         export AZUREAD_TENANT_ID="$ARM_TENANT_ID"
         while IFS= read -r config_dir; do
-          if [ "$config_dir" = "$root" ]; then
-            target="$temp/root"
-          else
-            target="$temp/${config_dir#"$root"/}"
-          fi
-          mkdir -p "$target"
-          tar --exclude='.git' --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$config_dir" . | tar -xf - -C "$target"
+          # Copy the whole repository so relative module sources (../../runner_group) resolve
+          rel="${config_dir#"$root"}"
+          rel="${rel#/}"
+          work="$temp/$(printf '%s' "${rel:-root}" | tr '/' '_')"
+          target="$work${rel:+/$rel}"
+          mkdir -p "$work"
+          tar --exclude='.git' --exclude='.terraform' --exclude='.terraform.lock.hcl' -cf - -C "$root" . | tar -xf - -C "$work"
           if [ "$config_dir" = "$root" ]; then
             : > "$target/provider.tf"
             printf '%s\n' \
@@ -142,7 +142,7 @@ tasks:
           while IFS= read -r provider_file; do
             perl -0pi -e 's/required_version = "= 1\.5\.7"/required_version = ">= 1.6.0"/' "$provider_file"
             perl -0pi -e 's/source\s*=\s*"StackGuardian\/stackguardian"/source  = "registry.terraform.io\/StackGuardian\/stackguardian"/' "$provider_file"
-          done < <(find "$target" -name provider.tf -type f)
+          done < <(find "$work" -name provider.tf -type f)
           tofu -chdir="$target" init -backend=false
           tofu -chdir="$target" test
         done < <(find "$root" \( -name .git -o -name .terraform \) -type d -prune -o -path '*/tests/*.tofutest.hcl' -type f -print | while IFS= read -r test_file; do dirname "$(dirname "$test_file")"; done | sort -u)
