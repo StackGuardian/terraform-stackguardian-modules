@@ -24,7 +24,7 @@ resource "null_resource" "packer_build" {
 
   provisioner "local-exec" {
     working_dir = path.module
-    command     = "sh ./scripts/build.sh"
+    command     = "sh ../../packer/scripts/build.sh"
     environment = {
       # Drives the shared build script itself
       PACKER_VERSION  = var.packer_config.version

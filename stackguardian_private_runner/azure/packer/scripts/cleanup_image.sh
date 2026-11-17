@@ -7,40 +7,27 @@
 #
 # Required env:
 #   TARGET_IMAGE_ID   Full Azure resource ID of the managed image to delete.
+#   ARM_CLIENT_ID, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID, ARM_OIDC_TOKEN
+#                     Federated credentials exposed by the StackGuardian Azure connector.
 # Optional env:
 #   DRY_RUN=true      Print actions without executing them.
 
 set -e
-
-. "$(dirname "$0")/azure_auth.sh"
 
 _have_az() {
   command -v az >/dev/null 2>&1
 }
 
 _login_service_principal() {
-  az account show >/dev/null 2>&1 && return 0
-  [ -n "$ARM_CLIENT_ID" ] && [ -n "$ARM_TENANT_ID" ] || return 0
-
-  if [ -n "$ARM_CLIENT_SECRET" ]; then
-    az login --service-principal -u "$ARM_CLIENT_ID" -t "$ARM_TENANT_ID" \
-      -p "$ARM_CLIENT_SECRET" --allow-no-subscriptions >/dev/null
-  elif [ -n "${ARM_OIDC_TOKEN:-}" ]; then
-    az login --service-principal -u "$ARM_CLIENT_ID" -t "$ARM_TENANT_ID" \
-      --federated-token "$ARM_OIDC_TOKEN" --allow-no-subscriptions >/dev/null
-  else
-    return 0
-  fi
-
-  if [ -n "$ARM_SUBSCRIPTION_ID" ]; then
-    az account set --subscription "$ARM_SUBSCRIPTION_ID"
-  fi
+  az login --service-principal -u "$ARM_CLIENT_ID" -t "$ARM_TENANT_ID" \
+    --federated-token "$ARM_OIDC_TOKEN" --allow-no-subscriptions >/dev/null
+  az account set --subscription "$ARM_SUBSCRIPTION_ID"
 }
 
 _verify_credentials() {
   _login_service_principal
   if ! az account show >/dev/null 2>&1; then
-    echo "ERROR: not logged in to Azure CLI. Run 'az login' first." >&2
+    echo "ERROR: Azure login failed. Check ARM_CLIENT_ID / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID / ARM_OIDC_TOKEN." >&2
     exit 1
   fi
 }
