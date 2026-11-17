@@ -4,6 +4,7 @@
     "azure_location",
     "resource_group_name",
     "create_resource_group",
+    "build_resource_group_name",
     "vm_size",
     "network",
     "os",
@@ -28,6 +29,10 @@
   "create_resource_group": {
     "ui:widget": "checkbox",
     "ui:description": "Create the resource group as part of this deployment. If disabled, the resource group must already exist."
+  },
+  "build_resource_group_name": {
+    "ui:description": "Existing resource group to run the Packer build in. Packer creates the build VM and its temporary resources there and deletes them afterwards. Leave empty to let Packer use a temporary resource group, which needs subscription-level permissions. Must be in the selected location.",
+    "ui:placeholder": "rg-sg-runner-build"
   },
   "vm_size": {
     "ui:description": "The Azure VM size used by Packer during the build (min 2 vCPU, 4GB RAM recommended)",

@@ -33,6 +33,7 @@ This template produces a reusable Azure managed image so your private runners bo
 | `existing_image_id` | Hand back a managed image you already have instead of building one. When set, nothing is built and every other parameter below is ignored | `""` |
 | `azure_location` | The target Azure region to build the Private Runner image | `westeurope` |
 | `create_resource_group` | Create the resource group as part of this deployment. If disabled, it must already exist. | `false` |
+| `build_resource_group_name` | Existing resource group to run the build in; Packer deletes its build resources there afterwards. Empty means a temporary resource group, which needs subscription-level permissions | `""` |
 | `vm_size` | The Azure VM size used by Packer during the build (min 2 vCPU, 4GB RAM recommended) | `Standard_D2s_v3` |
 | `network.vnet_name` | Name of an existing virtual network to use for the build VM | `""` |
 | `network.subnet_name` | Name of an existing subnet inside the VNet above | `""` |

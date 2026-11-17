@@ -11,6 +11,11 @@ resource_group_name = "sg-runner-images-rg"
 # Leave false to reuse a resource group that already exists.
 create_resource_group = false
 
+# Run the build inside an existing resource group instead of letting Packer
+# create a temporary one (which needs subscription-level permissions). Packer
+# deletes the build VM and its resources there afterwards. Must be in azure_location.
+# build_resource_group_name = "rg-sg-runner-build"
+
 # Prefix for the generated image name. The final name is
 # <prefix>-<os_family>-<sku>-<timestamp>, e.g. sg-runner-ubuntu-22_04-lts-gen2-1712345678
 image_name_prefix = "sg-runner"

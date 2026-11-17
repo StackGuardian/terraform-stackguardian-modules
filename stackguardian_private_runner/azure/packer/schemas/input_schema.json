@@ -23,6 +23,11 @@
       "type": "boolean",
       "default": false
     },
+    "build_resource_group_name": {
+      "title": "Build Resource Group Name",
+      "type": "string",
+      "default": ""
+    },
     "vm_size": {
       "title": "Build VM Size",
       "type": "string",

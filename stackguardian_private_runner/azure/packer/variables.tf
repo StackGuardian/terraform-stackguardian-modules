@@ -37,6 +37,20 @@ variable "create_resource_group" {
   default     = false
 }
 
+variable "build_resource_group_name" {
+  description = <<EOT
+    Existing resource group to run the Packer build in. Packer puts the build VM
+    and its temporary disk, NIC, public IP and networking there and deletes them
+    when the build ends; the resource group itself is left alone.
+    Leave empty to let Packer create and delete a temporary resource group,
+    which needs permissions at subscription scope.
+    When set, the build runs in this resource group's region, so keep it in
+    azure_location.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "vm_size" {
   description = "The Azure VM size for the Packer build process (min 2 vCPU, 4GB RAM recommended)"
   type        = string
