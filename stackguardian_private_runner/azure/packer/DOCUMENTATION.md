@@ -14,7 +14,7 @@ This template produces a reusable Azure managed image so your private runners bo
 
 ## Prerequisites
 
-- Azure credentials configured on the StackGuardian runner (via `az login`, service principal env vars, or managed identity).
+- Azure credentials configured on the StackGuardian runner: service principal `ARM_*` env vars with a client secret or federated OIDC token (as set by an Azure connector), or `az login`.
 - Permission in the target subscription to create managed images (and the resource group, if you let the template create it).
 - Outbound network access from Azure to package mirrors during the build, or an HTTP proxy reachable from the build VNet.
 

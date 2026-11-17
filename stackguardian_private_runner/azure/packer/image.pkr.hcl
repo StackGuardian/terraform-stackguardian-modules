@@ -20,6 +20,20 @@ variable "subnet_name" { default = "" }
 variable "vnet_resource_group_name" { default = "" }
 variable "proxy_url" { default = "" }
 
+# Service principal credentials, exported by scripts/azure_auth.sh. When
+# client_id is empty, the build falls back to the Azure CLI login.
+variable "client_id" { default = env("ARM_CLIENT_ID") }
+variable "tenant_id" { default = env("ARM_TENANT_ID") }
+variable "subscription_id" { default = env("ARM_SUBSCRIPTION_ID") }
+variable "client_secret" {
+  default   = env("ARM_CLIENT_SECRET")
+  sensitive = true
+}
+variable "client_jwt" {
+  default   = env("ARM_OIDC_TOKEN")
+  sensitive = true
+}
+
 packer {
   required_plugins {
     azure = {
@@ -30,8 +44,14 @@ packer {
 }
 
 source "azure-arm" "this" {
-  # Use Azure CLI authentication (must be logged in)
-  use_azure_cli_auth = true
+  # Service principal (client secret or federated OIDC token) when credentials
+  # are in the environment, e.g. on a StackGuardian runner; Azure CLI otherwise.
+  use_azure_cli_auth = var.client_id == ""
+  client_id          = var.client_id != "" ? var.client_id : null
+  tenant_id          = var.client_id != "" && var.tenant_id != "" ? var.tenant_id : null
+  subscription_id    = var.client_id != "" && var.subscription_id != "" ? var.subscription_id : null
+  client_secret      = var.client_id != "" && var.client_secret != "" ? var.client_secret : null
+  client_jwt         = var.client_id != "" && var.client_secret == "" && var.client_jwt != "" ? var.client_jwt : null
 
   # Location and VM configuration
   location = var.azure_location

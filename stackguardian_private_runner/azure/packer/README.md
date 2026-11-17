@@ -18,7 +18,7 @@ This module provisions an Azure managed image that the sibling `azure_runner` au
 
 ## Prerequisites
 
-- An Azure subscription and credentials available to the runner (one of: `az login`, `ARM_*` service-principal env vars, or managed identity).
+- An Azure subscription and credentials available to the runner: a service principal in `ARM_*` env vars (client secret or federated OIDC token, as set by a StackGuardian Azure connector), or `az login` locally.
 - Permission to create managed images in the target resource group (and to create the resource group itself, if `create_resource_group = true`).
 - Outbound network access from the build VM to package mirrors (Ubuntu archive / RHEL repos, HashiCorp/OpenTofu releases). If the network is locked down, supply `network.proxy_url`.
 - `sh`, `curl`, and `unzip` available on the machine running Terraform — `../../packer/scripts/build.sh` uses them to bootstrap Packer (default version `1.14.1`).
@@ -251,7 +251,8 @@ Image name follows: `{image_name_prefix}-{os_family}-{os.sku}` where `os_family`
 ### Common Issues
 
 1. **`az` CLI / Azure auth not available**
-   - Run `az login`, or export `ARM_CLIENT_ID` / `ARM_CLIENT_SECRET` / `ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` before `terraform apply`.
+   - Run `az login`, or export `ARM_CLIENT_ID` / `ARM_TENANT_ID` / `ARM_SUBSCRIPTION_ID` plus either `ARM_CLIENT_SECRET` or a federated token (`ARM_OIDC_TOKEN`, or a file path in `ARM_OIDC_TOKEN_FILE_PATH` / `AZURE_FEDERATED_TOKEN_FILE`) before `terraform apply`. `AZURE_*` names are accepted too.
+   - The build log prints which method was picked (`>> Azure auth: ...`). `azureProfile.json: no such file or directory` means no service principal env vars were found and Packer fell back to the Azure CLI.
 
 2. **Packer install fails in `../../packer/scripts/build.sh`**
    - Confirm outbound HTTPS to `releases.hashicorp.com`. Behind a proxy, set `HTTPS_PROXY` in the runner environment as well as `network.proxy_url`.
