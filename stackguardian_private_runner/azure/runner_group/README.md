@@ -31,6 +31,10 @@ an Azure deployment never initializes the AWS provider. The AWS equivalent is
 - **StackGuardian Runner Group** with `max_number_of_runners` and default tags.
 - **StackGuardian Connector** (`AZURE_OIDC`) wired to the identity above.
 
+With `create_connector = false` the Entra ID application, service principal, federated
+credential, role assignment and connector are all skipped. Set them up yourself and link
+your connector with `existing_connector_name` (see [Bring your own connector](#bring-your-own-connector)).
+
 ## Prerequisites
 
 - StackGuardian API key (`sgu_*` user key, `sgo_*` org key, or a `${secret::SECRET_NAME}`
@@ -42,6 +46,8 @@ an Azure deployment never initializes the AWS provider. The AWS equivalent is
   (e.g. `Owner` or `User Access Administrator`); if the deploying identity lacks it, set
   `create_blob_reader_role_assignment = false` and create the assignment out of band using
   the `azure_connector_service_principal_object_id` output.
+- With `create_connector = false`, no Entra ID permissions and no role-assignment rights
+  are needed.
 
 ## Quick Start
 
@@ -108,7 +114,9 @@ When `create_azure_resource_group = false`, `azure_resource_group_name` becomes 
 | `azure_storage.account_replication_type` | Replication strategy (`LRS` / `GRS` / `RAGRS` / `ZRS`) | `LRS` |
 | `storage_backend_versioning.noncurrent_retention_days` | Days to keep a previous version, counted from when it was written; `0` keeps them forever | `365` |
 | `storage_backend_cors_extra_origins` | Extra browser origins for the storage account's CORS rule (e.g. `http://localhost:3000`); bare origins only, no wildcards; the console origin is always allowed | `[]` |
-| `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader` | `true` |
+| `create_connector` | Create the connector and its Azure identity (app registration, service principal, federated credential, blob reader role assignment) | `true` |
+| `existing_connector_name` | Existing connector to link when `create_connector = false`; never managed by the module | `""` |
+| `create_blob_reader_role_assignment` | Grant the connector SP `Storage Blob Data Reader`; ignored when `create_connector = false` | `true` |
 | `override_names.global_prefix` | Prefix for the runner group and connector names; `""` omits it | `SG_RUNNER` |
 | `override_names.runner_group_name` | Name half of the runner group | (6-char random) |
 | `override_names.connector_name` | Name half of the connector | (runner group's name) |
@@ -153,6 +161,31 @@ The platform models tags as a flat list of strings — there are no keys — cap
 The org name and the runner group name are deliberately not tagged: a runner group
 only ever lives in one org, and its own name is not information a tag adds.
 
+
+### Bring your own connector
+
+Set `create_connector = false` to skip the whole connector side, for example to reuse the
+connector your workflows already deploy with, or when the deploying identity cannot create
+Entra ID app registrations:
+
+```hcl
+create_connector        = false
+existing_connector_name = "my-azure-connector"
+```
+
+The module then creates no app registration, service principal, federated credential,
+role assignment or connector. It only links the runner group to `existing_connector_name`
+and never changes or deletes that connector. You set up:
+
+- The connector in StackGuardian, with an Azure identity whose federated credential trusts
+  the StackGuardian API URI (issuer and audience) for subject `/orgs/{org_name}`.
+- Read access for that identity on the storage account (`Storage Blob Data Reader`), if the
+  platform needs it alongside the access key.
+
+Leaving `existing_connector_name` empty creates the runner group without a connector. A
+connector linked by hand in the console is then removed again on the next apply, so set it
+here instead.
+
 ## Outputs
 
 | Output | Description |
@@ -160,8 +193,8 @@ only ever lives in one org, and its own name is not information a tag adds.
 | `runner_group_name` / `runner_group_id` | Name of the created runner group |
 | `runner_group_token` | Registration token for runners (sensitive) |
 | `runner_group_url` | Direct link to the runner group in the web console |
-| `connector_name` / `connector_id` | Name of the Azure connector |
-| `azure_connector_service_principal_object_id` | Connector SP object ID — use it to create the role assignment out of band |
+| `connector_name` / `connector_id` | Name of the linked Azure connector (`null` when none) |
+| `azure_connector_service_principal_object_id` | Connector SP object ID — use it to create the role assignment out of band (`null` when `create_connector = false`) |
 | `azure_resource_group_name` | Resource group name — feed into the downstream `azure/*` modules |
 | `azure_resource_group_location` | Resource group region |
 | `azure_storage_account_name` | Storage backend account name |

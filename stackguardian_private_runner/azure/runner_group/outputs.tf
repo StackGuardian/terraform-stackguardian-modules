@@ -26,18 +26,18 @@ output "runner_group_url" {
  | Connector Outputs                |
  +---------------------------------*/
 output "connector_name" {
-  description = "The name of the StackGuardian Azure connector"
+  description = "The name of the StackGuardian Azure connector the runner group is linked to (null when none)"
   value       = module.runner_group.connector_name
 }
 
 output "connector_id" {
-  description = "The ID of the StackGuardian Azure connector"
+  description = "The ID of the StackGuardian Azure connector the runner group is linked to (null when none)"
   value       = module.runner_group.connector_id
 }
 
 output "azure_connector_service_principal_object_id" {
-  description = "Object ID of the OIDC connector service principal. Use this to create the 'Storage Blob Data Reader' role assignment out of band when create_blob_reader_role_assignment = false."
-  value       = azuread_service_principal.connector.object_id
+  description = "Object ID of the OIDC connector service principal (null when create_connector = false). Use this to create the 'Storage Blob Data Reader' role assignment out of band when create_blob_reader_role_assignment = false."
+  value       = var.create_connector ? azuread_service_principal.connector[0].object_id : null
 }
 
 /*---------------------------------+

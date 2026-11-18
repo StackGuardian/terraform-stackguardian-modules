@@ -26,11 +26,11 @@ output "runner_group_url" {
  | Connector Outputs                |
  +---------------------------------*/
 output "connector_name" {
-  description = "The name of the StackGuardian connector"
-  value       = local.is_aws ? stackguardian_connector.aws[0].resource_name : stackguardian_connector.azure[0].resource_name
+  description = "The name of the StackGuardian connector the runner group is linked to (null when none)"
+  value       = local.connector_ref != "" ? local.connector_ref : null
 }
 
 output "connector_id" {
-  description = "The ID of the StackGuardian connector"
-  value       = local.is_aws ? stackguardian_connector.aws[0].resource_name : stackguardian_connector.azure[0].resource_name
+  description = "The ID of the StackGuardian connector the runner group is linked to (null when none)"
+  value       = local.connector_ref != "" ? local.connector_ref : null
 }

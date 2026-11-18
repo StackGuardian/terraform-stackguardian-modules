@@ -20,9 +20,11 @@ module "runner_group" {
   sg_org_name = local.sg_org_name
   sg_app_uri  = local.sg_app_uri
 
-  runner_group_name = local.runner_group_name
-  connector_name    = local.connector_name
-  max_runners       = var.max_runners
+  runner_group_name       = local.runner_group_name
+  connector_name          = local.connector_name
+  create_connector        = var.create_connector
+  existing_connector_name = var.existing_connector_name
+  max_runners             = var.max_runners
 
   tags = local.platform_tags
 
@@ -33,7 +35,7 @@ module "runner_group" {
       access_key           = local.storage_access_key
       tenant_id            = data.azurerm_client_config.current.tenant_id
       subscription_id      = local.subscription_id
-      client_id            = azuread_application.connector.client_id
+      client_id            = var.create_connector ? azuread_application.connector[0].client_id : ""
     }
   }
 }

@@ -170,3 +170,59 @@ run "cors_rejects_path_query_and_fragment" {
 
   expect_failures = [var.storage_backend_cors_extra_origins]
 }
+
+run "connector_created_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(azuread_application.connector) == 1 && length(azurerm_role_assignment.connector_blob_reader) == 1
+    error_message = "By default the module must create the connector identity and its blob reader role assignment."
+  }
+}
+
+run "skip_connector_creates_no_identity" {
+  command = plan
+
+  variables {
+    create_connector = false
+  }
+
+  assert {
+    condition = (
+      length(azuread_application.connector) == 0 &&
+      length(azuread_service_principal.connector) == 0 &&
+      length(azuread_application_federated_identity_credential.connector) == 0 &&
+      length(azurerm_role_assignment.connector_blob_reader) == 0
+    )
+    error_message = "create_connector = false must create no Entra ID identity and no role assignment."
+  }
+
+  assert {
+    condition     = output.connector_name == null && output.azure_connector_service_principal_object_id == null
+    error_message = "Without a connector, the connector outputs must be null."
+  }
+}
+
+run "skip_connector_links_existing_connector" {
+  command = plan
+
+  variables {
+    create_connector        = false
+    existing_connector_name = "deploy-connector"
+  }
+
+  assert {
+    condition     = output.connector_name == "deploy-connector" && length(azuread_application.connector) == 0
+    error_message = "The runner group must link the existing connector without creating an identity."
+  }
+}
+
+run "existing_connector_name_warns_when_creating" {
+  command = plan
+
+  variables {
+    existing_connector_name = "deploy-connector"
+  }
+
+  expect_failures = [check.existing_connector_name_ignored]
+}

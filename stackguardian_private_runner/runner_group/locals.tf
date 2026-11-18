@@ -6,6 +6,14 @@ locals {
   aws_backend   = var.storage_backend.aws
   azure_backend = var.storage_backend.azure
 
+  # Connector the runner group's storage backend authenticates through: the one
+  # created here, an existing one passed in by name, or none ("").
+  connector_ref = (
+    var.create_connector
+    ? (local.is_aws ? stackguardian_connector.aws[0].resource_name : stackguardian_connector.azure[0].resource_name)
+    : var.existing_connector_name
+  )
+
   # Tags applied to both the runner group and the connector. The platform models
   # tags as a flat list of strings - there are no keys - so values are bare.
   #

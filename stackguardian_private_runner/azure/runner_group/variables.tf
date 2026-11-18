@@ -132,9 +132,35 @@ variable "azure_resource_group_name" {
   default     = ""
 }
 
+variable "create_connector" {
+  description = <<EOT
+    Whether to create the StackGuardian connector and the Azure identity behind it:
+    the Entra ID app registration, service principal and federated credential, and
+    the 'Storage Blob Data Reader' role assignment.
+    Set to false to set all of that up yourself - for example to reuse the
+    connector your workflows already deploy with, or when the deploying identity
+    cannot create app registrations. No Entra ID permissions are needed then.
+    Link your connector with existing_connector_name.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "existing_connector_name" {
+  description = <<EOT
+    Name of an existing StackGuardian connector to link the runner group's storage
+    backend to when create_connector = false. The module never creates, changes or
+    deletes it. Leave empty to create the runner group without a connector - but
+    a connector linked by hand in the console is then removed again on the next
+    apply, so set it here instead.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "create_blob_reader_role_assignment" {
   description = <<EOT
-    Whether to create the 'Storage Blob Data Reader' role assignment that grants the OIDC connector service principal read access to the storage account.
+    Whether to create the 'Storage Blob Data Reader' role assignment that grants the OIDC connector service principal read access to the storage account. Ignored when create_connector = false.
     Set to false when the identity running Terraform lacks Microsoft.Authorization/roleAssignments/write (e.g. Contributor without User Access Administrator). When false, you must create the role assignment out of band before runners can read from the storage account.
   EOT
   type        = bool

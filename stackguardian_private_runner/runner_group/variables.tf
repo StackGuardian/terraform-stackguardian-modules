@@ -25,8 +25,29 @@ variable "runner_group_name" {
 }
 
 variable "connector_name" {
-  description = "Name of the StackGuardian connector to create for storage backend access."
+  description = "Name of the StackGuardian connector to create for storage backend access. Unused when create_connector = false."
   type        = string
+}
+
+variable "create_connector" {
+  description = <<EOT
+    Whether to create the StackGuardian connector for storage backend access.
+    Set to false to manage the connector yourself; link it to the runner group
+    with existing_connector_name, or leave that empty to create the runner group
+    without one.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "existing_connector_name" {
+  description = <<EOT
+    Name of an existing StackGuardian connector to link the runner group's
+    storage backend to when create_connector = false. Leave empty to create the
+    runner group without a connector. The module never manages this connector.
+  EOT
+  type        = string
+  default     = ""
 }
 
 variable "tags" {

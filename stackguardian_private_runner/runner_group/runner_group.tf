@@ -12,18 +12,18 @@ resource "stackguardian_runner_group" "this" {
     s3_bucket_name                  = local.aws_backend.bucket_name
     azure_blob_storage_account_name = null
     azure_blob_storage_access_key   = null
-    auth = {
-      integration_id = "/integrations/${stackguardian_connector.aws[0].resource_name}"
-    }
+    auth = local.connector_ref != "" ? {
+      integration_id = "/integrations/${local.connector_ref}"
+    } : null
     } : {
     type                            = "azure_blob_storage"
     aws_region                      = null
     s3_bucket_name                  = null
     azure_blob_storage_account_name = local.azure_backend.storage_account_name
     azure_blob_storage_access_key   = local.azure_backend.access_key
-    auth = {
-      integration_id = "/integrations/${stackguardian_connector.azure[0].resource_name}"
-    }
+    auth = local.connector_ref != "" ? {
+      integration_id = "/integrations/${local.connector_ref}"
+    } : null
   }
 
   tags = local.default_tags

@@ -6,7 +6,7 @@
 
 # AWS Connector — Uses RBAC role for S3 access
 resource "stackguardian_connector" "aws" {
-  count = local.is_aws ? 1 : 0
+  count = local.is_aws && var.create_connector ? 1 : 0
 
   resource_name = var.connector_name
   description   = "AWS connector for accessing Private Runner storage backend (S3 Bucket: ${local.aws_backend.bucket_name})."
@@ -26,7 +26,7 @@ resource "stackguardian_connector" "aws" {
 
 # Azure Connector — Uses OIDC with a Service Principal provisioned by the caller
 resource "stackguardian_connector" "azure" {
-  count = local.is_azure ? 1 : 0
+  count = local.is_azure && var.create_connector ? 1 : 0
 
   resource_name = var.connector_name
   description   = "Azure OIDC connector for Private Runner storage backend"

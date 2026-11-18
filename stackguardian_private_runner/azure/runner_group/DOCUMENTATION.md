@@ -27,6 +27,9 @@ Deploying on AWS instead? Use the **StackGuardian Runner Group - AWS** template.
 - **Azure Connector** — `AZURE_OIDC` integration between StackGuardian and your
   subscription.
 
+Disable **Create Connector** to skip the Entra ID application, its role assignment and the
+connector, and link a connector you manage yourself with **Existing Connector Name**.
+
 ## Prerequisites
 
 - A StackGuardian API key for your organization.
@@ -55,7 +58,9 @@ required.
 | Azure Region | The Azure region where storage resources will be deployed | westeurope |
 | Create Azure Resource Group | Create a new Azure Resource Group for the storage account | Enabled |
 | Azure Resource Group Name | Resource Group name. Optional override when creating; required when using an existing RG | — |
-| Create Blob Reader Role Assignment | Grant the OIDC connector SP `Storage Blob Data Reader` on the storage account. Disable when the deploying identity lacks role-assignment write permission | Enabled |
+| Create Connector | Create the connector and its Azure identity (Entra ID app registration, service principal, federated credential, blob reader role assignment). Disable to set these up yourself; no Entra ID permissions are needed then | Enabled |
+| Existing Connector Name | Existing connector to link the runner group to when Create Connector is disabled. Never changed by this template. A connector linked by hand in the console is removed on the next apply unless it is set here | — |
+| Create Blob Reader Role Assignment | Grant the OIDC connector SP `Storage Blob Data Reader` on the storage account. Disable when the deploying identity lacks role-assignment write permission. Ignored when Create Connector is disabled | Enabled |
 | Create Storage Backend | Whether to create a new Azure Storage Account | Enabled |
 | Azure Storage — Account Tier | Performance tier of the Storage Account. Only Standard: Premium has no blob versioning, so state files would keep no history | Standard |
 | Azure Storage — Replication Type | Replication strategy (LRS / GRS / RAGRS / ZRS) | LRS |
@@ -127,8 +132,8 @@ account, enable blob versioning yourself.
 | Runner Group Name | Name of the created runner group, used in workflow configurations |
 | Runner Group Token | Authentication token for registering runners (sensitive) |
 | Runner Group URL | Direct link to manage the runner group in the StackGuardian console |
-| Connector Name | Name of the Azure connector integration |
-| Azure Connector Service Principal Object ID | Object ID of the OIDC connector SP — use to create the role assignment out of band when disabled |
+| Connector Name | Name of the linked Azure connector integration (empty when none) |
+| Azure Connector Service Principal Object ID | Object ID of the OIDC connector SP — use to create the role assignment out of band when disabled (empty when Create Connector is disabled) |
 | Azure Resource Group Name | Name of the Resource Group — feed into downstream Azure templates |
 | Azure Resource Group Location | Location of the Resource Group |
 | Azure Storage Account Name | Name of the Storage Account |

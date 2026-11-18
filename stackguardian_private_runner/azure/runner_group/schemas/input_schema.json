@@ -110,6 +110,16 @@
       "type": "string",
       "default": ""
     },
+    "create_connector": {
+      "title": "Create Connector",
+      "type": "boolean",
+      "default": true
+    },
+    "existing_connector_name": {
+      "title": "Existing Connector Name",
+      "type": "string",
+      "default": ""
+    },
     "create_blob_reader_role_assignment": {
       "title": "Create Blob Reader Role Assignment",
       "type": "boolean",

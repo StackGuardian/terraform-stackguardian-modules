@@ -6,6 +6,8 @@
     "azure_location",
     "create_azure_resource_group",
     "azure_resource_group_name",
+    "create_connector",
+    "existing_connector_name",
     "create_blob_reader_role_assignment",
     "create_storage_backend",
     "azure_storage",
@@ -48,6 +50,14 @@
   "azure_resource_group_name": {
     "ui:placeholder": "(auto-generated when creating)",
     "ui:description": "Optional name override when creating the resource group; required when using an existing resource group."
+  },
+  "create_connector": {
+    "ui:widget": "checkbox",
+    "ui:description": "Create the StackGuardian connector and its Azure identity (Entra ID app registration, service principal, federated credential, blob reader role assignment). Disable to set these up yourself, e.g. to reuse your deploy connector; no Entra ID permissions are needed then."
+  },
+  "existing_connector_name": {
+    "ui:description": "Existing StackGuardian connector to link the runner group's storage backend to when Create Connector is disabled. Never changed by this template. Leave empty for no connector, but a connector linked by hand in the console is removed again on the next apply.",
+    "ui:placeholder": "my-azure-connector"
   },
   "create_blob_reader_role_assignment": {
     "ui:widget": "checkbox",
